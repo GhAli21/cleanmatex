@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "timezoneNotConfigured": "No time zone is set for this organization or branch, so this date cannot be chosen. Ask an administrator to set one.",
+    "localTimeNonexistent": "This time does not exist on that day because the clocks change. Choose another time.",
+    "localTimeAmbiguous": "This time happens twice on that day because the clocks go back. Choose the earlier or the later one.",
+    "instantOffsetRequired": "The date and time must include a time zone offset.",
+    "invalidCivilDate": "Enter a valid date.",
+    "invalidLocalTime": "Enter a valid time.",
+    "zoneMismatch": "The shop time zone changed. Reload and try again.",
+    "invalidTimeZone": "Choose a time zone from the list.",
+    "settingInvalid": "This date and time setting is not valid.",
+    "zoneChangeBlockedOpenSession": "Close the open POS sessions on this branch before changing its time zone."
+  },
+  "disambiguation": {
+    "title": "Which {time}?",
+    "earlier": "The earlier {time} ({offset})",
+    "later": "The later {time} ({offset})"
+  },
+  "zone": {
+    "timesShownIn": "Times shown in {zone} ({offset})"
+  }
+}

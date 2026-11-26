@@ -253,6 +253,7 @@
     "IMPORT_BATCH_NOT_PREVIEWED": "This batch was already imported.",
     "PROVIDER_NOT_FOUND": "This provider isn't available.",
     "PROVIDER_FETCH_FAILED": "Couldn't reach the provider. Please try again later.",
-    "generic": "Something went wrong. Please try again."
+    "generic": "Something went wrong. Please try again.",
+    "timezoneNotConfigured": "No time zone is set for this organization, so a date cannot be chosen. Ask an administrator to set one."
   }
 }

@@ -6,6 +6,7 @@
     "voucherNo": "Voucher No.",
     "voucherType": "Voucher Type",
     "voucherDate": "Voucher Date",
+    "timezoneNotConfigured": "No time zone is set for this organization, so a date cannot be chosen. Ask an administrator to set one.",
     "voucherDateTime": "Voucher Date & Time",
     "voucherDetail": "Voucher Detail",
     "voucherSummary": "Voucher Summary",

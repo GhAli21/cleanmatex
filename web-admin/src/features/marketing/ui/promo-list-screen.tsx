@@ -8,7 +8,9 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import {
   PlusCircle,
   Search,
@@ -34,6 +36,8 @@ import { PromoUsageTable } from './promo-usage-table';
 export function PromoListScreen() {
   const t = useTranslations('marketing.promos');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const { organization } = useOperationalZones('invoice', []);
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'all' | 'active' | 'expired'>('all');
@@ -169,13 +173,15 @@ export function PromoListScreen() {
           {
             key: 'valid_from',
             header: t('fields.validFrom'),
-            render: (row: PromoCode) => new Date(row.valid_from).toLocaleString(),
+            render: (row: PromoCode) => formatInstantOrEmpty(row.valid_from, organization, locale === 'ar' ? 'ar' : 'en') || '—',
           },
           {
             key: 'valid_to',
             header: t('fields.validTo'),
             render: (row: PromoCode) =>
-              row.valid_to ? new Date(row.valid_to).toLocaleString() : t('fields.noExpiry'),
+              row.valid_to
+                ? formatInstantOrEmpty(row.valid_to, organization, locale === 'ar' ? 'ar' : 'en') || '—'
+                : t('fields.noExpiry'),
           },
           {
             key: 'is_enabled',

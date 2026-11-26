@@ -7,7 +7,9 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { PlusCircle, Search, Archive, Edit } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
@@ -24,6 +26,8 @@ import { DiscountRuleFormDialog } from './discount-rule-form-dialog';
 export function DiscountRuleListScreen() {
   const t = useTranslations('marketing.discountRules');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const { organization } = useOperationalZones('invoice', []);
 
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -95,10 +99,10 @@ export function DiscountRuleListScreen() {
               {row.can_stack_with_other_rules ? tCommon('yes') : tCommon('no')}
             </CmxStatusBadge>
           )},
-          { key: 'valid_from', header: t('fields.validFrom'), render: (row: DiscountRule) => new Date(row.valid_from).toLocaleDateString() },
+          { key: 'valid_from', header: t('fields.validFrom'), render: (row: DiscountRule) => formatInstantOrEmpty(row.valid_from, organization, locale === 'ar' ? 'ar' : 'en') || '—' },
           { key: 'valid_to', header: t('fields.validTo'), render: (row: DiscountRule) => (
             row.valid_to
-              ? new Date(row.valid_to).toLocaleDateString()
+              ? formatInstantOrEmpty(row.valid_to, organization, locale === 'ar' ? 'ar' : 'en') || '—'
               : '—'
           )},
           { key: 'is_active', header: t('fields.isActive'), render: (row: DiscountRule) => (

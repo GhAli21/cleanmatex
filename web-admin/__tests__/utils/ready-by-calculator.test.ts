@@ -1,243 +1,94 @@
-import { calculateReadyBy, DEFAULT_BUSINESS_HOURS } from '@/lib/utils/ready-by-calculator';
+/**
+ * Ready By calculator test, restored on the current API (Time & Timezone G5, slice S1).
+ * The legacy `calculateReadyBy` was retired; ready-by is computed by `resolveReadyBy` over the
+ * branch calendar (`@/lib/commercial`). These cases are the old "Operations zone" cases ported to
+ * that API, with exact UTC instants, so they must give the same answer under every process zone
+ * (`npm run test:clock-tz` runs them with TZ=UTC and TZ=Pacific/Kiritimati).
+ */
+import { fixedClock, dtNow, dtAtLocal } from '@cmx/clock';
+import {
+  resolveCalendar,
+  resolveReadyBy,
+  type BusinessHours,
+  type ReadyByLineInput,
+} from '@/lib/commercial';
+import { readyByBlockReason } from '@/lib/utils/ready-by-calculator';
 
-describe('Ready-By Calculator', () => {
-  const baseTime = new Date('2025-10-30T10:00:00'); // Thursday 10 AM
+const DAY = { open: '09:00', close: '18:00' };
+/** Mon–Fri 09:00–18:00. */
+const WEEKDAYS: BusinessHours = { mon: DAY, tue: DAY, wed: DAY, thu: DAY, fri: DAY, sat: null, sun: null };
 
-  describe('Basic calculations', () => {
-    it('should calculate ready-by time with normal priority', () => {
-      const result = calculateReadyBy({
-        receivedAt: baseTime,
-        turnaroundHours: 48,
-        priority: 'normal',
-        businessHours: DEFAULT_BUSINESS_HOURS,
-      });
+const calendar = (zone: string, hours: BusinessHours = WEEKDAYS) => {
+  const cal = resolveCalendar({
+    branch: null,
+    tenant: { timeZone: zone, businessHours: hours, cutoffTime: null, readyTime: null },
+    publicHolidayDates: [],
+    tenantHolidays: [],
+    branchHolidays: [],
+  });
+  if (!cal) throw new Error('calendar expected');
+  return cal;
+};
 
-      expect(result.readyBy.getTime()).toBeGreaterThan(baseTime.getTime());
-      expect(result.adjustedTurnaroundHours).toBeCloseTo(48, 1);
-    });
+const hoursLine = (h: string): ReadyByLineInput => ({
+  lineId: 'L1',
+  serviceSpeed: 'EXPRESS',
+  speedRuleUnit: 'HOURS',
+  speedRuleHours: h,
+  productHours: null,
+  categoryHours: null,
+  extraMinutes: 0,
+});
 
-    it('should apply urgent priority multiplier (0.7x)', () => {
-      const result = calculateReadyBy({
-        receivedAt: baseTime,
-        turnaroundHours: 48,
-        priority: 'urgent',
-        businessHours: DEFAULT_BUSINESS_HOURS,
-      });
+const readyBy = (startAt: string, h: string, zone = 'Asia/Muscat') =>
+  resolveReadyBy({
+    startAt: new Date(startAt),
+    lines: [hoursLine(h)],
+    orderExtraMinutes: 0,
+    orderOverride: null,
+    calendar: calendar(zone),
+  }).orderReadyBy.toISOString();
 
-      expect(result.adjustedTurnaroundHours).toBeCloseTo(33.6, 1);
-      expect(result.priorityMultiplier).toBe(0.7);
-    });
-
-    it('should apply express priority multiplier (0.5x)', () => {
-      const result = calculateReadyBy({
-        receivedAt: baseTime,
-        turnaroundHours: 48,
-        priority: 'express',
-        businessHours: DEFAULT_BUSINESS_HOURS,
-      });
-
-      expect(result.adjustedTurnaroundHours).toBeCloseTo(24, 1);
-      expect(result.priorityMultiplier).toBe(0.5);
-    });
+describe('Ready By calculator (restored, G5)', () => {
+  it('moves a Muscat drop-off after closing to the next working morning', () => {
+    // Thu 2025-10-30 18:30 Muscat; 2 working hours from Fri 09:00 → Fri 11:00 Muscat.
+    expect(readyBy('2025-10-30T14:30:00.000Z', '2')).toBe('2025-10-31T07:00:00.000Z');
   });
 
-  describe('Business hours mode', () => {
-    it('should respect business hours (9 AM - 6 PM)', () => {
-      const afterHoursTime = new Date('2025-10-30T18:30:00'); // 6:30 PM Thursday
-
-      const result = calculateReadyBy({
-        receivedAt: afterHoursTime,
-        turnaroundHours: 2,
-        priority: 'normal',
-        businessHours: { open: 9, close: 18, workingDays: [1, 2, 3, 4, 5] },
-      });
-
-      // Should start counting from next business day at 9 AM
-      expect(result.readyBy.getHours()).toBeGreaterThanOrEqual(9);
-      expect(result.readyBy.getHours()).toBeLessThanOrEqual(18);
-    });
-
-    it('should handle weekend skip when business hours enabled', () => {
-      // Friday at 5 PM
-      const fridayEvening = new Date('2025-10-31T17:00:00');
-
-      const result = calculateReadyBy({
-        receivedAt: fridayEvening,
-        turnaroundHours: 24,
-        priority: 'normal',
-        businessHours: { open: 9, close: 18, workingDays: [1, 2, 3, 4, 5] }, // Mon-Fri only
-      });
-
-      // Should skip Saturday (day 6) and Sunday (day 0)
-      const resultDay = result.readyBy.getDay();
-      expect(resultDay).not.toBe(0); // Not Sunday
-      expect(resultDay).not.toBe(6); // Not Saturday
-    });
-
-    it('should calculate correctly for same-day turnaround within business hours', () => {
-      const morningTime = new Date('2025-10-30T09:00:00'); // 9 AM Thursday
-
-      const result = calculateReadyBy({
-        receivedAt: morningTime,
-        turnaroundHours: 4,
-        priority: 'normal',
-        businessHours: { open: 9, close: 18, workingDays: [1, 2, 3, 4, 5, 6] },
-      });
-
-      // 4 hours from 9 AM = 1 PM same day
-      expect(result.readyBy.toDateString()).toBe(morningTime.toDateString());
-      expect(result.readyBy.getHours()).toBe(13);
-    });
+  it('keeps a same-day Muscat turnaround on the civil clock', () => {
+    // Thu 09:00 Muscat + 4 working hours → Thu 13:00 Muscat.
+    expect(readyBy('2025-10-30T05:00:00.000Z', '4')).toBe('2025-10-30T09:00:00.000Z');
   });
 
-  describe('Service category turnaround', () => {
-    it('should use shorter turnaround when category specifies fewer hours', () => {
-      const resultShort = calculateReadyBy({
-        receivedAt: baseTime,
-        turnaroundHours: 24,
-        priority: 'normal',
-        businessHours: DEFAULT_BUSINESS_HOURS,
-      });
-
-      const resultLong = calculateReadyBy({
-        receivedAt: baseTime,
-        turnaroundHours: 48,
-        priority: 'normal',
-        businessHours: DEFAULT_BUSINESS_HOURS,
-      });
-
-      expect(resultShort.readyBy.getTime()).toBeLessThan(resultLong.readyBy.getTime());
-      expect(resultShort.adjustedTurnaroundHours).toBeCloseTo(24, 1);
-    });
+  it('skips the weekend', () => {
+    // Fri 2025-10-31 17:00 Muscat: 1 h Fri, 9 h Mon, 9 h Tue, 5 h Wed → Wed 2025-11-05 14:00 Muscat.
+    expect(readyBy('2025-10-31T13:00:00.000Z', '24')).toBe('2025-11-05T10:00:00.000Z');
   });
 
-  describe('Edge cases', () => {
-    it('should handle zero turnaround time', () => {
-      const result = calculateReadyBy({
-        receivedAt: baseTime,
-        turnaroundHours: 0,
-        priority: 'normal',
-        businessHours: DEFAULT_BUSINESS_HOURS,
-      });
-
-      // Should return received time or slightly after (within business hours)
-      expect(result.readyBy.getTime()).toBeGreaterThanOrEqual(baseTime.getTime());
-    });
-
-    it('should handle very long turnaround times', () => {
-      const result = calculateReadyBy({
-        receivedAt: baseTime,
-        turnaroundHours: 720, // 30 days
-        priority: 'normal',
-        businessHours: DEFAULT_BUSINESS_HOURS,
-      });
-
-      const diffDays = (result.readyBy.getTime() - baseTime.getTime()) / (1000 * 60 * 60 * 24);
-      expect(diffDays).toBeCloseTo(30, 0); // roughly 30 days
-    });
-
-    it('should handle fractional turnaround hours', () => {
-      const result = calculateReadyBy({
-        receivedAt: baseTime,
-        turnaroundHours: 1.5,
-        priority: 'normal',
-        businessHours: DEFAULT_BUSINESS_HOURS,
-      });
-
-      const diffMinutes = (result.readyBy.getTime() - baseTime.getTime()) / (1000 * 60);
-      expect(diffMinutes).toBeCloseTo(90, 1); // 1.5 hours = 90 minutes
-    });
-
-    it('should handle dates in the past', () => {
-      const pastTime = new Date('2025-10-01T10:00:00');
-
-      const result = calculateReadyBy({
-        receivedAt: pastTime,
-        turnaroundHours: 24,
-        priority: 'normal',
-        businessHours: DEFAULT_BUSINESS_HOURS,
-      });
-
-      expect(result.readyBy.getTime()).toBeGreaterThan(pastTime.getTime());
-    });
+  it('counts working hours on the branch wall clock across a DST change', () => {
+    // New York, Fri 2026-03-06 17:00 EST + 3 working hours: 1 h Fri, 2 h Mon (EDT) → Mon 11:00 EDT.
+    const expected = dtAtLocal('2026-03-09', '11:00', 'America/New_York').toISOString();
+    expect(readyBy('2026-03-06T22:00:00.000Z', '3', 'America/New_York')).toBe(expected);
   });
 
-  describe('Priority multipliers', () => {
-    const testCases = [
-      { priority: 'normal', multiplier: 1.0 },
-      { priority: 'urgent', multiplier: 0.7 },
-      { priority: 'express', multiplier: 0.5 },
-    ];
+  it('ignores the process zone (same answer whatever TZ the test runs under)', () => {
+    const first = readyBy('2025-10-30T14:30:00.000Z', '2');
+    const second = readyBy('2025-10-30T14:30:00.000Z', '2');
+    expect(second).toBe(first);
+    expect(first.endsWith('Z')).toBe(true);
+  });
+});
 
-    testCases.forEach(({ priority, multiplier }) => {
-      it(`should apply correct multiplier for ${priority} priority`, () => {
-        const result = calculateReadyBy({
-          receivedAt: baseTime,
-          turnaroundHours: 48,
-          priority: priority as any,
-          businessHours: DEFAULT_BUSINESS_HOURS,
-        });
+describe('readyByBlockReason with an injected clock', () => {
+  const clock = fixedClock('2026-11-26T18:00:00.000Z');
 
-        const expectedHours = 48 * multiplier;
-        expect(result.adjustedTurnaroundHours).toBeCloseTo(expectedHours, 1);
-        expect(result.priorityMultiplier).toBe(multiplier);
-      });
-    });
+  it('requires a ready-by time', () => {
+    expect(readyByBlockReason(null, false, dtNow(clock))).toBe('readyByRequired');
   });
 
-  describe('Result shape', () => {
-    it('should return all required fields', () => {
-      const result = calculateReadyBy({
-        receivedAt: baseTime,
-        turnaroundHours: 24,
-        priority: 'normal',
-        businessHours: DEFAULT_BUSINESS_HOURS,
-      });
-
-      expect(result.readyBy).toBeInstanceOf(Date);
-      expect(typeof result.adjustedTurnaroundHours).toBe('number');
-      expect(typeof result.priorityMultiplier).toBe('number');
-      expect(typeof result.isWorkingDay).toBe('boolean');
-      expect(result.formatted).toBe('');
-    });
-  });
-
-  describe('Operations zone', () => {
-    it('moves a Muscat time after close to the next working morning', () => {
-      const result = calculateReadyBy({
-        receivedAt: new Date('2025-10-30T14:30:00.000Z'),
-        turnaroundHours: 2,
-        priority: 'normal',
-        businessHours: { open: 9, close: 18, workingDays: [1, 2, 3, 4, 5] },
-        timeZone: 'Asia/Muscat',
-      });
-
-      expect(result.readyBy.toISOString()).toBe('2025-10-31T05:00:00.000Z');
-      expect(result.isWorkingDay).toBe(true);
-    });
-
-    it('keeps a same-day Muscat turnaround on the civil clock', () => {
-      const result = calculateReadyBy({
-        receivedAt: new Date('2025-10-30T05:00:00.000Z'),
-        turnaroundHours: 4,
-        priority: 'normal',
-        businessHours: { open: 9, close: 18, workingDays: [1, 2, 3, 4, 5, 6] },
-        timeZone: 'Asia/Muscat',
-      });
-
-      expect(result.readyBy.toISOString()).toBe('2025-10-30T09:00:00.000Z');
-    });
-
-    it('skips a Muscat weekend to Monday opening', () => {
-      const result = calculateReadyBy({
-        receivedAt: new Date('2025-10-31T13:00:00.000Z'),
-        turnaroundHours: 24,
-        priority: 'normal',
-        businessHours: { open: 9, close: 18, workingDays: [1, 2, 3, 4, 5] },
-        timeZone: 'Asia/Muscat',
-      });
-
-      expect(result.readyBy.toISOString()).toBe('2025-11-03T05:00:00.000Z');
-    });
+  it('refuses a past time for a service order and allows a minute of slack for retail', () => {
+    expect(readyByBlockReason('2026-11-26T17:59:30.000Z', false, dtNow(clock))).toBe('readyByMustBeFuture');
+    expect(readyByBlockReason('2026-11-26T17:59:30.000Z', true, dtNow(clock))).toBeNull();
+    expect(readyByBlockReason('2026-11-26T18:30:00.000Z', false, dtNow(clock))).toBeNull();
   });
 });

@@ -7,6 +7,8 @@
 
 import * as React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { useTranslations, useLocale } from 'next-intl';
 import {
   CmxDialog,
@@ -195,6 +197,9 @@ export function SimpleProcessingDialog({
   });
 
   const order = orderData?.order ?? null;
+  const branchId = typeof order?.branch_id === 'string' ? order.branch_id : null;
+  const { zoneFor } = useOperationalZones('ready_by', [branchId]);
+  const opsZone = zoneFor(branchId);
   const items = orderData?.items ?? [];
   const isCommercialLocked = Boolean(orderData?.isCommercialLocked);
 
@@ -867,12 +872,7 @@ export function SimpleProcessingDialog({
                     {t('meta.created')}
                   </div>
                   <div className="font-medium text-foreground">
-                    {createdAt
-                      ? new Date(createdAt).toLocaleString(locale, {
-                          dateStyle: 'medium',
-                          timeStyle: 'short',
-                        })
-                      : '—'}
+                    {formatInstantOrEmpty(createdAt, opsZone, locale) || '—'}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {[

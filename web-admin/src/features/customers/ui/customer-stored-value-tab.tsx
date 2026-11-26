@@ -9,7 +9,9 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { formatStoredClockLabel } from '@/lib/utils/operational-time';
 import { PlusCircle } from 'lucide-react';
 import {
   CmxButton,
@@ -96,6 +98,8 @@ type DialogType = 'topUp' | 'advance' | 'creditNote' | null;
  */
 export function CustomerStoredValueTab({ customerId }: Props) {
   const t = useTranslations('customers.storedValue');
+  const locale = useLocale();
+  const { organization } = useOperationalZones('invoice', []);
   const tCommon = useTranslations('common');
   const tLedger = useTranslations('cashControl.ledgerErrors');
   const [posSessionRequired, setPosSessionRequired] =
@@ -415,7 +419,7 @@ export function CustomerStoredValueTab({ customerId }: Props) {
                 header: t('expiresAt'),
                 render: (row: CreditNoteRow) =>
                   row.expires_at
-                    ? new Date(row.expires_at).toLocaleDateString()
+                    ? formatStoredClockLabel(row.expires_at, organization, locale === 'ar' ? 'ar' : 'en') || '—'
                     : t('noExpiry'),
               },
             ]}

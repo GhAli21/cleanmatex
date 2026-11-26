@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { Printer, RefreshCw } from 'lucide-react'
-import { format, subDays } from 'date-fns'
+import { useReportsClock } from '@features/reports/ui/reports-clock'
+import { shiftCivilDate } from '@/lib/utils/operational-time'
 
 import {
   fetchVarianceByCashier,
@@ -24,9 +25,6 @@ interface BranchOption {
   name2: string | null
 }
 
-const today = () => format(new Date(), 'yyyy-MM-dd')
-const daysAgo = (days: number) => format(subDays(new Date(), days), 'yyyy-MM-dd')
-
 /**
  * Cash variance by cashier (C4): per cashier and currency, how the closed drawer sessions of a
  * date range came out — count, total / mean / absolute variance and the shortage-versus-overage
@@ -36,10 +34,12 @@ const daysAgo = (days: number) => format(subDays(new Date(), days), 'yyyy-MM-dd'
 export function CashDrawerVarianceReportScreen() {
   const t = useTranslations('cashVarianceReport')
   const tCommon = useTranslations('common')
+  const tReports = useTranslations('reports')
   const money = useCashDrawerMoneyFormatter()
+  const { today } = useReportsClock()
 
-  const [dateFrom, setDateFrom] = useState(daysAgo(30))
-  const [dateTo, setDateTo] = useState(today())
+  const [dateFrom, setDateFrom] = useState(() => (today ? shiftCivilDate(today, -30) : ''))
+  const [dateTo, setDateTo] = useState(() => today)
   const [branchId, setBranchId] = useState('')
 
   const rangeInvalid = dateFrom > dateTo
@@ -62,7 +62,7 @@ export function CashDrawerVarianceReportScreen() {
   const reportQuery = useQuery({
     queryKey: varianceReportKey(query),
     queryFn: () => fetchVarianceByCashier(query),
-    enabled: !rangeInvalid,
+    enabled: Boolean(dateFrom && dateTo) && !rangeInvalid,
   })
 
   const printHref = `/dashboard/reports/cash-variance/print?${new URLSearchParams(query).toString()}`
@@ -106,6 +106,7 @@ export function CashDrawerVarianceReportScreen() {
         />
       </div>
 
+      {!today ? <CmxSummaryMessage type="warning" message={tReports('timezoneNotConfigured')} /> : null}
       {rangeInvalid ? <CmxSummaryMessage type="warning" title={t('rangeInvalidTitle')} items={[t('rangeInvalid')]} /> : null}
 
       {reportQuery.isError ? (

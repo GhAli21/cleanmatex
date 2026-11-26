@@ -28,6 +28,8 @@ import {
 } from '@/lib/services/gift-card-service';
 import { fundStoredValue, FUNDING_TYPES } from '@/lib/services/stored-value-funding.service';
 import { logger } from '@/lib/utils/logger';
+import { civilDateInZone, civilDayBounds } from '@/lib/utils/operational-time';
+import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 import { CashDrawerLedgerError } from '@/lib/services/cash-drawer-ledger/cash-drawer-errors';
 import type {
   GiftCard,
@@ -79,6 +81,28 @@ const adjustGiftCardSchema = z.object({
   amount:          z.number().positive(),
   notes:           z.string().min(1).max(500),
 });
+
+const GIFT_CARD_ZONE_MISSING =
+  'No time zone is set for this organization, so a date cannot be chosen.';
+
+/** Inclusive civil days in the organization zone. A missing zone refuses the filter. */
+async function giftCardDayRange(
+  tenantId: string,
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<{ gte?: Date; lt?: Date } | null> {
+  if (!dateFrom && !dateTo) return {};
+  const zone = await resolveOperationalTimeZone(tenantId, 'invoice', null);
+  if (!zone) return null;
+  const range: { gte?: Date; lt?: Date } = {};
+  if (dateFrom && /^\d{4}-\d{2}-\d{2}/.test(dateFrom)) {
+    range.gte = civilDayBounds(dateFrom.slice(0, 10), zone).start;
+  }
+  if (dateTo && /^\d{4}-\d{2}-\d{2}/.test(dateTo)) {
+    range.lt = civilDayBounds(dateTo.slice(0, 10), zone).end;
+  }
+  return range;
+}
 
 // ---------------------------------------------------------------------------
 // List
@@ -549,16 +573,12 @@ export async function listGiftCardTransactionsAction(params: {
         where.transaction_type = params.transactionType;
       }
 
-      if (params.dateFrom || params.dateTo) {
-        where.transaction_date = {};
-        if (params.dateFrom) {
-          (where.transaction_date as Record<string, unknown>).gte = new Date(params.dateFrom);
-        }
-        if (params.dateTo) {
-          const to = new Date(params.dateTo);
-          to.setHours(23, 59, 59, 999);
-          (where.transaction_date as Record<string, unknown>).lte = to;
-        }
+      const dayRange = await giftCardDayRange(tenantId, params.dateFrom, params.dateTo);
+      if (dayRange === null) {
+        return { success: false, error: GIFT_CARD_ZONE_MISSING };
+      }
+      if (dayRange.gte || dayRange.lt) {
+        where.transaction_date = dayRange;
       }
 
       if (params.cardCode?.trim()) {
@@ -689,8 +709,9 @@ export async function getGiftCardLiabilitySummaryAction(): Promise<
     }
     const { tenantId } = auth;
 
-    const now = new Date();
-    const mtdStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const zone = await resolveOperationalTimeZone(tenantId, 'invoice', null);
+    const todayCivil = civilDateInZone(new Date(), zone);
+    const mtdStart = zone && todayCivil ? civilDayBounds(`${todayCivil.slice(0, 7)}-01`, zone).start : null;
 
     return withTenantContext(tenantId, async () => {
       const [outstandingResult, activeCount, redeemedMtdResult, issuedMtdResult, expiredResult] =
@@ -711,22 +732,25 @@ export async function getGiftCardLiabilitySummaryAction(): Promise<
             },
           }),
           // Total redeemed MTD
-          prisma.org_gift_card_txn_dtl.aggregate({
-            where: {
-              tenant_org_id: tenantId,
-              transaction_type: 'REDEEM',
-              transaction_date: { gte: mtdStart },
-            },
-            _sum: { amount: true },
-          }),
-          // Total issued MTD (by original_amount of cards created this month)
-          prisma.org_gift_cards_mst.aggregate({
-            where: {
-              tenant_org_id: tenantId,
-              created_at: { gte: mtdStart },
-            },
-            _sum: { original_amount: true },
-          }),
+          mtdStart
+            ? prisma.org_gift_card_txn_dtl.aggregate({
+                where: {
+                  tenant_org_id: tenantId,
+                  transaction_type: 'REDEEM',
+                  transaction_date: { gte: mtdStart },
+                },
+                _sum: { amount: true },
+              })
+            : Promise.resolve(null),
+          mtdStart
+            ? prisma.org_gift_cards_mst.aggregate({
+                where: {
+                  tenant_org_id: tenantId,
+                  created_at: { gte: mtdStart },
+                },
+                _sum: { original_amount: true },
+              })
+            : Promise.resolve(null),
           // Total expired balance (breakage)
           prisma.org_gift_cards_mst.aggregate({
             where: {
@@ -742,8 +766,8 @@ export async function getGiftCardLiabilitySummaryAction(): Promise<
         data: {
           totalOutstanding: Number(outstandingResult._sum.available_amount ?? 0),
           totalActiveCards: activeCount,
-          totalRedeemedMtd: Number(redeemedMtdResult._sum.amount ?? 0),
-          totalIssuedMtd: Number(issuedMtdResult._sum.original_amount ?? 0),
+          totalRedeemedMtd: Number(redeemedMtdResult?._sum.amount ?? 0),
+          totalIssuedMtd: Number(issuedMtdResult?._sum.original_amount ?? 0),
           totalExpiredBalance: Number(expiredResult._sum.available_amount ?? 0),
         },
       };
@@ -795,16 +819,12 @@ export async function listGiftCardLiabilityAction(params: {
       if (params.issueType) {
         where.issue_type = params.issueType;
       }
-      if (params.dateFrom || params.dateTo) {
-        where.issued_date = {};
-        if (params.dateFrom) {
-          (where.issued_date as Record<string, unknown>).gte = new Date(params.dateFrom);
-        }
-        if (params.dateTo) {
-          const to = new Date(params.dateTo);
-          to.setHours(23, 59, 59, 999);
-          (where.issued_date as Record<string, unknown>).lte = to;
-        }
+      const dayRange = await giftCardDayRange(tenantId, params.dateFrom, params.dateTo);
+      if (dayRange === null) {
+        return { success: false, error: GIFT_CARD_ZONE_MISSING };
+      }
+      if (dayRange.gte || dayRange.lt) {
+        where.issued_date = dayRange;
       }
 
       const [rows, total] = await Promise.all([
@@ -899,16 +919,12 @@ export async function listGiftCardRedemptionsAction(params: {
       if (params.cardId) {
         where.gift_card_id = params.cardId;
       }
-      if (params.dateFrom || params.dateTo) {
-        where.transaction_date = {};
-        if (params.dateFrom) {
-          (where.transaction_date as Record<string, unknown>).gte = new Date(params.dateFrom);
-        }
-        if (params.dateTo) {
-          const to = new Date(params.dateTo);
-          to.setHours(23, 59, 59, 999);
-          (where.transaction_date as Record<string, unknown>).lte = to;
-        }
+      const dayRange = await giftCardDayRange(tenantId, params.dateFrom, params.dateTo);
+      if (dayRange === null) {
+        return { success: false, error: GIFT_CARD_ZONE_MISSING };
+      }
+      if (dayRange.gte || dayRange.lt) {
+        where.transaction_date = dayRange;
       }
 
       const [rows, total] = await Promise.all([
@@ -984,16 +1000,12 @@ export async function listGiftCardRefundsAction(params: {
         transaction_type: 'REFUND',
       };
 
-      if (params.dateFrom || params.dateTo) {
-        where.transaction_date = {};
-        if (params.dateFrom) {
-          (where.transaction_date as Record<string, unknown>).gte = new Date(params.dateFrom);
-        }
-        if (params.dateTo) {
-          const to = new Date(params.dateTo);
-          to.setHours(23, 59, 59, 999);
-          (where.transaction_date as Record<string, unknown>).lte = to;
-        }
+      const dayRange = await giftCardDayRange(tenantId, params.dateFrom, params.dateTo);
+      if (dayRange === null) {
+        return { success: false, error: GIFT_CARD_ZONE_MISSING };
+      }
+      if (dayRange.gte || dayRange.lt) {
+        where.transaction_date = dayRange;
       }
 
       const [rows, total] = await Promise.all([
@@ -1069,16 +1081,12 @@ export async function listGiftCardAdjustmentsAction(params: {
         transaction_type: 'ADJUSTMENT',
       };
 
-      if (params.dateFrom || params.dateTo) {
-        where.transaction_date = {};
-        if (params.dateFrom) {
-          (where.transaction_date as Record<string, unknown>).gte = new Date(params.dateFrom);
-        }
-        if (params.dateTo) {
-          const to = new Date(params.dateTo);
-          to.setHours(23, 59, 59, 999);
-          (where.transaction_date as Record<string, unknown>).lte = to;
-        }
+      const dayRange = await giftCardDayRange(tenantId, params.dateFrom, params.dateTo);
+      if (dayRange === null) {
+        return { success: false, error: GIFT_CARD_ZONE_MISSING };
+      }
+      if (dayRange.gte || dayRange.lt) {
+        where.transaction_date = dayRange;
       }
 
       const [rows, total] = await Promise.all([

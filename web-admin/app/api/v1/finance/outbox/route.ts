@@ -15,12 +15,8 @@ import {
   parseOutboxStatus,
   type OutboxListFilters,
 } from '@/lib/services/outbox-monitor.service';
-
-function parseDate(value: string | null): Date | undefined {
-  if (!value) return undefined;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-}
+import { civilInstantRange } from '@/lib/utils/operational-time';
+import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 
 export async function GET(request: NextRequest) {
   const authCheck = await requirePermission('finance_outbox:view')(request);
@@ -34,14 +30,25 @@ export async function GET(request: NextRequest) {
     Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10) || 20),
   );
 
+  const from = searchParams.get('from');
+  const to = searchParams.get('to');
+  if ((from && !/^\d{4}-\d{2}-\d{2}/.test(from)) || (to && !/^\d{4}-\d{2}-\d{2}/.test(to))) {
+    return NextResponse.json({ success: false, error: 'from and to must be YYYY-MM-DD' }, { status: 400 });
+  }
+  const zone = from || to ? await resolveOperationalTimeZone(tenantId, 'ledger', null) : null;
+  if ((from || to) && !zone) {
+    return NextResponse.json({ success: false, error: 'TIMEZONE_NOT_CONFIGURED' }, { status: 422 });
+  }
+  const createdRange = zone ? civilInstantRange(from, to, zone) : {};
+
   const filters: OutboxListFilters = {
     status: parseOutboxStatus(searchParams.get('status')),
     eventType: searchParams.get('eventType')?.trim() || undefined,
     aggregateType: searchParams.get('aggregateType')?.trim() || undefined,
     search: searchParams.get('search')?.trim() || undefined,
     stuckOnly: searchParams.get('stuck') === '1',
-    from: parseDate(searchParams.get('from')),
-    to: parseDate(searchParams.get('to')),
+    from: createdRange.gte,
+    to: createdRange.lt,
   };
 
   try {

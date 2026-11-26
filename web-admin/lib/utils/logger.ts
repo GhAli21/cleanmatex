@@ -106,7 +106,7 @@ function formatConsoleLog(entry: LogEntry, level: LogLevel): string {
   }[level];
 
   const levelName = entry.level.toUpperCase().padEnd(5);
-  const timestamp = new Date(entry.timestamp).toLocaleTimeString();
+  const timestamp = entry.timestamp;
   
   let output = `${emoji} [${timestamp}] ${levelName} ${entry.message}`;
   

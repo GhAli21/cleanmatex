@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
 import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
 import { ErpLiteReportingService, type ErpLiteReportLocale } from '@/lib/services/erp-lite-reporting.service';
+import { civilYearMonthToken } from '@/lib/utils/operational-zone.server';
 import type {
   CreateErpLiteAllocationRuleInput,
   CreateErpLiteAllocationRunInput,
@@ -161,7 +162,13 @@ export class ErpLitePhase10Service {
     return withTenantContext(tenantId, async () => {
       const ruleCode =
         input.rule_code?.trim() ||
-        (await this.generateSequentialNo(tenantId, 'ALR', 'rule_code', 'org_fin_alloc_rule_mst'));
+        (await this.generateSequentialNo(
+          tenantId,
+          'ALR',
+          'rule_code',
+          'org_fin_alloc_rule_mst',
+          input.effective_from
+        ));
 
       await prisma.$queryRaw(Prisma.sql`
         INSERT INTO public.org_fin_alloc_rule_mst (
@@ -207,7 +214,8 @@ export class ErpLitePhase10Service {
         tenantId,
         'APR',
         'run_no',
-        'org_fin_alloc_run_mst'
+        'org_fin_alloc_run_mst',
+        input.run_date
       );
 
       await prisma.$queryRaw(Prisma.sql`
@@ -382,7 +390,8 @@ export class ErpLitePhase10Service {
         tenantId,
         'CRN',
         'run_no',
-        'org_fin_cost_run_mst'
+        'org_fin_cost_run_mst',
+        input.run_date
       );
 
       await prisma.$queryRaw(Prisma.sql`
@@ -839,9 +848,10 @@ export class ErpLitePhase10Service {
     tenantId: string,
     prefix: string,
     columnName: string,
-    tableName: string
+    tableName: string,
+    civilDate?: string | null
   ): Promise<string> {
-    const periodToken = new Date().toISOString().slice(0, 7).replace('-', '');
+    const periodToken = await civilYearMonthToken(prisma, tenantId, civilDate);
     const likePattern = `${prefix}-${periodToken}%`;
     const rows = await prisma.$queryRaw<{ count: number }[]>(
       Prisma.sql([

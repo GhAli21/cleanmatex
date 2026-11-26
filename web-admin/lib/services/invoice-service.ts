@@ -25,6 +25,7 @@ import {
 /** Transaction client for use inside prisma.$transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 import { withTenantContext, getTenantIdFromSession } from '@/lib/db/tenant-context';
+import { operationalCivilToday } from '@/lib/utils/operational-zone.server';
 import type {
   Invoice,
   InvoiceStatus,
@@ -347,6 +348,7 @@ export async function updateInvoice(
         totalAmount: Number(currentInvoice.total ?? 0),
         paidAmount: effectivePaidAmount,
         dueDate: currentInvoice.due_date,
+        todayCivil: await operationalCivilToday(tenantId, 'invoice', currentInvoice.branch_id),
       });
     }
 
@@ -418,6 +420,7 @@ export async function markInvoiceAsPaid(
       totalAmount: Number(invoice.total ?? 0),
       paidAmount: newPaidAmount,
       dueDate: invoice.due_date,
+      todayCivil: await operationalCivilToday(tenantId, 'invoice', invoice.branch_id),
     }) as InvoiceStatus;
 
     return updateInvoice(invoiceId, {

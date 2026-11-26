@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { listReconRuns, runReconciliation } from '@/lib/services/reconciliation.service';
+import { OperationalZoneMissingError } from '@/lib/utils/operational-zone.server';
+import { isRealIsoDate } from '@/lib/validations/iso-date';
 
 /**
  *
@@ -26,8 +28,8 @@ export async function GET(request: NextRequest) {
 }
 
 const schema = z.object({
-  periodFrom:   z.string().datetime(),
-  periodTo:     z.string().datetime(),
+  periodFrom:   z.string().refine(isRealIsoDate, 'YYYY-MM-DD'),
+  periodTo:     z.string().refine(isRealIsoDate, 'YYYY-MM-DD'),
   branchId:     z.string().uuid().optional(),
   currencyCode: z.string().min(1),
 });
@@ -50,14 +52,17 @@ export async function POST(request: NextRequest) {
 
   try {
     const run = await runReconciliation(tenantId, {
-      periodFrom:   new Date(parsed.data.periodFrom),
-      periodTo:     new Date(parsed.data.periodTo),
+      periodFrom:   new Date(`${parsed.data.periodFrom}T00:00:00.000Z`),
+      periodTo:     new Date(`${parsed.data.periodTo}T00:00:00.000Z`),
       branchId:     parsed.data.branchId,
       currencyCode: parsed.data.currencyCode,
       triggeredBy:  userId,
     });
     return NextResponse.json({ success: true, data: run }, { status: 201 });
   } catch (err) {
+    if (err instanceof OperationalZoneMissingError) {
+      return NextResponse.json({ success: false, error: 'TIMEZONE_NOT_CONFIGURED' }, { status: 422 });
+    }
     const message = err instanceof Error ? err.message : 'Reconciliation run failed';
     return NextResponse.json({ success: false, error: message }, { status: 422 });
   }

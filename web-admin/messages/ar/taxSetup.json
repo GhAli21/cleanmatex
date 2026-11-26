@@ -1,4 +1,5 @@
 {
+  "timezoneNotConfigured": "لم يتم تحديد منطقة زمنية لهذه المنشأة، لذا لا يمكن اختيار التاريخ. اطلب من المسؤول تحديدها.",
   "title": "إعداد الضريبة",
   "description": "تكوين ملفات الضريبة والإعفاءات",
   "profiles": "ملفات الضريبة",
@@ -46,6 +47,8 @@
   "editExemption": "تعديل الإعفاء",
   "updated": "تم تحديث ملف الضريبة",
   "exemptionUpdated": "تم تحديث الإعفاء",
+  "invalidCivilDate": "أدخل تاريخًا صحيحًا (YYYY-MM-DD).",
+  "validToBeforeFrom": "تاريخ الانتهاء يجب أن يكون بعد أو يساوي تاريخ البداية",
   "exemptionDeactivated": "تم إلغاء تفعيل الإعفاء",
   "actions": "الإجراءات",
   "noDefaultProfile": {

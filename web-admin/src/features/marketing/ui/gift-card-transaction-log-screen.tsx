@@ -11,7 +11,9 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { Search, Receipt } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
@@ -92,6 +94,8 @@ function truncateMid(value: string, maxLen = 20): string {
  */
 export function GiftCardTransactionLogScreen() {
   const t = useTranslations('marketing.giftCards');
+  const locale = useLocale();
+  const { organization } = useOperationalZones('invoice', []);
   const tLog = useTranslations('marketing.giftCards.transactionLog');
   const tCommon = useTranslations('common');
 
@@ -133,13 +137,7 @@ export function GiftCardTransactionLogScreen() {
       header: tLog('fields.transactionDate'),
       render: (row: GiftCardTransactionLogRow) => (
         <span className="tabular-nums text-sm">
-          {new Intl.DateTimeFormat(undefined, {
-            year: 'numeric',
-            month: 'short',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-          }).format(new Date(row.transaction_date))}
+          {formatInstantOrEmpty(row.transaction_date, organization, locale === 'ar' ? 'ar' : 'en') || '—'}
         </span>
       ),
     },

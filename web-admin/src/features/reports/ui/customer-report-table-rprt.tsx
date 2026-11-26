@@ -1,10 +1,11 @@
 'use client';
 
+import { CmxButton } from '@ui/primitives';
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
+import { ReportInstantDay } from '@features/reports/ui/reports-clock';
 import type { CustomerRow, ReportPagination } from '@/lib/types/report-types';
 
 interface CustomerReportTableProps {
@@ -29,6 +30,7 @@ export default function CustomerReportTable({
   basePath,
 }: CustomerReportTableProps) {
   const t = useTranslations('reports');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -73,10 +75,10 @@ export default function CustomerReportTable({
                   {currencyCode} {cust.avgOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {cust.lastOrderDate ? format(new Date(cust.lastOrderDate), 'dd MMM yyyy') : '-'}
+                  <ReportInstantDay value={cust.lastOrderDate} />
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {cust.firstOrderDate ? format(new Date(cust.firstOrderDate), 'dd MMM yyyy') : '-'}
+                  <ReportInstantDay value={cust.firstOrderDate} />
                 </td>
               </tr>
             ))}
@@ -99,13 +101,13 @@ export default function CustomerReportTable({
             })}
           </span>
           <div className="flex items-center gap-1">
-            <button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page <= 1} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30">
-              <ChevronLeft className="h-4 w-4" />
-            </button>
+            <CmxButton type="button" variant="ghost" size="icon" onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page <= 1} aria-label={tCommon('previous')}>
+              <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+            </CmxButton>
             <span className="px-3 py-1 text-sm font-medium text-foreground">{pagination.page} / {pagination.totalPages}</span>
-            <button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30">
-              <ChevronRight className="h-4 w-4" />
-            </button>
+            <CmxButton type="button" variant="ghost" size="icon" onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} aria-label={tCommon('next')}>
+              <ChevronRight className="h-4 w-4 rtl:rotate-180" />
+            </CmxButton>
           </div>
         </div>
       )}

@@ -46,6 +46,7 @@ const queryRaw = prisma.$queryRaw as unknown as jest.Mock;
 const filters = {
   startDate: new Date('2026-07-01T00:00:00Z'),
   endDate: new Date('2026-07-02T23:59:59Z'),
+  timeZone: 'UTC',
 };
 
 function row(overrides: Record<string, unknown>) {

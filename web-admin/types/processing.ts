@@ -19,6 +19,7 @@ export interface ProcessingOrder {
   id: string;
   order_no: string;
   ready_by_at: string;
+  branch_id?: string | null;
   customer_name: string;
   customer_name2?: string;
   customer_phone?: string;

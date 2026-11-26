@@ -27,6 +27,7 @@ import {
   type WorkflowQueueFocusOption,
   type WorkflowQueueKpi,
 } from '@features/workflow/ui/workflow-queue-shell';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
 
 interface QAOrderRecord {
   id: string;
@@ -35,6 +36,7 @@ interface QAOrderRecord {
   current_status?: string | null;
   status?: string | null;
   ready_by_at?: string | null;
+  branch_id?: string | null;
   priority?: string | null;
   has_issue?: boolean | null;
   has_stain_any?: boolean | null;
@@ -49,6 +51,7 @@ interface QAOrder {
   total_items: number;
   current_status: string;
   ready_by_at: string | null;
+  branch_id: string | null;
   priority: string;
   has_issue: boolean;
   has_stain: boolean;
@@ -112,6 +115,7 @@ export function QaListScreen() {
       total_items: order.total_items || 0,
       current_status: order.current_status || order.status || 'qa',
       ready_by_at: order.ready_by_at || null,
+      branch_id: order.branch_id ?? null,
       priority: order.priority || 'normal',
       has_issue: Boolean(order.has_issue),
       has_stain: Boolean(order.has_stain_any),
@@ -122,6 +126,7 @@ export function QaListScreen() {
       },
     }));
   }, [rawOrders, t]);
+  const { zoneFor } = useOperationalZones('ready_by', orders.map((order) => order.branch_id));
 
   const handleSearchSubmit = useCallback(
     async (submit: CodeSearchSubmit) => {
@@ -288,7 +293,7 @@ export function QaListScreen() {
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {orders.map((order) => {
-          const formattedReadyBy = formatQueueDateTime(order.ready_by_at, locale);
+          const formattedReadyBy = formatQueueDateTime(order.ready_by_at, locale, zoneFor(order.branch_id));
           return (
             <CmxCard key={order.id} className="transition-all hover:shadow-md">
               <CmxCardContent className="p-5">
@@ -314,6 +319,7 @@ export function QaListScreen() {
                     hasStain={order.has_stain}
                     hasDamage={order.has_damage}
                     nowMs={nowMs}
+                    opsZone={zoneFor(order.branch_id)}
                   />
                 </div>
 

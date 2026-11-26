@@ -7,7 +7,8 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
-import { resolveOperationalTimeZonesForBranches } from '@/lib/utils/operational-zone.server';
+import { resolveOperationalTimeZone, resolveOperationalTimeZonesForBranches } from '@/lib/utils/operational-zone.server';
+import { civilDateInZone, civilDayBounds } from '@/lib/utils/operational-time';
 import { orderLineQualifiers, qualifierInputOfRow } from '@/lib/orders/line-qualifier';
 import { loadSpeedNames } from '@/lib/orders/line-qualifier-speed';
 import type {
@@ -531,8 +532,9 @@ export async function getOrderStats(tenantOrgId: string) {
     );
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const zone = await resolveOperationalTimeZone(tenantOrgId, 'accept_order', null);
+  const todayCivil = civilDateInZone(new Date(), zone);
+  const deliveredWindow = zone && todayCivil ? civilDayBounds(todayCivil, zone) : null;
 
   const [
     total,
@@ -560,13 +562,15 @@ export async function getOrderStats(tenantOrgId: string) {
     prisma.org_orders_mst.count({
       where: { tenant_org_id: tenantOrgId, status: 'out_for_delivery' },
     }),
-    prisma.org_orders_mst.count({
-      where: {
-        tenant_org_id: tenantOrgId,
-        status: 'delivered',
-        delivered_at: { gte: today },
-      },
-    }),
+    deliveredWindow
+      ? prisma.org_orders_mst.count({
+          where: {
+            tenant_org_id: tenantOrgId,
+            status: 'delivered',
+            delivered_at: { gte: deliveredWindow.start, lt: deliveredWindow.end },
+          },
+        })
+      : Promise.resolve(0),
     prisma.org_orders_mst.count({
       where: {
         tenant_org_id: tenantOrgId,

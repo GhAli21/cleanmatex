@@ -6,6 +6,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { exportProducts } from '@/lib/services/catalog.service';
+import { civilDateInZone } from '@/lib/utils/operational-time';
+import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
+
+async function exportCivilDay(tenantId: string): Promise<string> {
+  const zone = await resolveOperationalTimeZone(tenantId, 'invoice', null);
+  return civilDateInZone(new Date(), zone) || 'export';
+}
 
 // ==================================================================
 // HELPER FUNCTIONS
@@ -48,7 +55,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(csvContent, {
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="products-${new Date().toISOString().split('T')[0]}.csv"`,
+        'Content-Disposition': `attachment; filename="products-${await exportCivilDay(auth.tenantId)}.csv"`,
       },
     });
   } catch (error) {

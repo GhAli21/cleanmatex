@@ -19,6 +19,7 @@
     "test:openapi": "jest --config ./test/jest-e2e.json --testPathPattern=openapi-contract"
   },
   "dependencies": {
+    "@cmx/clock": "*",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.0.0",
     "@nestjs/core": "^10.0.0",

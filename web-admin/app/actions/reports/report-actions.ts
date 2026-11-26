@@ -1,5 +1,6 @@
 'use server';
 
+import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import {
   getOrdersReport,
@@ -16,6 +17,9 @@ import type {
   RevenueBreakdownData,
   CustomerReportData,
 } from '@/lib/types/report-types';
+import { civilRangeQuery, parseInstant } from '@/lib/utils/operational-time';
+import { OperationalZoneMissingError, resolveOrganizationTimeZone } from '@/lib/utils/operational-zone.server';
+import { isRealIsoDate } from '@/lib/validations/iso-date';
 
 interface ActionResult<T> {
   success: boolean;
@@ -23,8 +27,19 @@ interface ActionResult<T> {
   error?: string;
 }
 
+const OFFSET_INSTANT = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?)(Z|[+-]\d{2}:\d{2})$/;
+
+async function reportFailure(error: unknown, fallback: string): Promise<ActionResult<never>> {
+  if (error instanceof OperationalZoneMissingError) {
+    const t = await getTranslations('reports');
+    return { success: false, error: t('timezoneNotConfigured') };
+  }
+  console.error(fallback, error);
+  return { success: false, error: error instanceof Error ? error.message : fallback };
+}
+
 // Shared helper to parse filters from serializable params
-function parseFilters(params: {
+async function parseFilters(tenantId: string, params: {
   startDate: string;
   endDate: string;
   customerId?: string;
@@ -36,10 +51,28 @@ function parseFilters(params: {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
-}): ReportFilters {
+}): Promise<ReportFilters> {
+  const zone = await resolveOrganizationTimeZone(tenantId);
+  if (!zone) throw new OperationalZoneMissingError();
+  const startIsInstant = OFFSET_INSTANT.test(params.startDate);
+  const endIsInstant = OFFSET_INSTANT.test(params.endDate);
+  let startDate: Date;
+  let endDate: Date;
+  if (startIsInstant && endIsInstant) {
+    startDate = parseInstant(params.startDate);
+    endDate = parseInstant(params.endDate);
+  } else if (isRealIsoDate(params.startDate) && isRealIsoDate(params.endDate)) {
+    const range = civilRangeQuery(params.startDate, params.endDate, zone);
+    if (!range) throw new OperationalZoneMissingError();
+    startDate = parseInstant(range.start);
+    endDate = parseInstant(range.end);
+  } else {
+    throw new Error('startDate and endDate must be YYYY-MM-DD or an instant with an offset');
+  }
   return {
-    startDate: new Date(params.startDate),
-    endDate: new Date(params.endDate),
+    startDate,
+    endDate,
+    timeZone: zone,
     customerId: params.customerId,
     status: params.status,
     orderTypeId: params.orderTypeId,
@@ -80,15 +113,11 @@ export async function fetchOrdersReport(params: {
 }): Promise<ActionResult<OrdersReportData>> {
   try {
     const auth = await getAuthContext();
-    const filters = parseFilters(params);
+    const filters = await parseFilters(auth.tenantId, params);
     const data = await getOrdersReport({ tenantOrgId: auth.tenantId, filters });
     return { success: true, data };
   } catch (error) {
-    console.error('Error fetching orders report:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch orders report',
-    };
+    return reportFailure(error, 'Failed to fetch orders report');
   }
 }
 
@@ -118,15 +147,11 @@ export async function fetchPaymentsReport(params: {
 }): Promise<ActionResult<PaymentsReportData>> {
   try {
     const auth = await getAuthContext();
-    const filters = parseFilters(params);
+    const filters = await parseFilters(auth.tenantId, params);
     const data = await getPaymentsReport({ tenantOrgId: auth.tenantId, filters });
     return { success: true, data };
   } catch (error) {
-    console.error('Error fetching payments report:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch payments report',
-    };
+    return reportFailure(error, 'Failed to fetch payments report');
   }
 }
 
@@ -154,15 +179,11 @@ export async function fetchInvoicesReport(params: {
 }): Promise<ActionResult<InvoicesReportData>> {
   try {
     const auth = await getAuthContext();
-    const filters = parseFilters(params);
+    const filters = await parseFilters(auth.tenantId, params);
     const data = await getInvoicesReport({ tenantOrgId: auth.tenantId, filters });
     return { success: true, data };
   } catch (error) {
-    console.error('Error fetching invoices report:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch invoices report',
-    };
+    return reportFailure(error, 'Failed to fetch invoices report');
   }
 }
 
@@ -182,15 +203,11 @@ export async function fetchRevenueBreakdown(params: {
 }): Promise<ActionResult<RevenueBreakdownData>> {
   try {
     const auth = await getAuthContext();
-    const filters = parseFilters(params);
+    const filters = await parseFilters(auth.tenantId, params);
     const data = await getRevenueBreakdown({ tenantOrgId: auth.tenantId, filters });
     return { success: true, data };
   } catch (error) {
-    console.error('Error fetching revenue breakdown:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch revenue breakdown',
-    };
+    return reportFailure(error, 'Failed to fetch revenue breakdown');
   }
 }
 
@@ -216,14 +233,10 @@ export async function fetchCustomerReport(params: {
 }): Promise<ActionResult<CustomerReportData>> {
   try {
     const auth = await getAuthContext();
-    const filters = parseFilters(params);
+    const filters = await parseFilters(auth.tenantId, params);
     const data = await getCustomerReport({ tenantOrgId: auth.tenantId, filters });
     return { success: true, data };
   } catch (error) {
-    console.error('Error fetching customer report:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch customer report',
-    };
+    return reportFailure(error, 'Failed to fetch customer report');
   }
 }

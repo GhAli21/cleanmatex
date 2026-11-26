@@ -7,8 +7,6 @@ import {
   deleteIdempotencyHash,
   hashPayload,
 } from '@/lib/utils/idempotency';
-import { calculateReadyBy, DEFAULT_BUSINESS_HOURS } from '@/lib/utils/ready-by-calculator';
-import { readDatabaseInstant, resolveOperationalTimeZoneOn } from '@/lib/utils/operational-zone.server';
 import {
   executeAction,
   type ExecuteActionResult,
@@ -24,8 +22,7 @@ export type PreparationCompletionErrorCode =
   | 'ORDER_NOT_FOUND'
   | 'PREPARATION_NOT_ACTIVE'
   | 'IDEMPOTENCY_CONFLICT'
-  | 'IDEMPOTENCY_IN_FLIGHT'
-  | 'TIMEZONE_NOT_CONFIGURED';
+  | 'IDEMPOTENCY_IN_FLIGHT';
 
 /**
  * Keeps HTTP adapters independent from database/engine implementation details.
@@ -65,27 +62,19 @@ export interface CompletePreparationCommand {
 /** Replay-safe outcome of the Preparation completion command. */
 export interface CompletePreparationResult {
   orderId: string;
-  /** ISO timestamp so idempotent replays are transport-stable. */
-  readyBy: string;
+  /** ISO timestamp of the preserved (or explicitly updated) ready-by promise, or null if unset. */
+  readyBy: string | null;
   workflow: ExecuteActionResult;
 }
 
 type LockedPreparationOrder = {
   id: string;
   preparation_status: string | null;
-  received_at: Date | null;
-  priority: string | null;
-  service_category_code: string | null;
-  branch_id: string | null;
+  ready_by_at: Date | null;
 };
 
 function normalisePreparationStatus(value: string | null): string {
   return value?.trim().toLowerCase() ?? '';
-}
-
-function normalisePriority(value: string | null): 'normal' | 'urgent' | 'express' {
-  const normalised = value?.trim().toLowerCase();
-  return normalised === 'urgent' || normalised === 'express' ? normalised : 'normal';
 }
 
 async function loadReplay(
@@ -110,7 +99,7 @@ async function lockPreparationOrder(
   orderId: string,
 ): Promise<LockedPreparationOrder> {
   const rows = await tx.$queryRaw<LockedPreparationOrder[]>`
-    SELECT id, preparation_status, received_at, priority, service_category_code, branch_id
+    SELECT id, preparation_status, ready_by_at
     FROM public.org_orders_mst
     WHERE id = ${orderId}::uuid
       AND tenant_org_id = ${tenantId}::uuid
@@ -121,44 +110,6 @@ async function lockPreparationOrder(
     throw new PreparationCompletionError('ORDER_NOT_FOUND', 'Order was not found.', 404);
   }
   return order;
-}
-
-async function resolveReadyBy(
-  tx: PrismaTransactionClient,
-  tenantId: string,
-  order: LockedPreparationOrder,
-  override: Date | undefined,
-): Promise<Date> {
-  if (override) return override;
-
-  const zone = await resolveOperationalTimeZoneOn(tx, {
-    tenantOrgId: tenantId,
-    operation: 'ready_by',
-    branchId: order.branch_id,
-  });
-  if (!zone) {
-    throw new PreparationCompletionError(
-      'TIMEZONE_NOT_CONFIGURED',
-      'No time zone is set for this branch, so a ready time cannot be calculated.',
-      422,
-    );
-  }
-
-  const categories = await tx.$queryRaw<Array<{ turnaround_hh: number | string | null }>>`
-    SELECT turnaround_hh
-    FROM public.sys_service_category_cd
-    WHERE service_category_code = ${order.service_category_code ?? ''}
-    LIMIT 1
-  `;
-  const turnaroundHours = Number(categories[0]?.turnaround_hh ?? 48);
-  const receivedAt = order.received_at ?? await readDatabaseInstant(tx);
-  return calculateReadyBy({
-    receivedAt,
-    turnaroundHours,
-    priority: normalisePriority(order.priority),
-    businessHours: DEFAULT_BUSINESS_HOURS,
-    timeZone: zone,
-  }).readyBy;
 }
 
 /**
@@ -221,19 +172,24 @@ export async function completePreparationCommand(
         );
       }
 
-      const readyBy = await resolveReadyBy(tx, params.tenantId, order, params.readyByOverride);
-      const now = new Date();
-      const stageUpdate = await tx.org_orders_mst.updateMany({
-        where: { id: params.orderId, tenant_org_id: params.tenantId },
-        data: {
-          ready_by_at: readyBy,
-          ...(params.internalNotes !== undefined && { internal_notes: params.internalNotes.trim() }),
-          updated_at: now,
-          updated_by: params.actorUserId,
-        },
-      });
-      if (stageUpdate.count !== 1) {
-        throw new PreparationCompletionError('ORDER_NOT_FOUND', 'Order was not found.', 404);
+      // Ready-by is an explicit customer promise set by the user (direct entry or
+      // Calculate button via the Commercial/Business-Calendar resolver). Never
+      // auto-recalculate or silently overwrite order.ready_by_at on completion.
+      const effectiveReadyBy = params.readyByOverride ?? order.ready_by_at ?? null;
+      if (params.readyByOverride !== undefined || params.internalNotes !== undefined) {
+        const now = new Date();
+        const stageUpdate = await tx.org_orders_mst.updateMany({
+          where: { id: params.orderId, tenant_org_id: params.tenantId },
+          data: {
+            ...(params.readyByOverride !== undefined && { ready_by_at: params.readyByOverride }),
+            ...(params.internalNotes !== undefined && { internal_notes: params.internalNotes.trim() }),
+            updated_at: now,
+            updated_by: params.actorUserId,
+          },
+        });
+        if (stageUpdate.count !== 1) {
+          throw new PreparationCompletionError('ORDER_NOT_FOUND', 'Order was not found.', 404);
+        }
       }
 
       const workflow = await executeAction({
@@ -253,7 +209,7 @@ export async function completePreparationCommand(
 
       const result: CompletePreparationResult = {
         orderId: params.orderId,
-        readyBy: readyBy.toISOString(),
+        readyBy: effectiveReadyBy ? effectiveReadyBy.toISOString() : null,
         workflow,
       };
       await tx.org_idempotency_keys.updateMany({

@@ -103,7 +103,7 @@ class AppLogger {
 
     _entries.add(
       AppLogEntry(
-        timestamp: DateTime.now(),
+        timestamp: DateTime.now().toUtc(),
         loggerName: name,
         level: level,
         message: message,

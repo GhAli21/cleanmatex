@@ -1,7 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time'
 import type { ColumnDef } from '@tanstack/react-table'
 import { CmxDataTable } from '@ui/data-display/cmx-datatable'
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms/cmx-select-dropdown'
@@ -45,9 +47,9 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function formatDate(iso: string | null) {
+function formatDate(iso: string | null, locale: string, zone: string | null) {
   if (!iso) return '—'
-  return new Date(iso).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
+  return formatInstantOrEmpty(iso, zone, locale === 'ar' ? 'ar' : 'en') || '—'
 }
 
 /**
@@ -55,6 +57,8 @@ function formatDate(iso: string | null) {
  */
 export function DeliveryLogPage() {
   const t = useTranslations('notifications')
+  const locale = useLocale()
+  const { organization } = useOperationalZones('invoice', [])
 
   const [rows, setRows] = useState<LogRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -121,7 +125,7 @@ export function DeliveryLogPage() {
     {
       accessorKey: 'created_at',
       header: t('deliveryLog.date'),
-      cell: ({ row }) => <span className="text-xs whitespace-nowrap">{formatDate(row.original.created_at)}</span>,
+      cell: ({ row }) => <span className="text-xs whitespace-nowrap">{formatDate(row.original.created_at, locale, organization)}</span>,
     },
     {
       accessorKey: 'error_message',

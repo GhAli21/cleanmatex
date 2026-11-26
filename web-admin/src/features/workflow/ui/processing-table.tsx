@@ -62,6 +62,8 @@ import { OrderDetailsLink } from '@features/orders/ui/order-details-link';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
 import { normalizeOrderStateResponse } from '@features/workflow/lib/processing-piece-map';
 import type { ProcessingOrder, SortDirection, SortField } from '@/types/processing';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { civilDateInZone, formatInstantOrEmpty } from '@/lib/utils/operational-time';
 
 interface ProcessingTableProps {
   tenantOrgId?: string | null;
@@ -78,33 +80,21 @@ interface ProcessingTableProps {
   onResetFilters?: () => void;
 }
 
-function formatProcessingDate(dateString: string, locale: string): string {
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return '—';
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date);
+function formatProcessingDate(dateString: string, locale: string, zone: string | null): string {
+  return formatInstantOrEmpty(dateString, zone, locale === 'ar' ? 'ar' : 'en') || '—';
 }
 
 type SlaState = 'overdue' | 'dueSoon' | 'today' | null;
 
-function getSlaState(readyByAt: string, nowMs: number): SlaState {
+function getSlaState(readyByAt: string, nowMs: number, zone: string | null): SlaState {
   const due = new Date(readyByAt);
   if (Number.isNaN(due.getTime())) return null;
-  const now = new Date(nowMs);
   const diffMs = due.getTime() - nowMs;
   if (diffMs < 0) return 'overdue';
   if (diffMs <= 2 * 60 * 60 * 1000) return 'dueSoon';
-  if (
-    due.getFullYear() === now.getFullYear() &&
-    due.getMonth() === now.getMonth() &&
-    due.getDate() === now.getDate()
-  ) {
-    return 'today';
-  }
+  const dueDay = civilDateInZone(readyByAt, zone);
+  const today = civilDateInZone(new Date(nowMs), zone);
+  if (dueDay && dueDay === today) return 'today';
   return null;
 }
 
@@ -280,6 +270,7 @@ export function ProcessingTable(props: ProcessingTableProps) {
   const [markReadyOrder, setMarkReadyOrder] = useState<ProcessingOrder | null>(null);
   const [markReadyBusyId, setMarkReadyBusyId] = useState<string | null>(null);
   const [markReadySuccessId, setMarkReadySuccessId] = useState<string | null>(null);
+  const { zoneFor } = useOperationalZones('ready_by', orders.map((order) => order.branch_id));
 
   const handleMarkReadyClick = useCallback((order: ProcessingOrder) => {
     setMarkReadyOrder(order);
@@ -346,6 +337,7 @@ export function ProcessingTable(props: ProcessingTableProps) {
             selectedOrderId={selectedOrderId}
             nowMs={nowMs}
             tenantOrgId={tenantOrgId}
+            opsZone={zoneFor(order.branch_id)}
           />
         ))}
       </div>
@@ -405,6 +397,7 @@ export function ProcessingTable(props: ProcessingTableProps) {
                 selectedOrderId={selectedOrderId}
                 nowMs={nowMs}
                 tenantOrgId={tenantOrgId}
+                opsZone={zoneFor(order.branch_id)}
               />
             ))}
           </TableBody>
@@ -433,6 +426,7 @@ interface OrderRowProps {
   selectedOrderId?: string | null;
   nowMs: number;
   tenantOrgId?: string | null;
+  opsZone: string | null;
 }
 
 const OrderRow = React.memo(function OrderRow({
@@ -447,6 +441,7 @@ const OrderRow = React.memo(function OrderRow({
   selectedOrderId,
   nowMs,
   tenantOrgId,
+  opsZone,
 }: OrderRowProps) {
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing');
@@ -457,7 +452,7 @@ const OrderRow = React.memo(function OrderRow({
   const prefetchProcessingDialogs = useProcessingDialogPrefetch();
 
   const isSelected = selectedOrderId === order.id;
-  const slaState = getSlaState(order.ready_by_at, nowMs);
+  const slaState = getSlaState(order.ready_by_at, nowMs, opsZone);
   const priorityBadge = getPriorityBadgeInfo(order.priority, t);
   const paymentBadge = getPaymentBadgeInfo(order, t);
   const localizedStatus = getLocalizedStatusLabel(order.current_status, tStatus);
@@ -521,7 +516,7 @@ const OrderRow = React.memo(function OrderRow({
       <TableCell rowHeight="compact" className="px-2 py-2 align-top">
         <div className="flex min-w-0 flex-col gap-1">
           <span className="text-xs font-medium leading-tight tabular-nums text-foreground">
-            {formatProcessingDate(order.ready_by_at, locale)}
+            {formatProcessingDate(order.ready_by_at, locale, opsZone)}
           </span>
           {slaState && (
             <div>
@@ -915,6 +910,7 @@ function ProcessingOrderCard(props: {
   selectedOrderId?: string | null;
   nowMs: number;
   tenantOrgId?: string | null;
+  opsZone: string | null;
 }) {
   const {
     order,
@@ -927,6 +923,7 @@ function ProcessingOrderCard(props: {
     selectedOrderId,
     nowMs,
     tenantOrgId,
+    opsZone,
   } = props;
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing');
@@ -937,7 +934,7 @@ function ProcessingOrderCard(props: {
   const prefetchProcessingDialogs = useProcessingDialogPrefetch();
 
   const isSelected = selectedOrderId === order.id;
-  const slaState = getSlaState(order.ready_by_at, nowMs);
+  const slaState = getSlaState(order.ready_by_at, nowMs, opsZone);
   const priorityBadge = getPriorityBadgeInfo(order.priority, t);
   const paymentBadge = getPaymentBadgeInfo(order, t);
   const localizedStatus = getLocalizedStatusLabel(order.current_status, tStatus);
@@ -974,7 +971,7 @@ function ProcessingOrderCard(props: {
           </div>
           <p className="text-sm font-medium text-foreground">{displayCustomerName}</p>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground tabular-nums">
-            <span>{formatProcessingDate(order.ready_by_at, locale)}</span>
+            <span>{formatProcessingDate(order.ready_by_at, locale, opsZone)}</span>
             {slaState && (
               <CmxStatusBadge
                 size="sm"

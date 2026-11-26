@@ -7,6 +7,22 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { tenantSettingsService } from '@/lib/services/tenant-settings.service'
+import { civilDateInZone, civilDayBounds, shiftCivilDate } from '@/lib/utils/operational-time'
+
+const CLOSED_INSTANT = '9999-01-01T00:00:00.000Z'
+
+function shopWindow(zone: string | null | undefined, now = new Date()) {
+  const todayCivil = civilDateInZone(now, zone)
+  if (!zone || !todayCivil) return null
+  return {
+    todayStart: civilDayBounds(todayCivil, zone).start,
+    todayEnd: civilDayBounds(todayCivil, zone).end,
+    monthStart: civilDayBounds(`${todayCivil.slice(0, 7)}-01`, zone).start,
+    last30Start: civilDayBounds(shiftCivilDate(todayCivil, -30), zone).start,
+    sevenStart: civilDayBounds(shiftCivilDate(todayCivil, -7), zone).start,
+    fourteenStart: civilDayBounds(shiftCivilDate(todayCivil, -14), zone).start,
+  }
+}
 
 // ========================
 // Type Definitions
@@ -168,6 +184,7 @@ export class DashboardService {
       branchId?: string
       from?: Date
       to?: Date
+      timeZone?: string | null
     }
   ): Promise<KPIOverview> {
     const cacheKey = `kpi-overview-${tenantId}-${JSON.stringify(options)}`
@@ -176,13 +193,13 @@ export class DashboardService {
 
     try {
       const branchId = options?.branchId
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const todayStart = today.toISOString()
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString()
-      const last30Start = new Date(today)
-      last30Start.setDate(last30Start.getDate() - 30)
-      const last30StartStr = last30Start.toISOString()
+      const window = shopWindow(options?.timeZone)
+      const todayStart = window?.todayStart.toISOString() ?? CLOSED_INSTANT
+      const todayEnd = window?.todayEnd.toISOString() ?? CLOSED_INSTANT
+      const monthStart = window?.monthStart.toISOString() ?? CLOSED_INSTANT
+      const last30StartStr = window?.last30Start.toISOString() ?? CLOSED_INSTANT
+      const sevenDaysAgoStr = window?.sevenStart.toISOString() ?? CLOSED_INSTANT
+      const fourteenDaysAgoStr = window?.fourteenStart.toISOString() ?? CLOSED_INSTANT
 
       let ordersQuery = this.supabase
         .from('org_orders_mst')
@@ -194,9 +211,10 @@ export class DashboardService {
       const { data: orders } = await ordersQuery
       const ordersList = orders || []
 
-      const todayOrders = ordersList.filter(
-        (o) => (o as { created_at: string }).created_at >= todayStart
-      )
+      const todayOrders = ordersList.filter((o) => {
+        const createdAt = (o as { created_at: string }).created_at
+        return createdAt >= todayStart && createdAt < todayEnd
+      })
       const mtdOrders = ordersList.filter(
         (o) => (o as { created_at: string }).created_at >= monthStart
       )
@@ -228,12 +246,6 @@ export class DashboardService {
         branchId,
         null
       )
-
-      const sevenDaysAgo = new Date(today)
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      const sevenDaysAgoStr = sevenDaysAgo.toISOString()
-      const fourteenDaysAgo = new Date(today)
-      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
 
       const buildDeliveredQuery = (select: string, fromIso: string, toIso?: string) => {
         let q = this.supabase
@@ -274,8 +286,8 @@ export class DashboardService {
         buildDeliveredQuery('created_at, delivered_at, ready_by_at', last30StartStr),
         buildDeliveredQuery(
           'created_at, delivered_at',
-          fourteenDaysAgo.toISOString(),
-          sevenDaysAgo.toISOString()
+          fourteenDaysAgoStr,
+          sevenDaysAgoStr
         ),
         buildDeliveredQuery('created_at, delivered_at', sevenDaysAgoStr),
         this.supabase
@@ -403,9 +415,8 @@ export class DashboardService {
         created_at: string
       }>
       const driverSet = new Set<string>()
-      const todayStartMs = today.getTime()
-      const endToday = new Date(today)
-      endToday.setHours(23, 59, 59, 999)
+      const todayStartMs = window?.todayStart.getTime() ?? Number.POSITIVE_INFINITY
+      const todayEndMs = window?.todayEnd.getTime() ?? Number.NEGATIVE_INFINITY
       for (const r of routes) {
         if (!r.driver_id) continue
         driverSet.add(r.driver_id)
@@ -419,7 +430,7 @@ export class DashboardService {
         }
         if (r.started_at && r.driver_id) {
           const st = new Date(r.started_at).getTime()
-          if (st >= todayStartMs && st <= endToday.getTime()) {
+          if (st >= todayStartMs && st < todayEndMs) {
             activeDriverIds.add(r.driver_id)
           }
         }
@@ -577,6 +588,7 @@ export class DashboardService {
       from?: Date
       to?: Date
       branchId?: string
+      timeZone?: string | null
     }
   ): Promise<OrdersTrendData[]> {
     const cacheKey = `orders-trend-${tenantId}-${JSON.stringify(options)}`
@@ -584,9 +596,11 @@ export class DashboardService {
     if (cached) return cached
 
     try {
+      const zone = options?.timeZone
       const to = options?.to || new Date()
-      const from = options?.from || new Date(to)
-      from.setDate(from.getDate() - 7)
+      const toCivil = civilDateInZone(to, zone)
+      if (!zone || !toCivil) return []
+      const from = options?.from || civilDayBounds(shiftCivilDate(toCivil, -7), zone).start
       let query = this.supabase
         .from('org_orders_mst')
         .select('created_at')
@@ -597,7 +611,7 @@ export class DashboardService {
       const { data } = await query
       const byDate: Record<string, number> = {}
       ;(data || []).forEach((o) => {
-        const d = (o as { created_at: string }).created_at?.slice(0, 10)
+        const d = civilDateInZone((o as { created_at: string }).created_at, zone)
         if (d) byDate[d] = (byDate[d] || 0) + 1
       })
       const result = Object.entries(byDate)
@@ -621,6 +635,7 @@ export class DashboardService {
       from?: Date
       to?: Date
       branchId?: string
+      timeZone?: string | null
     }
   ): Promise<RevenueTrendData[]> {
     const cacheKey = `revenue-trend-${tenantId}-${JSON.stringify(options)}`
@@ -628,9 +643,11 @@ export class DashboardService {
     if (cached) return cached
 
     try {
+      const zone = options?.timeZone
       const to = options?.to || new Date()
-      const from = options?.from || new Date(to)
-      from.setDate(from.getDate() - 7)
+      const toCivil = civilDateInZone(to, zone)
+      if (!zone || !toCivil) return []
+      const from = options?.from || civilDayBounds(shiftCivilDate(toCivil, -7), zone).start
       let query = this.supabase
         .from('org_orders_mst')
         .select('created_at, total:total_amount')
@@ -642,9 +659,9 @@ export class DashboardService {
       const { data } = await query
       const byDate: Record<string, number> = {}
       ;(data || []).forEach((o) => {
-        const d = (o as { created_at: string }).created_at?.slice(0, 10)
-        const t = Number((o as { total?: number }).total || 0)
-        if (d) byDate[d] = (byDate[d] || 0) + t
+        const d = civilDateInZone((o as { created_at: string }).created_at, zone)
+        const amount = Number((o as { total?: number }).total || 0)
+        if (d) byDate[d] = (byDate[d] || 0) + amount
       })
       const result = Object.entries(byDate)
         .map(([date, amount]) => ({ date, amount }))
@@ -660,21 +677,20 @@ export class DashboardService {
   /**
    * Get orders count for a specific date
    */
-  async getOrdersCountForDate(
+  async getOrdersCountForCivilDay(
     tenantId: string,
-    date: Date,
+    civilDay: string,
+    timeZone: string | null,
     branchId?: string
   ): Promise<number> {
-    const start = new Date(date)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(date)
-    end.setHours(23, 59, 59, 999)
+    if (!timeZone || !/^\d{4}-\d{2}-\d{2}$/.test(civilDay)) return 0
+    const bounds = civilDayBounds(civilDay, timeZone)
     let query = this.supabase
       .from('org_orders_mst')
       .select('id', { count: 'exact', head: true })
       .eq('tenant_org_id', tenantId)
-      .gte('created_at', start.toISOString())
-      .lte('created_at', end.toISOString())
+      .gte('created_at', bounds.start.toISOString())
+      .lt('created_at', bounds.end.toISOString())
     if (branchId) query = query.eq('branch_id', branchId)
     const { count, error } = await query
     if (error) return 0
@@ -682,10 +698,12 @@ export class DashboardService {
   }
 
   /**
-   * Get today's orders count
+   * Get today's orders count in the operations zone.
    */
-  async getTodayOrdersCount(tenantId: string, branchId?: string): Promise<number> {
-    return this.getOrdersCountForDate(tenantId, new Date(), branchId)
+  async getTodayOrdersCount(tenantId: string, timeZone: string | null, branchId?: string): Promise<number> {
+    const day = civilDateInZone(new Date(), timeZone)
+    if (!day) return 0
+    return this.getOrdersCountForCivilDay(tenantId, day, timeZone, branchId)
   }
 
   /**

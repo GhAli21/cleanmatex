@@ -2,13 +2,33 @@
 /* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 
 import { revalidatePath } from 'next/cache';
+import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { TAX_PERMISSIONS } from '@/lib/constants/permissions/tax-perm';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { prisma } from '@/lib/db/prisma';
+import { isRealIsoDate } from '@/lib/validations/iso-date';
 
 const REVALIDATE_PATH = '/dashboard/settings/tax';
+
+function civilDateColumn(day: string): Date {
+  return new Date(`${day}T00:00:00.000Z`);
+}
+
+async function exemptionDateError(validFrom?: string | null, validTo?: string | null): Promise<string | null> {
+  const from = validFrom ?? '';
+  const to = validTo ?? '';
+  if ((from && !isRealIsoDate(from)) || (to && !isRealIsoDate(to))) {
+    const t = await getTranslations('taxSetup');
+    return t('invalidCivilDate');
+  }
+  if (from && to && to < from) {
+    const t = await getTranslations('taxSetup');
+    return t('validToBeforeFrom');
+  }
+  return null;
+}
 
 /** An exemption changes what orders are taxed, so writes need the tax setup permission. */
 const canManage = () => hasPermissionServer(TAX_PERMISSIONS.MANAGE_CONFIG);
@@ -87,6 +107,8 @@ export async function updateTaxExemptionAction(
         where: { id, tenant_org_id: tenantId, is_active: true },
       });
       if (!existing) return { success: false, error: 'Tax exemption not found' };
+      const dateError = await exemptionDateError(input.validFrom, input.validTo);
+      if (dateError) return { success: false, error: dateError };
 
       const exemption = await prisma.org_tax_exemptions_cf.update({
         where: { id, tenant_org_id: tenantId },
@@ -94,8 +116,8 @@ export async function updateTaxExemptionAction(
           ...(input.exemptionType !== undefined && { exemption_type: input.exemptionType }),
           ...(input.certificateNo !== undefined && { certificate_no: input.certificateNo || null }),
           ...(input.serviceType !== undefined && { service_type: input.serviceType || null }),
-          ...(input.validFrom !== undefined && { valid_from: new Date(input.validFrom) }),
-          ...(input.validTo !== undefined && { valid_to: input.validTo ? new Date(input.validTo) : null }),
+          ...(input.validFrom !== undefined && { valid_from: civilDateColumn(input.validFrom) }),
+          ...(input.validTo !== undefined && { valid_to: input.validTo ? civilDateColumn(input.validTo) : null }),
           updated_by: userId,
           updated_at: new Date(),
         },
@@ -134,6 +156,8 @@ export async function createTaxExemptionAction(input: CreateTaxExemptionInput): 
 }> {
   try {
     if (!(await canManage())) return { success: false, error: 'PERMISSION_DENIED' };
+    const dateError = await exemptionDateError(input.validFrom, input.validTo);
+    if (dateError) return { success: false, error: dateError };
     const { tenantId, userId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       const exemption = await prisma.org_tax_exemptions_cf.create({
@@ -143,8 +167,8 @@ export async function createTaxExemptionAction(input: CreateTaxExemptionInput): 
           service_type:   input.serviceType ?? null,
           exemption_type: input.exemptionType,
           certificate_no: input.certificateNo ?? null,
-          valid_from:     new Date(input.validFrom),
-          valid_to:       input.validTo ? new Date(input.validTo) : null,
+          valid_from:     civilDateColumn(input.validFrom),
+          valid_to:       input.validTo ? civilDateColumn(input.validTo) : null,
           is_active:      true,
           rec_status:     1,
           created_by:     userId,

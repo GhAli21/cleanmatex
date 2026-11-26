@@ -74,6 +74,7 @@ interface WorkboardRowSql {
   customer_name: string | null
   customer_phone: string | null
   branch_name: string | null
+  branch_id: string | null
   current_status: string
   priority: string | null
   has_issue: boolean | null
@@ -212,12 +213,28 @@ function scopePredicate(scope: StatusScope): Prisma.Sql {
   )`
 }
 
-function dateRangeForToday(now: Date): { start: Date; end: Date } {
-  const start = new Date(now)
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(start)
-  end.setDate(end.getDate() + 1)
-  return { start, end }
+/** Promised Ready By falls on today's civil day in the fulfilment branch zone. */
+function dueTodaySql(): Prisma.Sql {
+  return Prisma.sql`EXISTS (
+    SELECT 1
+    FROM (SELECT public.fn_ops_zone(o.tenant_org_id, 'ready_by', o.branch_id) AS z) zone
+    WHERE zone.z IS NOT NULL
+      AND o.ready_by_at >= (date_trunc('day', clock_timestamp() AT TIME ZONE zone.z) AT TIME ZONE zone.z)
+      AND o.ready_by_at < ((date_trunc('day', clock_timestamp() AT TIME ZONE zone.z) + interval '1 day') AT TIME ZONE zone.z)
+  )`
+}
+
+/** Promised Ready By is after today's civil day in the fulfilment branch zone. */
+function notDueSql(): Prisma.Sql {
+  return Prisma.sql`(
+    o.ready_by_at IS NULL
+    OR EXISTS (
+      SELECT 1
+      FROM (SELECT public.fn_ops_zone(o.tenant_org_id, 'ready_by', o.branch_id) AS z) zone
+      WHERE zone.z IS NOT NULL
+        AND o.ready_by_at >= ((date_trunc('day', clock_timestamp() AT TIME ZONE zone.z) + interval '1 day') AT TIME ZONE zone.z)
+    )
+  )`
 }
 
 function buildWhereSql(
@@ -253,13 +270,9 @@ function buildWhereSql(
   }
 
   const dueAt = Prisma.sql`o.ready_by_at`
-  const now = new Date()
-  const today = dateRangeForToday(now)
-  if (input.sla === 'overdue') clauses.push(Prisma.sql`${dueAt} < ${now}`)
-  if (input.sla === 'due_today') {
-    clauses.push(Prisma.sql`${dueAt} >= ${today.start} AND ${dueAt} < ${today.end}`)
-  }
-  if (input.sla === 'not_due') clauses.push(Prisma.sql`(${dueAt} IS NULL OR ${dueAt} >= ${today.end})`)
+  if (input.sla === 'overdue') clauses.push(Prisma.sql`${dueAt} < NOW()`)
+  if (input.sla === 'due_today') clauses.push(dueTodaySql())
+  if (input.sla === 'not_due') clauses.push(notDueSql())
 
   return Prisma.join(clauses, ' AND ')
 }
@@ -407,7 +420,8 @@ export class WorkboardQueryService {
         ? prisma.$queryRaw<WorkboardRowSql[]>(Prisma.sql`
             SELECT o.id::text, o.order_no, COALESCE(o.customer_name, c.name) AS customer_name,
               COALESCE(o.customer_mobile_number, c.phone) AS customer_phone,
-              COALESCE(b.name, b.branch_name) AS branch_name, o.current_status, o.priority,
+              COALESCE(b.name, b.branch_name) AS branch_name, o.branch_id::text AS branch_id,
+              o.current_status, o.priority,
               o.has_issue, o.is_rejected, o.received_at, o.last_transition_at,
               o.ready_by_at, o.state_version,
               o.wf_profile_id::text, profile_row.name AS workflow_profile_name,
@@ -495,7 +509,8 @@ export class WorkboardQueryService {
         workflowProfileVersionId: row.wf_profile_version_id,
         orderSourceCode: row.order_source_code, orderTypeId: row.order_type_id,
         orderSubtype: row.order_subtype,
-        customerPhone: row.customer_phone, branchName: row.branch_name, statusCode: row.current_status,
+        customerPhone: row.customer_phone, branchName: row.branch_name, branchId: row.branch_id,
+        statusCode: row.current_status,
         statusName: labels.get(row.current_status)?.name ?? row.current_status,
         statusName2: labels.get(row.current_status)?.name2 ?? null,
         ownerScreenKey: owner,

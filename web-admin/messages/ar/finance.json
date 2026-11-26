@@ -6,6 +6,7 @@
     "voucherNo": "رقم السند",
     "voucherType": "نوع السند",
     "voucherDate": "تاريخ القسيمة",
+    "timezoneNotConfigured": "لم يتم تحديد منطقة زمنية لهذه المنشأة، لذا لا يمكن اختيار التاريخ. اطلب من المسؤول تحديدها.",
     "voucherDateTime": "تاريخ ووقت القسيمة",
     "voucherDetail": "تفاصيل السند",
     "voucherSummary": "ملخص السند",

@@ -217,6 +217,7 @@ function ProcessingQueueContent() {
         id: order.id,
         order_no: order.order_no,
         ready_by_at: order.ready_by_at || '',
+        branch_id: typeof order.branch_id === 'string' ? order.branch_id : null,
         customer_name: customerName,
         customer_name2: customerData.name2,
         customer_phone: customerData.phone || undefined,

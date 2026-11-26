@@ -4,7 +4,13 @@ import {
   formatInstant,
   formatInstantOrEmpty,
   formatStoredClock,
+  formatStoredClockLabel,
   civilDateFromPickerDate,
+  civilDatetimeLocalValue,
+  instantFromDatetimeLocal,
+  inclusiveEndOfCivilDay,
+  civilYearEndDate,
+  civilDateInputValue,
   civilDateInZone,
   civilYearInZone,
   prismaDateToCivil,
@@ -108,5 +114,23 @@ describe('formatInstant', () => {
     expect(prismaDateToCivil(new Date('2026-10-04T00:00:00.000Z'))).toBe('2026-10-04');
     expect(civilYearInZone(new Date('2025-12-31T20:30:00.000Z'), 'Asia/Muscat')).toBe(2026);
     expect(civilYearInZone(new Date('2026-01-01T04:30:00.000Z'), 'America/New_York')).toBe(2025);
+  });
+
+  it('keeps a datetime-local value and a date-only expiry in the organization zone', () => {
+    expect(civilDatetimeLocalValue('2026-10-03T20:00:00.000Z', 'Asia/Muscat')).toBe('2026-10-04T00:00');
+    expect(civilDatetimeLocalValue('2026-10-03T20:00:00.000Z', null)).toBe('');
+    expect(instantFromDatetimeLocal('2026-10-04T00:00', 'Asia/Muscat').toISOString()).toBe('2026-10-03T20:00:00.000Z');
+    expect(inclusiveEndOfCivilDay('2026-12-31', 'Asia/Muscat').toISOString()).toBe('2026-12-31T19:59:59.999Z');
+    expect(civilYearEndDate(new Date('2026-10-03T20:00:00.000Z'), 'Asia/Muscat')).toBe('2026-12-31');
+    expect(civilYearEndDate(new Date('2026-10-03T20:00:00.000Z'), null)).toBe('');
+    expect(civilDateInputValue('2026-12-31')).toBe('2026-12-31');
+    expect(civilDateInputValue('2026-12-31T00:00:00.000Z')).toBe('2026-12-31');
+    expect(civilDateInputValue(null)).toBe('');
+  });
+
+  it('labels a civil date without a zone and leaves an instant blank when the zone is missing', () => {
+    expect(formatStoredClockLabel('2026-10-04', null, 'en')).toContain('2026');
+    expect(formatStoredClockLabel('2026-10-03T20:00:00Z', null, 'en')).toBe('');
+    expect(formatStoredClockLabel('2026-10-03T20:00:00Z', 'Asia/Muscat', 'en')).toContain('2026');
   });
 });

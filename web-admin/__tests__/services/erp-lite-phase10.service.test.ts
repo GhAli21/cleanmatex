@@ -144,6 +144,8 @@ describe('ErpLitePhase10Service', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-04-01T12:00:00.000Z'));
 
     mockQueryRaw
+      .mockResolvedValueOnce([{ timezone: 'Asia/Muscat' }])
+      .mockResolvedValueOnce([{ instant: new Date('2026-03-31T21:00:00.000Z') }])
       .mockResolvedValueOnce([{ count: 2 }])
       .mockResolvedValueOnce([]);
 
@@ -152,11 +154,11 @@ describe('ErpLitePhase10Service', () => {
       basis_code: 'REVENUE',
     });
 
-    const seqQuery = mockQueryRaw.mock.calls[0]?.[0];
+    const seqQuery = mockQueryRaw.mock.calls[2]?.[0];
     expect(seqQuery?.values).toContain('tenant-123');
     expect(seqQuery?.values).toContain('ALR-202604%');
 
-    const insertQuery = mockQueryRaw.mock.calls[1]?.[0];
+    const insertQuery = mockQueryRaw.mock.calls[3]?.[0];
     expect(insertQuery?.values).toContain('ALR-202604-00003');
     expect(insertQuery?.values).toContain('Revenue Share');
 

@@ -3,6 +3,8 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { Decimal } from '@prisma/client/runtime/library';
+import { civilInstantRange } from '@/lib/utils/operational-time';
+import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 
 function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
@@ -24,10 +26,16 @@ export async function GET(request: NextRequest) {
   const page     = Number(searchParams.get('page') ?? '1');
   const limit    = Number(searchParams.get('limit') ?? '50');
 
-  const dateFilter = {
-    ...(from ? { gte: new Date(from) } : {}),
-    ...(to   ? { lte: new Date(to)   } : {}),
-  };
+  if ((from && !/^\d{4}-\d{2}-\d{2}/.test(from)) || (to && !/^\d{4}-\d{2}-\d{2}/.test(to))) {
+    return NextResponse.json({ success: false, error: 'from and to must be YYYY-MM-DD' }, { status: 400 });
+  }
+  const zone = from || to
+    ? await resolveOperationalTimeZone(tenantId, 'accept_order', branchId ?? null)
+    : null;
+  if ((from || to) && !zone) {
+    return NextResponse.json({ success: false, error: 'TIMEZONE_NOT_CONFIGURED' }, { status: 422 });
+  }
+  const dateFilter = zone ? civilInstantRange(from, to, zone) : {};
 
   try {
     const where = {

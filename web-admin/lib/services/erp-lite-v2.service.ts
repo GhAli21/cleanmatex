@@ -9,6 +9,7 @@ import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.servic
 import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
 import { DOC_SEQ_TYPES } from '@/lib/constants/doc-seq';
 import { resolveDocFxRate } from '@/lib/services/fx/doc-fx-rate';
+import { civilYearMonthToken } from '@/lib/utils/operational-zone.server';
 import { resolvePurchaseTax, writePurchaseTaxLines } from '@/lib/services/tax/purchase-tax.service';
 import type {
   CreateErpLiteBankMatchInput,
@@ -387,7 +388,8 @@ export class ErpLiteV2Service {
           PREFIX_PO,
           'po_no',
           'org_fin_po_mst',
-          tx
+          tx,
+          input.po_date
         );
         const subtotalAmount = this.roundAmount(input.subtotal_amount);
         // Rules decide the tax once the tax setup is active; a typed amount must match the code (never rewritten).
@@ -524,7 +526,8 @@ export class ErpLiteV2Service {
           PREFIX_AP_INV,
           'ap_inv_no',
           'org_fin_ap_inv_mst',
-          tx
+          tx,
+          input.invoice_date
         );
         const subtotalAmount = this.roundAmount(input.subtotal_amount);
         // Rules decide the tax once the tax setup is active; a typed amount must match the code (never rewritten).
@@ -719,7 +722,8 @@ export class ErpLiteV2Service {
           PREFIX_AP_PMT,
           'ap_pmt_no',
           'org_fin_ap_pmt_mst',
-          tx
+          tx,
+          input.payment_date
         );
 
         const inserted = await tx.$queryRaw<ApPaymentInsertRow[]>(Prisma.sql`
@@ -943,7 +947,7 @@ export class ErpLiteV2Service {
         ) VALUES (
           ${tenantId}::uuid,
           ${bankAccount.id}::uuid,
-          ${await this.generateSequentialNo(tenantId, PREFIX_STMT, 'import_batch_no', 'org_fin_bank_stmt_mst')},
+          ${await this.generateSequentialNo(tenantId, PREFIX_STMT, 'import_batch_no', 'org_fin_bank_stmt_mst', prisma, input.stmt_date_from)},
           'MANUAL',
           ${input.source_file_name?.trim() || null},
           ${input.stmt_date_from}::date,
@@ -997,7 +1001,7 @@ export class ErpLiteV2Service {
           ${tenantId}::uuid,
           ${bankAccount.id}::uuid,
           ${input.period_id ?? null}::uuid,
-          ${await this.generateSequentialNo(tenantId, PREFIX_RECON, 'recon_code', 'org_fin_bank_recon_mst')},
+          ${await this.generateSequentialNo(tenantId, PREFIX_RECON, 'recon_code', 'org_fin_bank_recon_mst', prisma, input.recon_date)},
           ${input.recon_date}::date,
           ${input.stmt_date_from}::date,
           ${input.stmt_date_to}::date,
@@ -2565,12 +2569,11 @@ export class ErpLiteV2Service {
     prefix: string,
     columnName: string,
     tableName: string,
-    db: PrismaSqlExecutor = prisma
+    db: PrismaSqlExecutor = prisma,
+    civilDate?: string
   ): Promise<string> {
-    const now = new Date();
-    const year = now.getUTCFullYear();
-    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
-    const pattern = `${prefix}-${year}${month}%`;
+    const yearMonth = await civilYearMonthToken(db, tenantId, civilDate);
+    const pattern = `${prefix}-${yearMonth}%`;
 
     const counts = await db.$queryRaw<{ count: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS count
@@ -2580,7 +2583,7 @@ export class ErpLiteV2Service {
     `);
 
     const nextNumber = String((counts[0]?.count ?? 0) + 1).padStart(5, '0');
-    return `${prefix}-${year}${month}-${nextNumber}`;
+    return `${prefix}-${yearMonth}-${nextNumber}`;
   }
 
   private static mapLocalizedOptions(

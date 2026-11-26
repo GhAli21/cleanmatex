@@ -16,6 +16,8 @@ import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial
 import type { CanonicalOrderFinancialRowLike } from '@/lib/utils/order-financial-snapshot'
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status'
 import { PickupReleaseStatus } from '@features/pickup/ui/pickup-release-status'
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time'
 import { ReadyListFocusChips } from '@features/pickup/ui/ready-list-focus-chips'
 import { resolveScan } from '@features/scan/api/scan-api'
 import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal'
@@ -156,6 +158,7 @@ export function ReadyListScreen() {
       }
     })
   }, [currencyCode, rawOrders, t])
+  const { zoneFor } = useOperationalZones('ready_by', orders.map((order) => order.branchId))
 
   const listPath = readyListPath(query)
 
@@ -321,11 +324,7 @@ export function ReadyListScreen() {
           )}
         >
           {orders.map((order) => {
-            const formattedReadyBy = order.ready_by && !Number.isNaN(new Date(order.ready_by).getTime())
-              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
-                new Date(order.ready_by),
-              )
-              : null
+            const formattedReadyBy = formatInstantOrEmpty(order.ready_by, zoneFor(order.branchId), locale) || null
 
             return (
               <CmxCard key={order.id} className="h-full p-6 transition-shadow hover:shadow-md">
@@ -340,6 +339,7 @@ export function ReadyListScreen() {
                       <PickupReleaseStatus
                         release={order.pickup_release}
                         workflowStatus={order.current_status}
+                        opsZone={zoneFor(order.branchId)}
                       />
                       {paymentStatusBadge(order.payment_status)}
                     </div>

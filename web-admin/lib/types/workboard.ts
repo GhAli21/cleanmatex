@@ -96,6 +96,7 @@ export interface WorkboardOrderRow {
   customerName: string
   customerPhone: string | null
   branchName: string | null
+  branchId: string | null
   statusCode: string
   statusName: string
   statusName2: string | null

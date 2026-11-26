@@ -7,12 +7,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { searchCustomers } from '@/lib/services/customers.service';
 import type { CustomerSearchParams } from '@/lib/types/customer';
+import { civilDateInZone } from '@/lib/utils/operational-time';
+import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 
 /**
  * Convert customers to CSV format
  * @param customers
  */
-function convertToCSV(customers: any[]): string {
+function instantIso(value: string | Date | null | undefined): string {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+}
+
+function convertToCSV(customers: any[], zone: string | null): string {
   // CSV Headers
   const headers = [
     'Customer Number',
@@ -29,6 +37,9 @@ function convertToCSV(customers: any[]): string {
     'Total Orders',
     'Last Order Date',
     'Created At',
+    'Last Order Instant',
+    'Created Instant',
+    'Time Zone',
   ];
 
   // CSV Rows
@@ -45,12 +56,11 @@ function convertToCSV(customers: any[]): string {
     customer.emailVerified ? 'Yes' : 'No',
     customer.loyaltyPoints || 0,
     customer.totalOrders || 0,
-    customer.lastOrderAt
-      ? new Date(customer.lastOrderAt).toLocaleDateString()
-      : '',
-    customer.createdAt
-      ? new Date(customer.createdAt).toLocaleDateString()
-      : '',
+    civilDateInZone(customer.lastOrderAt, zone),
+    civilDateInZone(customer.createdAt, zone),
+    instantIso(customer.lastOrderAt),
+    instantIso(customer.createdAt),
+    zone ?? '',
   ]);
 
   // Combine headers and rows
@@ -90,7 +100,7 @@ function convertToCSV(customers: any[]): string {
 export async function GET(request: NextRequest) {
   try {
     // 1. Verify authentication
-    const { userRole } = await getAuthContext();
+    const { userRole, tenantId } = await getAuthContext();
 
     // 2. Check admin permission
     if (userRole !== 'admin' && userRole !== 'owner') {
@@ -119,11 +129,13 @@ export async function GET(request: NextRequest) {
     const { customers } = await searchCustomers(params);
 
     // 5. Convert to CSV
-    const csvContent = convertToCSV(customers);
+    const zone = tenantId
+      ? await resolveOperationalTimeZone(tenantId, 'invoice', null)
+      : null;
+    const csvContent = convertToCSV(customers, zone);
 
-    // 8. Generate filename with timestamp
-    const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const filename = `customers_${timestamp}.csv`;
+    const filenameDay = civilDateInZone(new Date(), zone) || 'export';
+    const filename = `customers_${filenameDay}.csv`;
 
     // 9. Return CSV file
     return new NextResponse(csvContent, {

@@ -25,7 +25,9 @@ export interface OutboxListFilters {
   aggregateType?: string;
   search?: string;
   stuckOnly?: boolean;
+  /** Inclusive start of the created-at range. */
   from?: Date;
+  /** Exclusive end of the created-at range. */
   to?: Date;
 }
 
@@ -151,7 +153,7 @@ export function buildOutboxWhere(
     clauses.push({
       created_at: {
         ...(filters.from ? { gte: filters.from } : {}),
-        ...(filters.to ? { lte: filters.to } : {}),
+        ...(filters.to ? { lt: filters.to } : {}),
       },
     });
   }

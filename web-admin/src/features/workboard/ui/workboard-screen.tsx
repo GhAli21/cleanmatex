@@ -25,6 +25,8 @@ import {
 } from '@features/workboard/model/workboard-types'
 import { WorkboardFilterToolbar } from '@features/workboard/ui/workboard-filter-toolbar'
 import { WorkboardOverviewCards } from '@features/workboard/ui/workboard-overview-cards'
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
+import { civilDateInZone, formatInstantOrEmpty } from '@/lib/utils/operational-time'
 
 function formatAge(minutes: number, t: ReturnType<typeof useTranslations>): string {
   if (minutes < 60) return t('age.minutes', { count: minutes })
@@ -32,11 +34,8 @@ function formatAge(minutes: number, t: ReturnType<typeof useTranslations>): stri
   return t('age.days', { count: Math.floor(minutes / 1_440) })
 }
 
-function formatDateTime(value: string, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
+function formatDateTime(value: string, locale: string, zone: string | null): string {
+  return formatInstantOrEmpty(value, zone, locale) || '—'
 }
 
 function formatPriorityLabel(
@@ -59,17 +58,12 @@ function isOverdue(row: WorkboardOrderRow): boolean {
   return !!row.readyByAt && new Date(row.readyByAt).getTime() < Date.now()
 }
 
-function isDueToday(row: WorkboardOrderRow): boolean {
-  if (!row.readyByAt) {
-    return false
-  }
-
+function isDueToday(row: WorkboardOrderRow, zone: string | null): boolean {
+  if (!row.readyByAt || !zone) return false
   const dueAt = new Date(row.readyByAt)
-  const now = new Date()
-  const endOfToday = new Date(now)
-  endOfToday.setHours(23, 59, 59, 999)
-
-  return dueAt.getTime() >= now.getTime() && dueAt.getTime() <= endOfToday.getTime()
+  if (Number.isNaN(dueAt.getTime()) || dueAt.getTime() < Date.now()) return false
+  const today = civilDateInZone(new Date(), zone)
+  return Boolean(today) && civilDateInZone(row.readyByAt, zone) === today
 }
 
 function ownerBadgeVariant(ownerScreenKey: WorkboardOwnerScreenKey): CmxBadgeTone {
@@ -276,6 +270,7 @@ export function WorkboardScreen() {
   } = useWorkboard(query)
   // A persisted client cache may have rows before React hydrates server markup.
   const data = isHydrated ? cachedData : undefined
+  const { zoneFor } = useOperationalZones('ready_by', (data?.rows ?? []).map((row) => row.branchId))
   const isLoading = !isHydrated || isQueryLoading
   const workboardReturnUrl = useMemo(() => buildWorkboardReturnUrl(query), [query])
 
@@ -396,7 +391,7 @@ export function WorkboardScreen() {
       render: (row) => (
         <div className="text-sm tabular-nums">
           <div className={isOverdue(row) ? 'font-semibold text-danger-text' : 'font-medium'}>
-            {row.readyByAt ? formatDateTime(row.readyByAt, locale) : t('noDueDate')}
+            {row.readyByAt ? formatDateTime(row.readyByAt, locale, zoneFor(row.branchId)) : t('noDueDate')}
           </div>
         </div>
       ),
@@ -440,7 +435,7 @@ export function WorkboardScreen() {
           return <CmxStatusBadge label={t('attention.overdue')} size="sm" tone="danger" />
         }
 
-        if (isDueToday(row)) {
+        if (isDueToday(row, zoneFor(row.branchId))) {
           return <CmxStatusBadge label={t('attention.dueToday')} size="sm" tone="info" />
         }
 
@@ -461,7 +456,7 @@ export function WorkboardScreen() {
         </CmxButton>
       ),
     },
-  ], [locale, t, tPriorities, workboardReturnUrl])
+  ], [locale, t, tPriorities, workboardReturnUrl, zoneFor])
 
   const metadata = data?.metadata
   const hasRows = (data?.rows.length ?? 0) > 0

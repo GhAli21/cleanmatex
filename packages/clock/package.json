@@ -1,0 +1,45 @@
+{
+  "name": "@cmx/clock",
+  "version": "0.1.42",
+  "private": true,
+  "description": "CleanMateX clock and time-zone rules: the TypeScript mirror of the SQL fn_cmx_dt_* family (docs/features/Time_and_Timezone).",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./zod": {
+      "types": "./dist/types/zod.d.ts",
+      "import": "./dist/esm/zod.js",
+      "require": "./dist/zod.cjs"
+    },
+    "./vectors/time-vectors.v1.json": "./vectors/time-vectors.v1.json",
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "vectors"],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepare": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node scripts/build.mjs && node scripts/test-tz-matrix.mjs",
+    "test:once": "jest --config jest.config.cjs"
+  },
+  "dependencies": {
+    "temporal-polyfill": "1.0.8"
+  },
+  "peerDependencies": {
+    "zod": "^4.1.12"
+  },
+  "peerDependenciesMeta": {
+    "zod": { "optional": true }
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.4",
+    "typescript": "^5"
+  }
+}

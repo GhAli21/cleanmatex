@@ -24,6 +24,7 @@ import { requireCurrencyCode } from '@/lib/money/currency-resolution';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
 import { assertBlockingInvoiceAutoPostSucceeded } from '@/lib/services/erp-lite-auto-post.util';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
+import { operationalCivilToday } from '@/lib/utils/operational-zone.server';
 import type {
   ArAgingCustomerRow,
   ArCustomerBalance,
@@ -634,6 +635,7 @@ export async function allocateArPaymentTx(
         totalAmount: toNumber(invoice.total),
         paidAmount: updatedPaidAmount,
         dueDate: invoice.due_date,
+            todayCivil: await operationalCivilToday(tenantId, 'invoice', invoice.branch_id),
       });
 
       await tx.org_invoice_mst.update({
@@ -778,6 +780,7 @@ export async function reverseArPaymentAllocationTx(
         totalAmount: toNumber(invoice.total),
         paidAmount: updatedPaidAmount,
         dueDate: invoice.due_date,
+            todayCivil: await operationalCivilToday(tenantId, 'invoice', invoice.branch_id),
       });
 
       await tx.org_invoice_payments_dtl.update({
@@ -1610,6 +1613,7 @@ async function createArInvoiceFromOrdersInTx(
             totalAmount: subtotal,
             paidAmount: 0,
             dueDate,
+            todayCivil: await operationalCivilToday(tenantId, 'invoice', branchId),
           })
         : AR_INVOICE_STATUSES.DRAFT;
 
@@ -1924,6 +1928,7 @@ export async function issueArInvoice(
             totalAmount: toNumber(invoice.total),
             paidAmount: toNumber(invoice.paid_amount),
             dueDate: invoice.due_date,
+            todayCivil: await operationalCivilToday(tenantId, 'invoice', invoice.branch_id),
           });
 
           await tx.org_invoice_mst.update({
@@ -2051,6 +2056,7 @@ export async function approveSensitiveArInvoice(
                     totalAmount: toNumber(invoice.total),
                     paidAmount: Math.max(0, toNumber(invoice.total) - newOutstanding),
                     dueDate: invoice.due_date,
+                    todayCivil: await operationalCivilToday(tenantId, 'invoice', invoice.branch_id),
                   });
 
             await tx.org_invoice_adjustments_dtl.update({
@@ -2306,6 +2312,7 @@ export async function allocateArPayment(
             totalAmount: toNumber(invoice.total),
             paidAmount: updatedPaidAmount,
             dueDate: invoice.due_date,
+            todayCivil: await operationalCivilToday(tenantId, 'invoice', invoice.branch_id),
           });
 
           await tx.org_invoice_mst.update({
@@ -2450,6 +2457,7 @@ export async function reverseArPaymentAllocation(
             totalAmount: toNumber(invoice.total),
             paidAmount: updatedPaidAmount,
             dueDate: invoice.due_date,
+            todayCivil: await operationalCivilToday(tenantId, 'invoice', invoice.branch_id),
           });
 
           await tx.org_invoice_payments_dtl.update({
@@ -2632,6 +2640,7 @@ async function createArAdjustment(
                 totalAmount: toNumber(invoice.total),
                 paidAmount: toNumber(invoice.total) - newOutstanding,
                 dueDate: invoice.due_date,
+                todayCivil: await operationalCivilToday(tenantId, 'invoice', invoice.branch_id),
               });
 
         await tx.org_invoice_mst.update({

@@ -81,6 +81,8 @@ describe('ErpLiteV2Service', () => {
   it('creates a supplier with tenant-scoped numbering', async () => {
     mockQueryRaw
       .mockResolvedValueOnce([{ id: 'branch-1' }])
+      .mockResolvedValueOnce([{ timezone: 'Asia/Muscat' }])
+      .mockResolvedValueOnce([{ instant: new Date('2026-03-31T21:00:00.000Z') }])
       .mockResolvedValueOnce([{ count: 1 }])
       .mockResolvedValueOnce([{ usage_code_id: 'usage-expense' }])
       .mockResolvedValueOnce([{ id: 'supplier-1', supplier_code: 'SUP-202604-00002' }]);
@@ -91,7 +93,7 @@ describe('ErpLiteV2Service', () => {
       currency_code: 'OMR',
     });
 
-    const seqQuery = mockQueryRaw.mock.calls[1]?.[0];
+    const seqQuery = mockQueryRaw.mock.calls[3]?.[0];
     expect(seqQuery?.values).toContain('tenant-123');
     expect(seqQuery?.values).toContain('SUP-202604%');
   });

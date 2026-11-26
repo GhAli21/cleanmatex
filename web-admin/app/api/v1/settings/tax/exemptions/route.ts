@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import { isRealIsoDate } from '@/lib/validations/iso-date';
 
 /**
  *
@@ -40,8 +41,8 @@ const createSchema = z.object({
   serviceType:   z.string().optional(),
   exemptionType: z.string().min(1),
   certificateNo: z.string().optional(),
-  validFrom:     z.string().datetime(),
-  validTo:       z.string().datetime().optional(),
+  validFrom:     z.string().refine(isRealIsoDate, 'YYYY-MM-DD'),
+  validTo:       z.string().refine(isRealIsoDate, 'YYYY-MM-DD').optional(),
 });
 
 /**
@@ -59,6 +60,9 @@ export async function POST(request: NextRequest) {
   const body   = await request.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ success: false, error: 'Invalid request', details: parsed.error.issues }, { status: 400 });
+  if (parsed.data.validTo && parsed.data.validFrom > parsed.data.validTo) {
+    return NextResponse.json({ success: false, error: 'validFrom must be before or equal to validTo' }, { status: 400 });
+  }
 
   try {
     const exemption = await withTenantContext(tenantId, () =>
@@ -69,8 +73,8 @@ export async function POST(request: NextRequest) {
           service_type:   parsed.data.serviceType ?? null,
           exemption_type: parsed.data.exemptionType,
           certificate_no: parsed.data.certificateNo ?? null,
-          valid_from:     new Date(parsed.data.validFrom),
-          valid_to:       parsed.data.validTo ? new Date(parsed.data.validTo) : null,
+          valid_from:     new Date(`${parsed.data.validFrom}T00:00:00.000Z`),
+          valid_to:       parsed.data.validTo ? new Date(`${parsed.data.validTo}T00:00:00.000Z`) : null,
           is_active:      true,
           rec_status:     1,
         },

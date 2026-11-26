@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { isValidTimeZone } from '@/lib/utils/business-date';
 import {
+  civilDateInZone,
   isOperationalZoneOperation,
   type OperationalZoneOperation,
 } from '@/lib/utils/operational-time';
@@ -75,6 +76,42 @@ export const resolveOperationalTimeZone = cache(
   (tenantOrgId: string, operation: OperationalZoneOperation, branchId: string | null) =>
     resolveOperationalTimeZoneOn(prisma, { tenantOrgId, operation, branchId }),
 );
+
+/**
+ * YYYYMM for a human code. A document date wins. Otherwise the month is the
+ * civil month of one database instant in the organization zone.
+ */
+export async function civilYearMonthToken(
+  db: ZoneQueryClient,
+  tenantOrgId: string,
+  civilDate?: string | null,
+): Promise<string> {
+  if (civilDate && /^\d{4}-\d{2}-\d{2}$/.test(civilDate)) {
+    return `${civilDate.slice(0, 4)}${civilDate.slice(5, 7)}`;
+  }
+  const zone = await resolveOperationalTimeZoneOn(db, {
+    tenantOrgId,
+    operation: 'ledger',
+    branchId: null,
+  });
+  if (!zone) throw new OperationalZoneMissingError();
+  const rows = await db.$queryRaw<Array<{ instant: Date }>>(
+    Prisma.sql`SELECT clock_timestamp() AS instant`,
+  );
+  const day = civilDateInZone(rows[0]?.instant, zone);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new OperationalZoneMissingError();
+  return `${day.slice(0, 4)}${day.slice(5, 7)}`;
+}
+
+/** Civil today for one action. Empty when the operations zone is missing. */
+export async function operationalCivilToday(
+  tenantOrgId: string,
+  operation: OperationalZoneOperation,
+  branchId: string | null,
+): Promise<string> {
+  const zone = await resolveOperationalTimeZone(tenantOrgId, operation, branchId);
+  return civilDateInZone(new Date(), zone);
+}
 
 export function resolveOrganizationTimeZone(tenantOrgId: string): Promise<string | null> {
   return resolveOperationalTimeZone(tenantOrgId, 'accept_order', null);

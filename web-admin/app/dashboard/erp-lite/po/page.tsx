@@ -10,6 +10,7 @@ import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
 import { getErpLiteDisplayConfig } from '@features/erp-lite/server/get-erp-lite-display-config';
+import { getErpLiteCivilToday } from '@features/erp-lite/server/get-erp-lite-civil-today';
 import { ErpLitePoListTable } from '@features/erp-lite/ui/erp-lite-po-list-table';
 import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
 import type { ErpLitePoDashboardSnapshot } from '@/lib/types/erp-lite-v2';
@@ -47,6 +48,8 @@ export default async function ErpLitePoPage({
       </ErpLitePageGuard>
     );
   }
+
+  const civilToday = await getErpLiteCivilToday();
 
   let loadError: string | null = null;
   let snapshot: ErpLitePoDashboardSnapshot = {
@@ -99,6 +102,12 @@ export default async function ErpLitePoPage({
           </CmxSummaryMessage>
         ) : null}
 
+        {civilToday ? null : (
+          <CmxSummaryMessage type="warning">
+            <div>{tCommon('timezoneNotConfigured')}</div>
+          </CmxSummaryMessage>
+        )}
+
         <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
           <CmxCard>
             <CmxCardHeader>
@@ -114,7 +123,7 @@ export default async function ErpLitePoPage({
                   options={snapshot.supplier_options.map((item) => ({ value: item.id, label: item.label }))}
                   required
                 />
-                <CmxInput name="po_date" type="date" label={t('forms.po.fields.poDate')} required />
+                <CmxInput name="po_date" type="date" label={t('forms.po.fields.poDate')} defaultValue={civilToday} required />
                 <CmxInput name="expected_date" type="date" label={t('forms.po.fields.expectedDate')} />
                 <CmxSelect
                   name="branch_id"

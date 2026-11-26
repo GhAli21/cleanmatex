@@ -150,6 +150,16 @@ jest.mock('@/lib/services/feature-flags.service', () => ({
   FEATURE_FLAG_KEYS: { ERP_LITE_ENABLED: 'erp_lite_enabled' },
 }));
 
+jest.mock('@/lib/utils/operational-zone.server', () => ({
+  resolveOperationalTimeZone: jest.fn(async () => 'Asia/Muscat'),
+  OperationalZoneMissingError: class OperationalZoneMissingError extends Error {
+    readonly code = 'TIMEZONE_NOT_CONFIGURED';
+    constructor() {
+      super('TIMEZONE_NOT_CONFIGURED');
+    }
+  },
+}));
+
 import { Decimal } from '@prisma/client/runtime/library';
 import { acknowledgeIssue, runReconciliation } from '@/lib/services/reconciliation.service';
 

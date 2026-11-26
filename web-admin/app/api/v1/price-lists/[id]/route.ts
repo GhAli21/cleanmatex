@@ -11,6 +11,14 @@ import {
   deletePriceList,
 } from '@/lib/services/catalog.service';
 import type { PriceListUpdateRequest } from '@/lib/types/catalog';
+import { isRealIsoDate } from '@/lib/validations/iso-date';
+
+function priceListDateError(from?: string | null, to?: string | null): string | null {
+  if (from && !isRealIsoDate(from)) return 'effective_from must be YYYY-MM-DD';
+  if (to && !isRealIsoDate(to)) return 'effective_to must be YYYY-MM-DD';
+  if (from && to && from > to) return 'effective_from must be before or equal to effective_to';
+  return null;
+}
 
 // ==================================================================
 // HELPER FUNCTIONS
@@ -100,17 +108,9 @@ export async function PATCH(
       );
     }
 
-    // Validate date range if both dates are provided
-    if (body.effective_from && body.effective_to) {
-      const fromDate = new Date(body.effective_from);
-      const toDate = new Date(body.effective_to);
-
-      if (fromDate > toDate) {
-        return NextResponse.json(
-          { error: 'effective_from must be before or equal to effective_to' },
-          { status: 400 }
-        );
-      }
+    const dateError = priceListDateError(body.effective_from, body.effective_to);
+    if (dateError) {
+      return NextResponse.json({ error: dateError }, { status: 400 });
     }
 
     // Validate price_list_type if provided

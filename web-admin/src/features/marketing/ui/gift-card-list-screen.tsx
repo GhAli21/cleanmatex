@@ -9,7 +9,9 @@
  */
 
 import { useState, useCallback, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { PlusCircle, Search, Settings2, ShoppingCart } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
@@ -84,6 +86,8 @@ const FILTERABLE_ISSUE_TYPES: GiftCardIssueType[] = [
 export function GiftCardListScreen() {
   const t = useTranslations('marketing.giftCards');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const { organization } = useOperationalZones('invoice', []);
 
   const [search, setSearch]               = useState('');
   const [status, setStatus]               = useState<GiftCardStatus | undefined>(undefined);
@@ -249,7 +253,7 @@ export function GiftCardListScreen() {
             key: 'expiry_date',
             header: t('fields.expiryDate'),
             render: (row: GiftCard) =>
-              row.expiry_date ? new Date(row.expiry_date).toLocaleDateString() : '—',
+              formatInstantOrEmpty(row.expiry_date, organization, locale === 'ar' ? 'ar' : 'en') || '—',
           },
           {
             key: 'issued_to_customer',

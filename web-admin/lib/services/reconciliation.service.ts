@@ -2,6 +2,8 @@ import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import { civilDayBounds, inclusiveEndOfCivilDay, prismaDateToCivil } from '@/lib/utils/operational-time';
+import { OperationalZoneMissingError, resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 import {
   RECONCILIATION_CHECK_NAMES,
   RECONCILIATION_RUN_STATUSES,
@@ -254,11 +256,22 @@ export async function runReconciliation(
   params: ReconciliationParams,
 ) {
   const { periodFrom, periodTo, branchId, currencyCode, triggeredBy } = params;
+  const fromCivil = prismaDateToCivil(periodFrom);
+  const toCivil = prismaDateToCivil(periodTo);
+  if (fromCivil > toCivil) {
+    throw new Error('periodFrom must be before or equal to periodTo');
+  }
+  const zone = await resolveOperationalTimeZone(tenantId, 'ledger', branchId ?? null);
+  if (!zone) throw new OperationalZoneMissingError();
+  const window = {
+    periodFrom: civilDayBounds(fromCivil, zone).start,
+    periodTo: inclusiveEndOfCivilDay(toCivil, zone),
+  };
 
   const count = await withTenantContext(tenantId, () =>
     prisma.org_fin_recon_runs_mst.count({ where: { tenant_org_id: tenantId } }),
   );
-  const runNo = `RECON-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`;
+  const runNo = `RECON-${fromCivil.slice(0, 4)}-${String(count + 1).padStart(3, '0')}`;
 
   const run = await withTenantContext(tenantId, () =>
     prisma.org_fin_recon_runs_mst.create({
@@ -276,8 +289,12 @@ export async function runReconciliation(
     }),
   );
 
-  const orders = await getScopedOrders(tenantId, { periodFrom, periodTo, branchId, currencyCode });
-  const window = { periodFrom, periodTo };
+  const orders = await getScopedOrders(tenantId, {
+    periodFrom: window.periodFrom,
+    periodTo: window.periodTo,
+    branchId,
+    currencyCode,
+  });
 
   // Voucher integrity needs the in-window voucher header set up front so the
   // VOUCHER_TOTAL_EQUALS_LINES, NO_DUPLICATE_OPERATIONAL_EFFECT, and
@@ -335,7 +352,7 @@ export async function runReconciliation(
       checkInvoicePaymentLink(tenantId, window),
       checkRefundLink(tenantId, window),
       // B14 — tax-document lifecycle
-      checkTaxDocSequenceGaps(tenantId, window),
+      checkTaxDocSequenceGaps(tenantId, window, Number(fromCivil.slice(0, 4))),
       checkTaxDocImmutability(tenantId, window),
       checkTaxDocVsOrderTotals(tenantId, window),
     ])

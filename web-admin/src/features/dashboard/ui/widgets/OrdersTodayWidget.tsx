@@ -11,6 +11,8 @@ import { useTranslations } from 'next-intl'
 import { Package, TrendingUp, TrendingDown } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
+import { shiftCivilDate, civilDateInZone } from '@/lib/utils/operational-time'
+import { useDashboardZone } from '../use-dashboard-zone'
 import { StatCard } from '../Widget'
 
 /**
@@ -18,6 +20,7 @@ import { StatCard } from '../Widget'
  */
 export function OrdersTodayWidget() {
   const { currentTenant } = useAuth()
+  const { organization, isPending } = useDashboardZone()
   const t = useTranslations('dashboard')
   const [data, setData] = useState({
     count: 0,
@@ -27,20 +30,22 @@ export function OrdersTodayWidget() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!currentTenant) return
+      if (!currentTenant || isPending) return
 
       try {
         setIsLoading(true)
-        const count = await dashboardService.getTodayOrdersCount(
-          currentTenant.tenant_id
-        )
-        const yesterday = new Date()
-        yesterday.setDate(yesterday.getDate() - 1)
-        const yesterdayCount =
-          await dashboardService.getOrdersCountForDate(
-            currentTenant.tenant_id,
-            yesterday
-          )
+        const today = civilDateInZone(new Date(), organization)
+        const count = today
+          ? await dashboardService.getTodayOrdersCount(currentTenant.tenant_id, organization)
+          : 0
+        const yesterday = today ? shiftCivilDate(today, -1) : ''
+        const yesterdayCount = yesterday
+          ? await dashboardService.getOrdersCountForCivilDay(
+              currentTenant.tenant_id,
+              yesterday,
+              organization
+            )
+          : 0
         const trend =
           yesterdayCount > 0
             ? Math.round(((count - yesterdayCount) / yesterdayCount) * 100)
@@ -55,7 +60,7 @@ export function OrdersTodayWidget() {
     }
 
     fetchData()
-  }, [currentTenant])
+  }, [currentTenant, organization, isPending])
 
   return (
     <StatCard

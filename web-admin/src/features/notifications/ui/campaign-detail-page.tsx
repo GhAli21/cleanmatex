@@ -11,6 +11,8 @@ import { CmxAuditInfoCard } from '@ui/data-display'
 import { CmxSkeleton } from '@ui/primitives/cmx-skeleton'
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import { useOutboxDeliveryReport } from '../hooks/use-outbox-delivery-report'
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -142,10 +144,11 @@ export function CampaignDetailPage({ id }: Props) {
     onError:   (err: Error) => setFeedback({ type: 'error', msg: err.message }),
   })
 
+  const { organization } = useOperationalZones('invoice', [])
   const formatDate = useCallback((iso: string | null) => {
     if (!iso) return '—'
-    return new Date(iso).toLocaleString(locale === 'ar' ? 'ar' : 'en')
-  }, [locale])
+    return formatInstantOrEmpty(iso, organization, locale === 'ar' ? 'ar' : 'en') || '—'
+  }, [locale, organization])
 
   // ── Skeleton ──────────────────────────────────────────────────────────────
   if (isLoading) {

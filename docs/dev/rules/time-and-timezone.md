@@ -160,14 +160,27 @@ report, a SQL function, HQ, or a mobile app does not keep a third copy.
 
 | Door | Who calls it | Status |
 |---|---|---|
-| `resolveOperationalTimeZone({ tenantOrgId, operation, scopeId })` in `web-admin` | Services, route handlers, server actions, report queries issued by the app | To be added beside `business-date.ts`. It does not exist yet |
-| `fn_ops_zone(tenant, operation, scope)` in PostgreSQL | SQL functions, triggers, report SQL, and HQ when it reads tenant rows | To be added in a new migration. It does not exist yet |
+| `resolveOperationalTimeZoneOn(db, { tenantOrgId, operation, scopeId })` and `resolveOperationalTimeZonesForBranches` in `web-admin/lib/utils/operational-zone.server.ts` | Services, route handlers, server actions, report queries issued by the app | Exists. Pure selection and the operation list come from `@cmx/clock` |
+| `fn_ops_zone(tenant, operation, scope)` in PostgreSQL | SQL functions, triggers, report SQL, and HQ when it reads tenant rows | Exists (migration `0830`). From `0842` new SQL calls the wrapper `fn_cmx_dt_zone` instead (D26); `fn_ops_zone` stays deployed |
 
 Both doors take the tenant, the operation, and the scope id. Both confirm
 the scope belongs to the tenant. Both return that scope's IANA zone, then
 the organization zone. Both return no zone when neither value is a valid
 active catalog code. The feature names the scope. The door does not guess it
 from the branch on the screen.
+
+The operation is one code from a closed list kept in `@cmx/clock`
+(`OPERATIONAL_ZONE_OPERATIONS`): `accept_order`, `ready_by`, `pos_session`,
+`delivery`, `invoice`, `ledger`, `notify`. Quiet hours and notification
+scheduling use `notify`, not `delivery`. `notify` resolves in TypeScript now; no
+caller sends it to the SQL door until migration `0842` adds it there
+(`SQL_DOOR_OPERATIONS`, `assertSqlDoorOperation`).
+
+Grants: the SQL door and the `fn_cmx_dt_*` functions are granted to
+`authenticated` with the tenant guard (a caller asking about another tenant
+gets `OPS_ZONE_TENANT_MISMATCH`), and explicitly to `service_role`. Jobs
+(`postgres`, pg_cron, `service_role`, SECURITY DEFINER owners) pass the tenant
+explicitly and are never blocked. `anon` is always revoked.
 
 Who stores the zone: an administrator, on the organization and branch
 settings screens. An empty branch `timezone_code` means inherit the
@@ -232,6 +245,69 @@ A TTL cache must not answer which civil day a new action belongs to. The day
 is the snapshot on the row, or a fresh resolution. Request-scoped reuse does
 not cross tenants and does not outlive the request.
 
+## The clock API
+
+One set of date and time rules, with the same names in SQL and TypeScript
+(full list: `packages/clock/README.md`; plan: `docs/features/Time_and_Timezone/MASTER_PLAN_v2.md` §5–§6).
+
+| Need | SQL (from migration `0842`) | TypeScript (`@cmx/clock`) |
+|---|---|---|
+| The instant for this action | `fn_cmx_dt_now()` | `dtNow(clock)` |
+| Moving time for elapsed measurement | `fn_cmx_dt_clock()` | `dtClock(clock)` |
+| Zone for an operation | `fn_cmx_dt_zone` | `resolveOperationalTimeZoneOn` + `selectZoneFromCandidates` |
+| Today, local date-time, local time | `fn_cmx_dt_today`, `fn_cmx_dt_local_now`, `fn_cmx_dt_local_time` | `dtToday`, `dtLocalNow`, `dtLocalTime` |
+| Civil fields to an instant | `fn_cmx_dt_at_local` | `dtAtLocal` |
+| Day range | `fn_cmx_dt_day_bounds`, `fn_cmx_dt_business_day_bounds` | `dtDayBounds`, `dtBusinessDayBounds` |
+| Business date (with cut-over) | `fn_cmx_dt_business_date` | `dtBusinessDate` |
+| Period key | `fn_cmx_dt_period_key` | `dtPeriodKey` |
+
+- **TypeScript.** Services take a `Clock` argument: `systemClock` at the request
+  boundary, `fixedClock(...)` in tests, `actionClock()` for one stable instant
+  per action. web-admin imports from `@cmx/clock` or `@/lib/utils/clock`;
+  cmx-api from `src/common/clock/clock.ts`. Request schemas use
+  `@cmx/clock/zod` (`zInstant`, `zCivilDate`, `zLocalTime`, `zZonedInput`).
+- **Temporal (D1).** Temporal comes from `temporal-polyfill` (MIT), imported
+  only in `packages/clock/src/temporal.ts`; native `globalThis.Temporal` wins
+  when present. Any other import of `temporal-polyfill` or use of the
+  `Temporal` global fails ESLint and `npm run check:clock-contract`. No
+  `Temporal` object leaves the package. Removal: a quarterly check; when every
+  supported browser and the Node LTS in use ship Temporal unflagged, the adapter
+  goes native-only and the dependency is deleted.
+- **Daylight-saving vocabulary (R4).** `compatible` (gap → later, overlap →
+  earlier; computed times), `earlier`, `later`, `reject` (the default for typed
+  input). Errors: `LOCAL_TIME_NONEXISTENT`, `LOCAL_TIME_AMBIGUOUS`.
+- **Client zone on writes (D9).** A client may omit the zone. If it sends one
+  that differs from the server's resolved zone, the write is rejected with
+  `409 ZONE_MISMATCH`. Viewing in another zone is a separate, labelled toggle.
+- **Errors.** `TIMEZONE_NOT_CONFIGURED`, `INSTANT_OFFSET_REQUIRED`,
+  `INVALID_CIVIL_DATE`, `INVALID_LOCAL_TIME`, `INVALID_TIME_ZONE`,
+  `CLOCK_SETTING_INVALID`, and the two DST codes above; user text is
+  `clock.errors.*` in `web-admin/messages/{en,ar}/clock.json`.
+
+### Banned in new SQL (migration `0842` and later)
+
+`now()`, `clock_timestamp()`, `statement_timestamp()`,
+`transaction_timestamp()`, `current_timestamp`, `CURRENT_DATE`,
+`CURRENT_TIME`, `LOCALTIME`, `LOCALTIMESTAMP`, `SET TIME ZONE`, and direct
+calls to `fn_ops_zone`. Use `fn_cmx_dt_now()`, `fn_cmx_dt_clock()`,
+`fn_cmx_dt_today(...)`, `fn_cmx_dt_zone(...)`. Existing column
+`DEFAULT now()` stay as they are (no mass DDL). The guard enforces this, and
+also: no naive `timestamp` without a `CIVIL:` comment from `0832` on, no
+direct zone-column reads outside the doors, no write of the fake-time switch
+(`cmx_dt_env_cf`, `cmx.fake_now`) in a migration, and `REVOKE ... FROM anon`
+for every `fn_cmx_dt_*` function. Application-code patterns (for example
+`.toISOString().slice(0, 10)`, `toLocale*` without `timeZone`, `Asia/Muscat`
+literals, Dart `DateTime.now()`) are counted per file against
+`scripts/clock-contract-baseline.json`; a count may go down, never up. A line
+that must break a rule carries `// CLOCK-OK: <reason>` (`-- CLOCK-OK: <reason>`
+in SQL).
+
+### Migrations
+
+Only the user applies migrations (D17). An agent writes migration files and
+never applies them, never runs `db push`, and never runs Prisma against a
+database.
+
 ## Clocks
 
 These are UTC:
@@ -251,6 +327,12 @@ clock, the laptop timezone, and `Date.now()` on a request handler are not
 `created_at`, `posted_at`, or audit time. A device-observed instant, when a
 feature truly has one, is a separate column, arrives as RFC 3339, and is
 stored beside the server `received_at`. It never replaces the server instant.
+
+In new SQL these clocks are read through `fn_cmx_dt_now()` (the
+transaction-start instant, equal to `now()` in production) and
+`fn_cmx_dt_clock()` (the moving clock, equal to `clock_timestamp()`); both honor
+a test-only fake time that production ignores (D25). In TypeScript the same
+pair is `dtNow(clock)` and `dtClock(clock)`.
 
 PostgreSQL `now()` / `transaction_timestamp()` is the transaction-start
 instant. That is desirable when all facts in one transaction need one clock.
@@ -549,6 +631,7 @@ resolved offset or rendered evidence as a non-authoritative snapshot.
 
 Allowed:
 
+- `@cmx/clock` (`dtToday`, `dtAtLocal`, `dtBusinessDate`, `formatInstant`, ...) with an injected `Clock` and the resolved zone
 - `toISOString()` to transmit an instant
 - `new Date(rfc3339WithOffset)` to parse an instant, then store UTC
 - `isValidTimeZone` and `businessDateForTimezone` for civil dates
@@ -648,7 +731,8 @@ tests. The product will gain a tenant whose zone has one.
 - Civil dates are assigned once with the operations zone and a snapshotted zone id.
 - Persisted instant/civil-date bundles derive from one captured database instant.
 - No conversion uses `utc_offset_hours`, a hardcoded `+04:00`, or `Asia/Muscat` as a fallback.
-- SQL comparisons and casts name an IANA zone. Predicates stay sargable. A new lookup calls `fn_ops_zone` or the TypeScript door. It does not grow a private timezone query.
+- SQL comparisons and casts name an IANA zone. Predicates stay sargable. A new lookup calls `fn_cmx_dt_zone` (`fn_ops_zone` before `0842`) or the TypeScript door. It does not grow a private timezone query.
+- New SQL uses `fn_cmx_dt_now()` / `fn_cmx_dt_*`, not `now()` or `CURRENT_DATE`. New TypeScript takes a `Clock` and uses `@cmx/clock`; it does not import `temporal-polyfill`. `npm run check:clock-contract` exits 0.
 - The authoritative scope is the feature's documented scope, then the organization. The server verifies that scope belongs to the tenant. The client does not choose the zone.
 - Lists and reports join the zone or read the snapshot. They do not call the resolver once per row, and they do not wrap the filtered instant in `AT TIME ZONE`.
 - HQ tenant rows use the tenant zone. HQ-only rows use the HQ zone. Mobile and public booking send civil fields and show the shop clock the API returns.
@@ -663,10 +747,14 @@ tests. The product will gain a tenant whose zone has one.
 
 ## Related code
 
-- `web-admin/lib/utils/business-date.ts` — `isValidTimeZone`, `businessDateForTimezone`. The operations door `resolveOperationalTimeZone` is added beside this file. It is not there yet
+- `packages/clock` (`@cmx/clock`) — the TypeScript clock API, Temporal adapter, zod schemas, and the shared vectors `vectors/time-vectors.v1.json`
+- `web-admin/lib/utils/clock.ts` — web-admin entry to `@cmx/clock`; `cmx-api/src/common/clock/clock.ts` — cmx-api entry
+- `scripts/check-clock-contract.mjs` + `scripts/clock-contract-baseline.json` — the guard (`npm run check:clock-contract`)
+- `web-admin/lib/utils/operational-zone.server.ts` — the TypeScript door (`resolveOperationalTimeZoneOn`)
+- `web-admin/lib/utils/business-date.ts` — `isValidTimeZone`, `businessDateForTimezone`
 - `web-admin/lib/utils/registration-browser-defaults.ts` — browser suggestion for public registration only
 - `web-admin/lib/utils/tenant-timezone.server.ts` — organization zone for display chrome
-- `fn_ops_zone` — the SQL door. It is not created yet. New SQL must not grow a private timezone lookup while waiting for it
+- `fn_ops_zone` — the SQL door (migration `0830`). New SQL from `0842` calls `fn_cmx_dt_zone` and never grows a private timezone lookup
 - `web-admin/lib/commercial/calendar.ts` — working-calendar math with an explicit zone
 - `org_tenants_mst.timezone` — organization IANA zone
 - `org_branches_mst.timezone_code` — optional location override (`sys_timezone_cd`)

@@ -7,12 +7,14 @@ import {
   PICKUP_RELEASE_STATES,
   type PickupReleaseSummary,
 } from '@/lib/types/pickup-release';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 
 export interface PickupReleaseStatusProps {
   release: PickupReleaseSummary;
   /** Canonical order status; retained alongside release data during migration rollout. */
   workflowStatus?: string | null;
   showTimestamp?: boolean;
+  opsZone?: string | null;
 }
 
 /**
@@ -26,6 +28,7 @@ export function PickupReleaseStatus({
   release,
   workflowStatus,
   showTimestamp = false,
+  opsZone = null,
 }: PickupReleaseStatusProps) {
   const t = useTranslations('workflow.ready.pickupRelease');
   const locale = useLocale();
@@ -35,9 +38,7 @@ export function PickupReleaseStatus({
   const label = isAvailable ? t('available') : t('notReleased');
   const formattedReleasedAt =
     showTimestamp && release.releasedAt
-      ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
-          new Date(release.releasedAt),
-        )
+      ? formatInstantOrEmpty(release.releasedAt, opsZone, locale) || null
       : null;
 
   return (

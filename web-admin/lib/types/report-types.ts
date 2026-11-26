@@ -11,6 +11,8 @@
 export interface ReportFilters {
   startDate: Date;
   endDate: Date;
+  /** Operations zone used to name each chart day. */
+  timeZone: string;
   customerId?: string;
   status?: string[];
   orderTypeId?: string;

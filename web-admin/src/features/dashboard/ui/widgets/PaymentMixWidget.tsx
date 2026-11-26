@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl'
 import { CreditCard, Wallet } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
+import { useDashboardZone } from '../use-dashboard-zone'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 
 interface PaymentMixData {
@@ -25,6 +26,7 @@ interface PaymentMixData {
  */
 export function PaymentMixWidget() {
   const { currentTenant } = useAuth()
+  const { organization, isPending } = useDashboardZone()
   const t = useTranslations('dashboard')
   const [data, setData] = useState<PaymentMixData>({
     cashPct: 0,
@@ -36,12 +38,13 @@ export function PaymentMixWidget() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!currentTenant) return
+      if (!currentTenant || isPending) return
 
       try {
         setIsLoading(true)
         const kpiData = await dashboardService.getKPIOverview(
-          currentTenant.tenant_id
+          currentTenant.tenant_id,
+          { timeZone: organization }
         )
 
         setData({
@@ -58,7 +61,7 @@ export function PaymentMixWidget() {
     }
 
     fetchData()
-  }, [currentTenant])
+  }, [currentTenant, organization, isPending])
 
   if (isLoading) {
     return (
@@ -74,22 +77,22 @@ export function PaymentMixWidget() {
     {
       name: t('cash'),
       value: data.cashPct,
-      color: '#10b981', // green-500
+      color: 'rgb(var(--cmx-success-rgb))',
     },
     {
       name: t('online'),
       value: data.onlinePct,
-      color: '#3b82f6', // blue-500
+      color: 'rgb(var(--cmx-info-rgb))',
     },
     {
       name: t('card'),
       value: data.cardPct,
-      color: '#8b5cf6', // purple-500
+      color: 'rgb(var(--cmx-primary-rgb))',
     },
     {
       name: t('other'),
       value: data.otherPct,
-      color: '#6b7280', // gray-500
+      color: 'rgb(var(--cmx-muted-foreground-rgb))',
     },
   ].filter((item) => item.value > 0)
 
@@ -119,7 +122,7 @@ export function PaymentMixWidget() {
                    return `${name} ${((percent as number) * 100).toFixed(0)}%`;
                  }}
                 outerRadius={70}
-                fill="#8884d8"
+                fill="rgb(var(--cmx-primary-rgb))"
                 dataKey="value"
               >
                 {chartData.map((entry, index) => (

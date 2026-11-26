@@ -1,0 +1,1867 @@
+{
+  "$schema": "time-vectors.v1",
+  "version": 1,
+  "description": "Shared clock vectors (MASTER_PLAN_v2 §7.13). One file, run by Jest (@cmx/clock, web-admin), pgTAP (generated in S2), Dart mobile_core and HQ. Expected values were computed with an independent tz implementation (Python zoneinfo, tzdata 2026f) and must hold for any tzdb >= 2026a. Never edit an expected value to make a runner pass: fix the runner.",
+  "tzdbMin": "2026a",
+  "activeZones": [
+    "Asia/Muscat",
+    "Asia/Dubai",
+    "America/Los_Angeles",
+    "UTC"
+  ],
+  "catalog": [
+    {
+      "code": "UTC",
+      "isCanonical": true,
+      "linkTarget": null,
+      "isActive": true
+    },
+    {
+      "code": "Asia/Muscat",
+      "isCanonical": true,
+      "linkTarget": null,
+      "isActive": true,
+      "countryCodes": [
+        "OM"
+      ]
+    },
+    {
+      "code": "Asia/Dubai",
+      "isCanonical": true,
+      "linkTarget": null,
+      "isActive": true,
+      "countryCodes": [
+        "AE"
+      ]
+    },
+    {
+      "code": "Asia/Kuwait",
+      "isCanonical": true,
+      "linkTarget": null,
+      "isActive": true,
+      "countryCodes": [
+        "KW"
+      ]
+    },
+    {
+      "code": "Asia/Kolkata",
+      "isCanonical": true,
+      "linkTarget": null,
+      "isActive": true,
+      "countryCodes": [
+        "IN"
+      ]
+    },
+    {
+      "code": "Asia/Calcutta",
+      "isCanonical": false,
+      "linkTarget": "Asia/Kolkata",
+      "isActive": false
+    },
+    {
+      "code": "Europe/Kyiv",
+      "isCanonical": true,
+      "linkTarget": null,
+      "isActive": true,
+      "countryCodes": [
+        "UA"
+      ]
+    },
+    {
+      "code": "Europe/Kiev",
+      "isCanonical": false,
+      "linkTarget": "Europe/Kyiv",
+      "isActive": false
+    },
+    {
+      "code": "America/New_York",
+      "isCanonical": true,
+      "linkTarget": null,
+      "isActive": true,
+      "countryCodes": [
+        "US"
+      ]
+    },
+    {
+      "code": "US/Eastern",
+      "isCanonical": false,
+      "linkTarget": "America/New_York",
+      "isActive": false
+    },
+    {
+      "code": "Asia/Kathmandu",
+      "isCanonical": true,
+      "linkTarget": null,
+      "isActive": true,
+      "countryCodes": [
+        "NP"
+      ]
+    },
+    {
+      "code": "Asia/Katmandu",
+      "isCanonical": false,
+      "linkTarget": "Asia/Kathmandu",
+      "isActive": false
+    },
+    {
+      "code": "Asia/Pyongyang",
+      "isCanonical": true,
+      "linkTarget": null,
+      "isActive": false,
+      "countryCodes": [
+        "KP"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "today-muscat-2100z",
+      "kind": "today",
+      "at": "2026-11-26T21:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "expect": "2026-11-27"
+    },
+    {
+      "id": "today-utc-2100z",
+      "kind": "today",
+      "at": "2026-11-26T21:00:00.000Z",
+      "zone": "UTC",
+      "expect": "2026-11-26"
+    },
+    {
+      "id": "today-kiritimati",
+      "kind": "today",
+      "at": "2026-11-26T10:00:00.000Z",
+      "zone": "Pacific/Kiritimati",
+      "expect": "2026-11-27"
+    },
+    {
+      "id": "today-pago-pago",
+      "kind": "today",
+      "at": "2026-11-26T10:00:00.000Z",
+      "zone": "Pacific/Pago_Pago",
+      "expect": "2026-11-25"
+    },
+    {
+      "id": "today-kathmandu-before",
+      "kind": "today",
+      "at": "2026-11-26T18:14:59.000Z",
+      "zone": "Asia/Kathmandu",
+      "expect": "2026-11-26"
+    },
+    {
+      "id": "today-kathmandu-after",
+      "kind": "today",
+      "at": "2026-11-26T18:15:00.000Z",
+      "zone": "Asia/Kathmandu",
+      "expect": "2026-11-27"
+    },
+    {
+      "id": "today-riyadh",
+      "kind": "today",
+      "at": "2026-11-26T20:59:59.000Z",
+      "zone": "Asia/Riyadh",
+      "expect": "2026-11-26"
+    },
+    {
+      "id": "today-tehran",
+      "kind": "today",
+      "at": "2026-11-26T20:30:00.000Z",
+      "zone": "Asia/Tehran",
+      "expect": "2026-11-27"
+    },
+    {
+      "id": "parts-muscat",
+      "kind": "localParts",
+      "at": "2026-11-26T18:06:00.000Z",
+      "zone": "Asia/Muscat",
+      "expect": {
+        "localDate": "2026-11-26",
+        "localTime": "22:06:00",
+        "isoDow": 4,
+        "hour": 22,
+        "minute": 6,
+        "utcOffsetMin": 240
+      }
+    },
+    {
+      "id": "tolocal-muscat",
+      "kind": "toLocal",
+      "at": "2026-11-26T18:06:00.000Z",
+      "zone": "Asia/Muscat",
+      "expect": "2026-11-26T22:06:00"
+    },
+    {
+      "id": "parts-tehran",
+      "kind": "localParts",
+      "at": "2026-06-15T12:00:00.000Z",
+      "zone": "Asia/Tehran",
+      "expect": {
+        "localDate": "2026-06-15",
+        "localTime": "15:30:00",
+        "isoDow": 1,
+        "hour": 15,
+        "minute": 30,
+        "utcOffsetMin": 210
+      }
+    },
+    {
+      "id": "tolocal-tehran",
+      "kind": "toLocal",
+      "at": "2026-06-15T12:00:00.000Z",
+      "zone": "Asia/Tehran",
+      "expect": "2026-06-15T15:30:00"
+    },
+    {
+      "id": "parts-lordhowe-dst",
+      "kind": "localParts",
+      "at": "2026-12-15T00:00:00.000Z",
+      "zone": "Australia/Lord_Howe",
+      "expect": {
+        "localDate": "2026-12-15",
+        "localTime": "11:00:00",
+        "isoDow": 2,
+        "hour": 11,
+        "minute": 0,
+        "utcOffsetMin": 660
+      }
+    },
+    {
+      "id": "tolocal-lordhowe-dst",
+      "kind": "toLocal",
+      "at": "2026-12-15T00:00:00.000Z",
+      "zone": "Australia/Lord_Howe",
+      "expect": "2026-12-15T11:00:00"
+    },
+    {
+      "id": "parts-lordhowe-std",
+      "kind": "localParts",
+      "at": "2026-06-15T00:00:00.000Z",
+      "zone": "Australia/Lord_Howe",
+      "expect": {
+        "localDate": "2026-06-15",
+        "localTime": "10:30:00",
+        "isoDow": 1,
+        "hour": 10,
+        "minute": 30,
+        "utcOffsetMin": 630
+      }
+    },
+    {
+      "id": "tolocal-lordhowe-std",
+      "kind": "toLocal",
+      "at": "2026-06-15T00:00:00.000Z",
+      "zone": "Australia/Lord_Howe",
+      "expect": "2026-06-15T10:30:00"
+    },
+    {
+      "id": "parts-cairo-summer",
+      "kind": "localParts",
+      "at": "2026-07-01T09:00:00.000Z",
+      "zone": "Africa/Cairo",
+      "expect": {
+        "localDate": "2026-07-01",
+        "localTime": "12:00:00",
+        "isoDow": 3,
+        "hour": 12,
+        "minute": 0,
+        "utcOffsetMin": 180
+      }
+    },
+    {
+      "id": "tolocal-cairo-summer",
+      "kind": "toLocal",
+      "at": "2026-07-01T09:00:00.000Z",
+      "zone": "Africa/Cairo",
+      "expect": "2026-07-01T12:00:00"
+    },
+    {
+      "id": "parts-cairo-winter",
+      "kind": "localParts",
+      "at": "2026-01-15T09:00:00.000Z",
+      "zone": "Africa/Cairo",
+      "expect": {
+        "localDate": "2026-01-15",
+        "localTime": "11:00:00",
+        "isoDow": 4,
+        "hour": 11,
+        "minute": 0,
+        "utcOffsetMin": 120
+      }
+    },
+    {
+      "id": "tolocal-cairo-winter",
+      "kind": "toLocal",
+      "at": "2026-01-15T09:00:00.000Z",
+      "zone": "Africa/Cairo",
+      "expect": "2026-01-15T11:00:00"
+    },
+    {
+      "id": "parts-london-bst",
+      "kind": "localParts",
+      "at": "2026-07-01T23:30:00.000Z",
+      "zone": "Europe/London",
+      "expect": {
+        "localDate": "2026-07-02",
+        "localTime": "00:30:00",
+        "isoDow": 4,
+        "hour": 0,
+        "minute": 30,
+        "utcOffsetMin": 60
+      }
+    },
+    {
+      "id": "tolocal-london-bst",
+      "kind": "toLocal",
+      "at": "2026-07-01T23:30:00.000Z",
+      "zone": "Europe/London",
+      "expect": "2026-07-02T00:30:00"
+    },
+    {
+      "id": "parts-santiago",
+      "kind": "localParts",
+      "at": "2026-01-10T03:00:00.000Z",
+      "zone": "America/Santiago",
+      "expect": {
+        "localDate": "2026-01-10",
+        "localTime": "00:00:00",
+        "isoDow": 6,
+        "hour": 0,
+        "minute": 0,
+        "utcOffsetMin": -180
+      }
+    },
+    {
+      "id": "tolocal-santiago",
+      "kind": "toLocal",
+      "at": "2026-01-10T03:00:00.000Z",
+      "zone": "America/Santiago",
+      "expect": "2026-01-10T00:00:00"
+    },
+    {
+      "id": "parts-pago",
+      "kind": "localParts",
+      "at": "2026-11-26T05:00:00.000Z",
+      "zone": "Pacific/Pago_Pago",
+      "expect": {
+        "localDate": "2026-11-25",
+        "localTime": "18:00:00",
+        "isoDow": 3,
+        "hour": 18,
+        "minute": 0,
+        "utcOffsetMin": -660
+      }
+    },
+    {
+      "id": "tolocal-pago",
+      "kind": "toLocal",
+      "at": "2026-11-26T05:00:00.000Z",
+      "zone": "Pacific/Pago_Pago",
+      "expect": "2026-11-25T18:00:00"
+    },
+    {
+      "id": "at-ny-gap-compatible",
+      "kind": "atLocal",
+      "zone": "America/New_York",
+      "date": "2026-03-08",
+      "time": "02:30",
+      "disambiguation": "compatible",
+      "localKind": "gap",
+      "expect": "2026-03-08T07:30:00.000Z"
+    },
+    {
+      "id": "at-ny-gap-earlier",
+      "kind": "atLocal",
+      "zone": "America/New_York",
+      "date": "2026-03-08",
+      "time": "02:30",
+      "disambiguation": "earlier",
+      "localKind": "gap",
+      "expect": "2026-03-08T06:30:00.000Z"
+    },
+    {
+      "id": "at-ny-gap-later",
+      "kind": "atLocal",
+      "zone": "America/New_York",
+      "date": "2026-03-08",
+      "time": "02:30",
+      "disambiguation": "later",
+      "localKind": "gap",
+      "expect": "2026-03-08T07:30:00.000Z"
+    },
+    {
+      "id": "at-ny-gap-reject",
+      "kind": "atLocal",
+      "zone": "America/New_York",
+      "date": "2026-03-08",
+      "time": "02:30",
+      "disambiguation": "reject",
+      "localKind": "gap",
+      "expect": {
+        "error": "LOCAL_TIME_NONEXISTENT"
+      }
+    },
+    {
+      "id": "at-ny-overlap-compatible",
+      "kind": "atLocal",
+      "zone": "America/New_York",
+      "date": "2026-11-01",
+      "time": "01:30",
+      "disambiguation": "compatible",
+      "localKind": "overlap",
+      "expect": "2026-11-01T05:30:00.000Z"
+    },
+    {
+      "id": "at-ny-overlap-earlier",
+      "kind": "atLocal",
+      "zone": "America/New_York",
+      "date": "2026-11-01",
+      "time": "01:30",
+      "disambiguation": "earlier",
+      "localKind": "overlap",
+      "expect": "2026-11-01T05:30:00.000Z"
+    },
+    {
+      "id": "at-ny-overlap-later",
+      "kind": "atLocal",
+      "zone": "America/New_York",
+      "date": "2026-11-01",
+      "time": "01:30",
+      "disambiguation": "later",
+      "localKind": "overlap",
+      "expect": "2026-11-01T06:30:00.000Z"
+    },
+    {
+      "id": "at-ny-overlap-reject",
+      "kind": "atLocal",
+      "zone": "America/New_York",
+      "date": "2026-11-01",
+      "time": "01:30",
+      "disambiguation": "reject",
+      "localKind": "overlap",
+      "expect": {
+        "error": "LOCAL_TIME_AMBIGUOUS"
+      }
+    },
+    {
+      "id": "at-santiago-midnight-gap-compatible",
+      "kind": "atLocal",
+      "zone": "America/Santiago",
+      "date": "2026-09-06",
+      "time": "00:30",
+      "disambiguation": "compatible",
+      "localKind": "gap",
+      "expect": "2026-09-06T04:30:00.000Z"
+    },
+    {
+      "id": "at-santiago-midnight-gap-earlier",
+      "kind": "atLocal",
+      "zone": "America/Santiago",
+      "date": "2026-09-06",
+      "time": "00:30",
+      "disambiguation": "earlier",
+      "localKind": "gap",
+      "expect": "2026-09-06T03:30:00.000Z"
+    },
+    {
+      "id": "at-santiago-midnight-gap-later",
+      "kind": "atLocal",
+      "zone": "America/Santiago",
+      "date": "2026-09-06",
+      "time": "00:30",
+      "disambiguation": "later",
+      "localKind": "gap",
+      "expect": "2026-09-06T04:30:00.000Z"
+    },
+    {
+      "id": "at-santiago-midnight-gap-reject",
+      "kind": "atLocal",
+      "zone": "America/Santiago",
+      "date": "2026-09-06",
+      "time": "00:30",
+      "disambiguation": "reject",
+      "localKind": "gap",
+      "expect": {
+        "error": "LOCAL_TIME_NONEXISTENT"
+      }
+    },
+    {
+      "id": "at-santiago-overlap-compatible",
+      "kind": "atLocal",
+      "zone": "America/Santiago",
+      "date": "2026-04-04",
+      "time": "23:30",
+      "disambiguation": "compatible",
+      "localKind": "overlap",
+      "expect": "2026-04-05T02:30:00.000Z"
+    },
+    {
+      "id": "at-santiago-overlap-earlier",
+      "kind": "atLocal",
+      "zone": "America/Santiago",
+      "date": "2026-04-04",
+      "time": "23:30",
+      "disambiguation": "earlier",
+      "localKind": "overlap",
+      "expect": "2026-04-05T02:30:00.000Z"
+    },
+    {
+      "id": "at-santiago-overlap-later",
+      "kind": "atLocal",
+      "zone": "America/Santiago",
+      "date": "2026-04-04",
+      "time": "23:30",
+      "disambiguation": "later",
+      "localKind": "overlap",
+      "expect": "2026-04-05T03:30:00.000Z"
+    },
+    {
+      "id": "at-santiago-overlap-reject",
+      "kind": "atLocal",
+      "zone": "America/Santiago",
+      "date": "2026-04-04",
+      "time": "23:30",
+      "disambiguation": "reject",
+      "localKind": "overlap",
+      "expect": {
+        "error": "LOCAL_TIME_AMBIGUOUS"
+      }
+    },
+    {
+      "id": "at-london-overlap-compatible",
+      "kind": "atLocal",
+      "zone": "Europe/London",
+      "date": "2026-10-25",
+      "time": "01:30",
+      "disambiguation": "compatible",
+      "localKind": "overlap",
+      "expect": "2026-10-25T00:30:00.000Z"
+    },
+    {
+      "id": "at-london-overlap-earlier",
+      "kind": "atLocal",
+      "zone": "Europe/London",
+      "date": "2026-10-25",
+      "time": "01:30",
+      "disambiguation": "earlier",
+      "localKind": "overlap",
+      "expect": "2026-10-25T00:30:00.000Z"
+    },
+    {
+      "id": "at-london-overlap-later",
+      "kind": "atLocal",
+      "zone": "Europe/London",
+      "date": "2026-10-25",
+      "time": "01:30",
+      "disambiguation": "later",
+      "localKind": "overlap",
+      "expect": "2026-10-25T01:30:00.000Z"
+    },
+    {
+      "id": "at-london-overlap-reject",
+      "kind": "atLocal",
+      "zone": "Europe/London",
+      "date": "2026-10-25",
+      "time": "01:30",
+      "disambiguation": "reject",
+      "localKind": "overlap",
+      "expect": {
+        "error": "LOCAL_TIME_AMBIGUOUS"
+      }
+    },
+    {
+      "id": "at-london-gap-compatible",
+      "kind": "atLocal",
+      "zone": "Europe/London",
+      "date": "2026-03-29",
+      "time": "01:15",
+      "disambiguation": "compatible",
+      "localKind": "gap",
+      "expect": "2026-03-29T01:15:00.000Z"
+    },
+    {
+      "id": "at-london-gap-earlier",
+      "kind": "atLocal",
+      "zone": "Europe/London",
+      "date": "2026-03-29",
+      "time": "01:15",
+      "disambiguation": "earlier",
+      "localKind": "gap",
+      "expect": "2026-03-29T00:15:00.000Z"
+    },
+    {
+      "id": "at-london-gap-later",
+      "kind": "atLocal",
+      "zone": "Europe/London",
+      "date": "2026-03-29",
+      "time": "01:15",
+      "disambiguation": "later",
+      "localKind": "gap",
+      "expect": "2026-03-29T01:15:00.000Z"
+    },
+    {
+      "id": "at-london-gap-reject",
+      "kind": "atLocal",
+      "zone": "Europe/London",
+      "date": "2026-03-29",
+      "time": "01:15",
+      "disambiguation": "reject",
+      "localKind": "gap",
+      "expect": {
+        "error": "LOCAL_TIME_NONEXISTENT"
+      }
+    },
+    {
+      "id": "at-lordhowe-gap-compatible",
+      "kind": "atLocal",
+      "zone": "Australia/Lord_Howe",
+      "date": "2026-10-04",
+      "time": "02:15",
+      "disambiguation": "compatible",
+      "localKind": "gap",
+      "expect": "2026-10-03T15:45:00.000Z"
+    },
+    {
+      "id": "at-lordhowe-gap-earlier",
+      "kind": "atLocal",
+      "zone": "Australia/Lord_Howe",
+      "date": "2026-10-04",
+      "time": "02:15",
+      "disambiguation": "earlier",
+      "localKind": "gap",
+      "expect": "2026-10-03T15:15:00.000Z"
+    },
+    {
+      "id": "at-lordhowe-gap-later",
+      "kind": "atLocal",
+      "zone": "Australia/Lord_Howe",
+      "date": "2026-10-04",
+      "time": "02:15",
+      "disambiguation": "later",
+      "localKind": "gap",
+      "expect": "2026-10-03T15:45:00.000Z"
+    },
+    {
+      "id": "at-lordhowe-gap-reject",
+      "kind": "atLocal",
+      "zone": "Australia/Lord_Howe",
+      "date": "2026-10-04",
+      "time": "02:15",
+      "disambiguation": "reject",
+      "localKind": "gap",
+      "expect": {
+        "error": "LOCAL_TIME_NONEXISTENT"
+      }
+    },
+    {
+      "id": "at-lordhowe-overlap-compatible",
+      "kind": "atLocal",
+      "zone": "Australia/Lord_Howe",
+      "date": "2026-04-05",
+      "time": "01:45",
+      "disambiguation": "compatible",
+      "localKind": "overlap",
+      "expect": "2026-04-04T14:45:00.000Z"
+    },
+    {
+      "id": "at-lordhowe-overlap-earlier",
+      "kind": "atLocal",
+      "zone": "Australia/Lord_Howe",
+      "date": "2026-04-05",
+      "time": "01:45",
+      "disambiguation": "earlier",
+      "localKind": "overlap",
+      "expect": "2026-04-04T14:45:00.000Z"
+    },
+    {
+      "id": "at-lordhowe-overlap-later",
+      "kind": "atLocal",
+      "zone": "Australia/Lord_Howe",
+      "date": "2026-04-05",
+      "time": "01:45",
+      "disambiguation": "later",
+      "localKind": "overlap",
+      "expect": "2026-04-04T15:15:00.000Z"
+    },
+    {
+      "id": "at-lordhowe-overlap-reject",
+      "kind": "atLocal",
+      "zone": "Australia/Lord_Howe",
+      "date": "2026-04-05",
+      "time": "01:45",
+      "disambiguation": "reject",
+      "localKind": "overlap",
+      "expect": {
+        "error": "LOCAL_TIME_AMBIGUOUS"
+      }
+    },
+    {
+      "id": "at-cairo-gap-compatible",
+      "kind": "atLocal",
+      "zone": "Africa/Cairo",
+      "date": "2026-04-24",
+      "time": "00:30",
+      "disambiguation": "compatible",
+      "localKind": "gap",
+      "expect": "2026-04-23T22:30:00.000Z"
+    },
+    {
+      "id": "at-cairo-gap-earlier",
+      "kind": "atLocal",
+      "zone": "Africa/Cairo",
+      "date": "2026-04-24",
+      "time": "00:30",
+      "disambiguation": "earlier",
+      "localKind": "gap",
+      "expect": "2026-04-23T21:30:00.000Z"
+    },
+    {
+      "id": "at-cairo-gap-later",
+      "kind": "atLocal",
+      "zone": "Africa/Cairo",
+      "date": "2026-04-24",
+      "time": "00:30",
+      "disambiguation": "later",
+      "localKind": "gap",
+      "expect": "2026-04-23T22:30:00.000Z"
+    },
+    {
+      "id": "at-cairo-gap-reject",
+      "kind": "atLocal",
+      "zone": "Africa/Cairo",
+      "date": "2026-04-24",
+      "time": "00:30",
+      "disambiguation": "reject",
+      "localKind": "gap",
+      "expect": {
+        "error": "LOCAL_TIME_NONEXISTENT"
+      }
+    },
+    {
+      "id": "at-muscat-normal-compatible",
+      "kind": "atLocal",
+      "zone": "Asia/Muscat",
+      "date": "2026-11-27",
+      "time": "18:00",
+      "disambiguation": "compatible",
+      "localKind": "normal",
+      "expect": "2026-11-27T14:00:00.000Z"
+    },
+    {
+      "id": "at-muscat-normal-earlier",
+      "kind": "atLocal",
+      "zone": "Asia/Muscat",
+      "date": "2026-11-27",
+      "time": "18:00",
+      "disambiguation": "earlier",
+      "localKind": "normal",
+      "expect": "2026-11-27T14:00:00.000Z"
+    },
+    {
+      "id": "at-muscat-normal-later",
+      "kind": "atLocal",
+      "zone": "Asia/Muscat",
+      "date": "2026-11-27",
+      "time": "18:00",
+      "disambiguation": "later",
+      "localKind": "normal",
+      "expect": "2026-11-27T14:00:00.000Z"
+    },
+    {
+      "id": "at-muscat-normal-reject",
+      "kind": "atLocal",
+      "zone": "Asia/Muscat",
+      "date": "2026-11-27",
+      "time": "18:00",
+      "disambiguation": "reject",
+      "localKind": "normal",
+      "expect": "2026-11-27T14:00:00.000Z"
+    },
+    {
+      "id": "at-kathmandu-normal-compatible",
+      "kind": "atLocal",
+      "zone": "Asia/Kathmandu",
+      "date": "2026-11-27",
+      "time": "09:00",
+      "disambiguation": "compatible",
+      "localKind": "normal",
+      "expect": "2026-11-27T03:15:00.000Z"
+    },
+    {
+      "id": "at-kathmandu-normal-earlier",
+      "kind": "atLocal",
+      "zone": "Asia/Kathmandu",
+      "date": "2026-11-27",
+      "time": "09:00",
+      "disambiguation": "earlier",
+      "localKind": "normal",
+      "expect": "2026-11-27T03:15:00.000Z"
+    },
+    {
+      "id": "at-kathmandu-normal-later",
+      "kind": "atLocal",
+      "zone": "Asia/Kathmandu",
+      "date": "2026-11-27",
+      "time": "09:00",
+      "disambiguation": "later",
+      "localKind": "normal",
+      "expect": "2026-11-27T03:15:00.000Z"
+    },
+    {
+      "id": "at-kathmandu-normal-reject",
+      "kind": "atLocal",
+      "zone": "Asia/Kathmandu",
+      "date": "2026-11-27",
+      "time": "09:00",
+      "disambiguation": "reject",
+      "localKind": "normal",
+      "expect": "2026-11-27T03:15:00.000Z"
+    },
+    {
+      "id": "bounds-ny-23h",
+      "kind": "dayBounds",
+      "zone": "America/New_York",
+      "from": "2026-03-08",
+      "toExclusive": "2026-03-09",
+      "expect": {
+        "start": "2026-03-08T05:00:00.000Z",
+        "end": "2026-03-09T04:00:00.000Z",
+        "hours": 23.0
+      }
+    },
+    {
+      "id": "bounds-ny-25h",
+      "kind": "dayBounds",
+      "zone": "America/New_York",
+      "from": "2026-11-01",
+      "toExclusive": "2026-11-02",
+      "expect": {
+        "start": "2026-11-01T04:00:00.000Z",
+        "end": "2026-11-02T05:00:00.000Z",
+        "hours": 25.0
+      }
+    },
+    {
+      "id": "bounds-santiago-midnight-gap",
+      "kind": "dayBounds",
+      "zone": "America/Santiago",
+      "from": "2026-09-06",
+      "toExclusive": "2026-09-07",
+      "expect": {
+        "start": "2026-09-06T04:00:00.000Z",
+        "end": "2026-09-07T03:00:00.000Z",
+        "hours": 23.0
+      }
+    },
+    {
+      "id": "bounds-muscat-week",
+      "kind": "dayBounds",
+      "zone": "Asia/Muscat",
+      "from": "2026-11-21",
+      "toExclusive": "2026-11-28",
+      "expect": {
+        "start": "2026-11-20T20:00:00.000Z",
+        "end": "2026-11-27T20:00:00.000Z",
+        "hours": 168.0
+      }
+    },
+    {
+      "id": "bounds-kiritimati",
+      "kind": "dayBounds",
+      "zone": "Pacific/Kiritimati",
+      "from": "2026-11-26",
+      "toExclusive": "2026-11-27",
+      "expect": {
+        "start": "2026-11-25T10:00:00.000Z",
+        "end": "2026-11-26T10:00:00.000Z",
+        "hours": 24.0
+      }
+    },
+    {
+      "id": "bounds-empty",
+      "kind": "dayBounds",
+      "zone": "Asia/Muscat",
+      "from": "2026-11-26",
+      "toExclusive": "2026-11-26",
+      "expect": {
+        "start": "2026-11-25T20:00:00.000Z",
+        "end": "2026-11-25T20:00:00.000Z",
+        "hours": 0.0
+      }
+    },
+    {
+      "id": "bounds-reversed",
+      "kind": "dayBounds",
+      "zone": "Asia/Muscat",
+      "from": "2026-11-27",
+      "toExclusive": "2026-11-26",
+      "expect": {
+        "error": "INVALID_CIVIL_DATE"
+      }
+    },
+    {
+      "id": "pk-muscat-day",
+      "kind": "periodKey",
+      "at": "2026-11-26T21:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "DAY",
+      "options": {},
+      "expect": "20261127"
+    },
+    {
+      "id": "pk-muscat-month",
+      "kind": "periodKey",
+      "at": "2026-11-30T21:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "MONTH",
+      "options": {},
+      "expect": "202612"
+    },
+    {
+      "id": "pk-utc-month",
+      "kind": "periodKey",
+      "at": "2026-11-30T21:00:00.000Z",
+      "zone": "UTC",
+      "grain": "MONTH",
+      "options": {},
+      "expect": "202611"
+    },
+    {
+      "id": "pk-muscat-year",
+      "kind": "periodKey",
+      "at": "2026-12-31T20:30:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "YEAR",
+      "options": {},
+      "expect": "2027"
+    },
+    {
+      "id": "pk-week-sat-newyear",
+      "kind": "periodKey",
+      "at": "2027-01-01T08:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "WEEK",
+      "options": {
+        "weekStart": 6
+      },
+      "expect": "W20261226"
+    },
+    {
+      "id": "pk-week-sat-dec30",
+      "kind": "periodKey",
+      "at": "2026-12-30T08:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "WEEK",
+      "options": {
+        "weekStart": 6
+      },
+      "expect": "W20261226"
+    },
+    {
+      "id": "pk-week-sun-newyear",
+      "kind": "periodKey",
+      "at": "2027-01-01T08:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "WEEK",
+      "options": {
+        "weekStart": 7
+      },
+      "expect": "W20261227"
+    },
+    {
+      "id": "pk-week-sun-dec30",
+      "kind": "periodKey",
+      "at": "2026-12-30T08:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "WEEK",
+      "options": {
+        "weekStart": 7
+      },
+      "expect": "W20261227"
+    },
+    {
+      "id": "pk-week-mon-newyear",
+      "kind": "periodKey",
+      "at": "2027-01-01T08:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "WEEK",
+      "options": {
+        "weekStart": 1
+      },
+      "expect": "W20261228"
+    },
+    {
+      "id": "pk-week-mon-dec30",
+      "kind": "periodKey",
+      "at": "2026-12-30T08:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "WEEK",
+      "options": {
+        "weekStart": 1
+      },
+      "expect": "W20261228"
+    },
+    {
+      "id": "pk-week-fri-newyear",
+      "kind": "periodKey",
+      "at": "2027-01-01T08:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "WEEK",
+      "options": {
+        "weekStart": 5
+      },
+      "expect": "W20270101"
+    },
+    {
+      "id": "pk-week-fri-dec30",
+      "kind": "periodKey",
+      "at": "2026-12-30T08:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "WEEK",
+      "options": {
+        "weekStart": 5
+      },
+      "expect": "W20261225"
+    },
+    {
+      "id": "pk-fy-apr-feb",
+      "kind": "periodKey",
+      "at": "2027-02-10T08:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "FY",
+      "options": {
+        "fiscalYearStartMonth": 4
+      },
+      "expect": "FY2026"
+    },
+    {
+      "id": "pk-fy-apr-apr1",
+      "kind": "periodKey",
+      "at": "2026-03-31T21:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "FY",
+      "options": {
+        "fiscalYearStartMonth": 4
+      },
+      "expect": "FY2026"
+    },
+    {
+      "id": "pk-fy-jan",
+      "kind": "periodKey",
+      "at": "2026-12-31T08:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "FY",
+      "options": {
+        "fiscalYearStartMonth": 1
+      },
+      "expect": "FY2026"
+    },
+    {
+      "id": "pk-fy-jul-jun30",
+      "kind": "periodKey",
+      "at": "2026-06-30T08:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "FY",
+      "options": {
+        "fiscalYearStartMonth": 7
+      },
+      "expect": "FY2025"
+    },
+    {
+      "id": "pk-week-missing-start",
+      "kind": "periodKey",
+      "at": "2026-11-26T08:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "grain": "WEEK",
+      "options": {},
+      "expect": {
+        "error": "CLOCK_SETTING_INVALID"
+      }
+    },
+    {
+      "id": "bd-muscat-0200-cut0400",
+      "kind": "businessDate",
+      "at": "2026-11-26T22:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "cutover": "04:00",
+      "expect": "2026-11-26"
+    },
+    {
+      "id": "bd-muscat-0400-cut0400",
+      "kind": "businessDate",
+      "at": "2026-11-27T00:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "cutover": "04:00",
+      "expect": "2026-11-27"
+    },
+    {
+      "id": "bd-muscat-midnight-default",
+      "kind": "businessDate",
+      "at": "2026-11-26T20:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "cutover": "00:00",
+      "expect": "2026-11-27"
+    },
+    {
+      "id": "bd-ny-dst-before-cut",
+      "kind": "businessDate",
+      "at": "2026-03-08T06:59:00.000Z",
+      "zone": "America/New_York",
+      "cutover": "02:30",
+      "expect": "2026-03-07"
+    },
+    {
+      "id": "bd-ny-dst-after-cut",
+      "kind": "businessDate",
+      "at": "2026-03-08T07:29:00.000Z",
+      "zone": "America/New_York",
+      "cutover": "02:30",
+      "expect": "2026-03-08"
+    },
+    {
+      "id": "bd-ny-fall-overlap",
+      "kind": "businessDate",
+      "at": "2026-11-01T06:15:00.000Z",
+      "zone": "America/New_York",
+      "cutover": "01:30",
+      "expect": "2026-10-31"
+    },
+    {
+      "id": "bd-cutover-noon-invalid",
+      "kind": "businessDate",
+      "at": "2026-11-26T22:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "cutover": "12:00",
+      "expect": {
+        "error": "CLOCK_SETTING_INVALID"
+      }
+    },
+    {
+      "id": "bdb-ny-dst-0230",
+      "kind": "businessDayBounds",
+      "zone": "America/New_York",
+      "from": "2026-03-08",
+      "toExclusive": "2026-03-09",
+      "cutover": "02:30",
+      "expect": {
+        "start": "2026-03-08T07:30:00.000Z",
+        "end": "2026-03-09T06:30:00.000Z"
+      }
+    },
+    {
+      "id": "bdb-muscat-0400",
+      "kind": "businessDayBounds",
+      "zone": "Asia/Muscat",
+      "from": "2026-11-26",
+      "toExclusive": "2026-11-27",
+      "cutover": "04:00",
+      "expect": {
+        "start": "2026-11-26T00:00:00.000Z",
+        "end": "2026-11-27T00:00:00.000Z"
+      }
+    },
+    {
+      "id": "ca-jan31-plus1m",
+      "kind": "civilAdd",
+      "date": "2026-01-31",
+      "n": 1,
+      "unit": "MONTH",
+      "expect": "2026-02-28"
+    },
+    {
+      "id": "ca-mar31-minus1m",
+      "kind": "civilAdd",
+      "date": "2026-03-31",
+      "n": -1,
+      "unit": "MONTH",
+      "expect": "2026-02-28"
+    },
+    {
+      "id": "ca-leap-plus1y",
+      "kind": "civilAdd",
+      "date": "2024-02-29",
+      "n": 1,
+      "unit": "YEAR",
+      "expect": "2025-02-28"
+    },
+    {
+      "id": "ca-dec31-plus1d",
+      "kind": "civilAdd",
+      "date": "2026-12-31",
+      "n": 1,
+      "unit": "DAY",
+      "expect": "2027-01-01"
+    },
+    {
+      "id": "ca-minus30d",
+      "kind": "civilAdd",
+      "date": "2026-03-01",
+      "n": -30,
+      "unit": "DAY",
+      "expect": "2026-01-30"
+    },
+    {
+      "id": "ca-plus13m",
+      "kind": "civilAdd",
+      "date": "2026-01-31",
+      "n": 13,
+      "unit": "MONTH",
+      "expect": "2027-02-28"
+    },
+    {
+      "id": "zv-Asia/Muscat",
+      "kind": "zoneValid",
+      "zone": "Asia/Muscat",
+      "expect": {
+        "valid": true,
+        "canonical": "Asia/Muscat"
+      }
+    },
+    {
+      "id": "zv-UTC",
+      "kind": "zoneValid",
+      "zone": "UTC",
+      "expect": {
+        "valid": true,
+        "canonical": "UTC"
+      }
+    },
+    {
+      "id": "zv-Etc/UTC",
+      "kind": "zoneValid",
+      "zone": "Etc/UTC",
+      "expect": {
+        "valid": true,
+        "canonical": "UTC"
+      }
+    },
+    {
+      "id": "zv-America/Argentina/Buenos_Aires",
+      "kind": "zoneValid",
+      "zone": "America/Argentina/Buenos_Aires",
+      "expect": {
+        "valid": true,
+        "canonical": "America/Argentina/Buenos_Aires"
+      }
+    },
+    {
+      "id": "zv-America/Port-au-Prince",
+      "kind": "zoneValid",
+      "zone": "America/Port-au-Prince",
+      "expect": {
+        "valid": true,
+        "canonical": "America/Port-au-Prince"
+      }
+    },
+    {
+      "id": "zv-GST",
+      "kind": "zoneValid",
+      "zone": "GST",
+      "expect": {
+        "valid": false,
+        "canonical": null
+      }
+    },
+    {
+      "id": "zv-EST",
+      "kind": "zoneValid",
+      "zone": "EST",
+      "expect": {
+        "valid": false,
+        "canonical": null
+      }
+    },
+    {
+      "id": "zv-+04:00",
+      "kind": "zoneValid",
+      "zone": "+04:00",
+      "expect": {
+        "valid": false,
+        "canonical": null
+      }
+    },
+    {
+      "id": "zv-Etc/GMT-4",
+      "kind": "zoneValid",
+      "zone": "Etc/GMT-4",
+      "expect": {
+        "valid": false,
+        "canonical": null
+      }
+    },
+    {
+      "id": "zv-posix/Asia/Muscat",
+      "kind": "zoneValid",
+      "zone": "posix/Asia/Muscat",
+      "expect": {
+        "valid": false,
+        "canonical": null
+      }
+    },
+    {
+      "id": "zv-right/UTC",
+      "kind": "zoneValid",
+      "zone": "right/UTC",
+      "expect": {
+        "valid": false,
+        "canonical": null
+      }
+    },
+    {
+      "id": "zv-Japan",
+      "kind": "zoneValid",
+      "zone": "Japan",
+      "expect": {
+        "valid": false,
+        "canonical": null
+      }
+    },
+    {
+      "id": "zv-GMT+4",
+      "kind": "zoneValid",
+      "zone": "GMT+4",
+      "expect": {
+        "valid": false,
+        "canonical": null
+      }
+    },
+    {
+      "id": "zv-empty",
+      "kind": "zoneValid",
+      "zone": "",
+      "expect": {
+        "valid": false,
+        "canonical": null
+      }
+    },
+    {
+      "id": "zv-Mars/Phobos",
+      "kind": "zoneValid",
+      "zone": "Mars/Phobos",
+      "expect": {
+        "valid": false,
+        "canonical": null
+      }
+    },
+    {
+      "id": "cat-Asia/Muscat",
+      "kind": "catalog",
+      "zone": "Asia/Muscat",
+      "expect": {
+        "valid": true,
+        "canonical": "Asia/Muscat",
+        "isCanonical": true
+      }
+    },
+    {
+      "id": "cat-Asia/Kuwait",
+      "kind": "catalog",
+      "zone": "Asia/Kuwait",
+      "expect": {
+        "valid": true,
+        "canonical": "Asia/Kuwait",
+        "isCanonical": true
+      }
+    },
+    {
+      "id": "cat-Asia/Calcutta",
+      "kind": "catalog",
+      "zone": "Asia/Calcutta",
+      "expect": {
+        "valid": true,
+        "canonical": "Asia/Kolkata",
+        "isCanonical": false
+      }
+    },
+    {
+      "id": "cat-Europe/Kiev",
+      "kind": "catalog",
+      "zone": "Europe/Kiev",
+      "expect": {
+        "valid": true,
+        "canonical": "Europe/Kyiv",
+        "isCanonical": false
+      }
+    },
+    {
+      "id": "cat-US/Eastern",
+      "kind": "catalog",
+      "zone": "US/Eastern",
+      "expect": {
+        "valid": true,
+        "canonical": "America/New_York",
+        "isCanonical": false
+      }
+    },
+    {
+      "id": "cat-Asia/Katmandu",
+      "kind": "catalog",
+      "zone": "Asia/Katmandu",
+      "expect": {
+        "valid": true,
+        "canonical": "Asia/Kathmandu",
+        "isCanonical": false
+      }
+    },
+    {
+      "id": "cat-Etc/UTC",
+      "kind": "catalog",
+      "zone": "Etc/UTC",
+      "expect": {
+        "valid": true,
+        "canonical": "UTC",
+        "isCanonical": false
+      }
+    },
+    {
+      "id": "cat-UTC",
+      "kind": "catalog",
+      "zone": "UTC",
+      "expect": {
+        "valid": true,
+        "canonical": "UTC",
+        "isCanonical": true
+      }
+    },
+    {
+      "id": "cat-Japan",
+      "kind": "catalog",
+      "zone": "Japan",
+      "expect": {
+        "valid": false,
+        "canonical": null,
+        "isCanonical": false
+      }
+    },
+    {
+      "id": "cat-EST",
+      "kind": "catalog",
+      "zone": "EST",
+      "expect": {
+        "valid": false,
+        "canonical": null,
+        "isCanonical": false
+      }
+    },
+    {
+      "id": "cat-Asia/Pyongyang",
+      "kind": "catalog",
+      "zone": "Asia/Pyongyang",
+      "expect": {
+        "valid": false,
+        "canonical": "Asia/Pyongyang",
+        "isCanonical": true
+      }
+    },
+    {
+      "id": "cat-Europe/Paris",
+      "kind": "catalog",
+      "zone": "Europe/Paris",
+      "expect": {
+        "valid": false,
+        "canonical": null,
+        "isCanonical": false
+      }
+    },
+    {
+      "id": "set-hc-tenant",
+      "kind": "settings",
+      "setting": "hourCycle",
+      "input": {
+        "tenant": "12h",
+        "country": "H23",
+        "platform": "24h"
+      },
+      "expect": {
+        "value": "h12",
+        "source": "tenant"
+      }
+    },
+    {
+      "id": "set-hc-country",
+      "kind": "settings",
+      "setting": "hourCycle",
+      "input": {
+        "tenant": null,
+        "country": "H12",
+        "platform": "24h"
+      },
+      "expect": {
+        "value": "h12",
+        "source": "country"
+      }
+    },
+    {
+      "id": "set-hc-platform",
+      "kind": "settings",
+      "setting": "hourCycle",
+      "input": {
+        "tenant": null,
+        "country": null,
+        "platform": "24h"
+      },
+      "expect": {
+        "value": "h23",
+        "source": "platform"
+      }
+    },
+    {
+      "id": "set-hc-missing",
+      "kind": "settings",
+      "setting": "hourCycle",
+      "input": {
+        "tenant": null,
+        "country": null,
+        "platform": null
+      },
+      "expect": {
+        "error": "CLOCK_SETTING_INVALID"
+      }
+    },
+    {
+      "id": "set-hc-bad",
+      "kind": "settings",
+      "setting": "hourCycle",
+      "input": {
+        "tenant": "13h",
+        "country": null,
+        "platform": "24h"
+      },
+      "expect": {
+        "error": "CLOCK_SETTING_INVALID"
+      }
+    },
+    {
+      "id": "set-ws-tenant-sun",
+      "kind": "settings",
+      "setting": "weekStart",
+      "input": {
+        "tenant": 0,
+        "country": 6,
+        "platform": 6
+      },
+      "expect": {
+        "value": 7,
+        "source": "tenant"
+      }
+    },
+    {
+      "id": "set-ws-country-fri",
+      "kind": "settings",
+      "setting": "weekStart",
+      "input": {
+        "tenant": null,
+        "country": 5,
+        "platform": 6
+      },
+      "expect": {
+        "value": 5,
+        "source": "country"
+      }
+    },
+    {
+      "id": "set-ws-platform-sat",
+      "kind": "settings",
+      "setting": "weekStart",
+      "input": {
+        "tenant": null,
+        "country": null,
+        "platform": 6
+      },
+      "expect": {
+        "value": 6,
+        "source": "platform"
+      }
+    },
+    {
+      "id": "set-ws-country-mon",
+      "kind": "settings",
+      "setting": "weekStart",
+      "input": {
+        "tenant": null,
+        "country": 1,
+        "platform": 6
+      },
+      "expect": {
+        "value": 1,
+        "source": "country"
+      }
+    },
+    {
+      "id": "set-ws-bad",
+      "kind": "settings",
+      "setting": "weekStart",
+      "input": {
+        "tenant": 7,
+        "country": null,
+        "platform": 6
+      },
+      "expect": {
+        "error": "CLOCK_SETTING_INVALID"
+      }
+    },
+    {
+      "id": "set-co-branch",
+      "kind": "settings",
+      "setting": "cutover",
+      "input": {
+        "branch": "04:00",
+        "tenant": "03:00",
+        "platform": "00:00"
+      },
+      "expect": {
+        "value": "04:00",
+        "source": "branch"
+      }
+    },
+    {
+      "id": "set-co-tenant",
+      "kind": "settings",
+      "setting": "cutover",
+      "input": {
+        "branch": null,
+        "tenant": "03:00",
+        "platform": "00:00"
+      },
+      "expect": {
+        "value": "03:00",
+        "source": "tenant"
+      }
+    },
+    {
+      "id": "set-co-platform",
+      "kind": "settings",
+      "setting": "cutover",
+      "input": {
+        "branch": null,
+        "tenant": null,
+        "platform": "00:00"
+      },
+      "expect": {
+        "value": "00:00",
+        "source": "platform"
+      }
+    },
+    {
+      "id": "set-co-noon",
+      "kind": "settings",
+      "setting": "cutover",
+      "input": {
+        "branch": "12:00",
+        "tenant": null,
+        "platform": "00:00"
+      },
+      "expect": {
+        "error": "CLOCK_SETTING_INVALID"
+      }
+    },
+    {
+      "id": "set-df-tenant",
+      "kind": "settings",
+      "setting": "dateFormat",
+      "input": {
+        "tenant": "DD/MM/YYYY",
+        "platform": "YYYY-MM-DD"
+      },
+      "expect": {
+        "value": "DD/MM/YYYY",
+        "source": "tenant"
+      }
+    },
+    {
+      "id": "set-df-platform",
+      "kind": "settings",
+      "setting": "dateFormat",
+      "input": {
+        "tenant": null,
+        "platform": "YYYY-MM-DD"
+      },
+      "expect": {
+        "value": "YYYY-MM-DD",
+        "source": "platform"
+      }
+    },
+    {
+      "id": "set-df-bad",
+      "kind": "settings",
+      "setting": "dateFormat",
+      "input": {
+        "tenant": "D.M.Y",
+        "platform": "YYYY-MM-DD"
+      },
+      "expect": {
+        "error": "CLOCK_SETTING_INVALID"
+      }
+    },
+    {
+      "id": "cb-muscat",
+      "kind": "clockBlock",
+      "at": "2026-11-26T22:00:00.000Z",
+      "zone": "Asia/Muscat",
+      "cutover": "04:00",
+      "hourCycle": "12h",
+      "weekStart": 6,
+      "dateFormat": "DD/MM/YYYY",
+      "tzdbVersion": "2026e",
+      "expect": {
+        "zone": "Asia/Muscat",
+        "businessDate": "2026-11-26",
+        "serverNow": "2026-11-26T22:00:00.000Z",
+        "hourCycle": "h12",
+        "weekStart": 6,
+        "tzdbVersion": "2026e",
+        "dateFormat": "DD/MM/YYYY"
+      }
+    },
+    {
+      "id": "cb-missing-zone",
+      "kind": "clockBlock",
+      "at": "2026-11-26T22:00:00.000Z",
+      "zone": null,
+      "cutover": "00:00",
+      "hourCycle": "24h",
+      "weekStart": 6,
+      "dateFormat": "YYYY-MM-DD",
+      "tzdbVersion": null,
+      "expect": {
+        "zone": null,
+        "businessDate": null,
+        "serverNow": "2026-11-26T22:00:00.000Z",
+        "hourCycle": "h23",
+        "weekStart": 6,
+        "tzdbVersion": null,
+        "dateFormat": "YYYY-MM-DD"
+      }
+    },
+    {
+      "id": "pi-2026-11-26T18:06:00.000Z",
+      "kind": "parseInstant",
+      "value": "2026-11-26T18:06:00.000Z",
+      "expect": "2026-11-26T18:06:00.000Z"
+    },
+    {
+      "id": "pi-2026-11-26T22:06:00+04:00",
+      "kind": "parseInstant",
+      "value": "2026-11-26T22:06:00+04:00",
+      "expect": "2026-11-26T18:06:00.000Z"
+    },
+    {
+      "id": "pi-2026-11-26T18:06Z",
+      "kind": "parseInstant",
+      "value": "2026-11-26T18:06Z",
+      "expect": "2026-11-26T18:06:00.000Z"
+    },
+    {
+      "id": "pi-2026-11-26T18:06:00.123456789Z",
+      "kind": "parseInstant",
+      "value": "2026-11-26T18:06:00.123456789Z",
+      "expect": "2026-11-26T18:06:00.123Z"
+    },
+    {
+      "id": "pi-2026-11-26",
+      "kind": "parseInstant",
+      "value": "2026-11-26",
+      "expect": {
+        "error": "INSTANT_OFFSET_REQUIRED"
+      }
+    },
+    {
+      "id": "pi-2026-11-26T18:06:00",
+      "kind": "parseInstant",
+      "value": "2026-11-26T18:06:00",
+      "expect": {
+        "error": "INSTANT_OFFSET_REQUIRED"
+      }
+    },
+    {
+      "id": "pi-2026-02-30T00:00:00Z",
+      "kind": "parseInstant",
+      "value": "2026-02-30T00:00:00Z",
+      "expect": {
+        "error": "INSTANT_OFFSET_REQUIRED"
+      }
+    },
+    {
+      "id": "pi-26/11/2026 18:06",
+      "kind": "parseInstant",
+      "value": "26/11/2026 18:06",
+      "expect": {
+        "error": "INSTANT_OFFSET_REQUIRED"
+      }
+    },
+    {
+      "id": "pi-2026-11-26 18:06:00Z",
+      "kind": "parseInstant",
+      "value": "2026-11-26 18:06:00Z",
+      "expect": {
+        "error": "INSTANT_OFFSET_REQUIRED"
+      }
+    },
+    {
+      "id": "pi-2026-11-26T18:06:00+0400",
+      "kind": "parseInstant",
+      "value": "2026-11-26T18:06:00+0400",
+      "expect": {
+        "error": "INSTANT_OFFSET_REQUIRED"
+      }
+    },
+    {
+      "id": "zr-branch-active",
+      "kind": "zoneResolution",
+      "operation": "accept_order",
+      "scopeZone": "Asia/Dubai",
+      "organizationZone": "Asia/Muscat",
+      "expect": "Asia/Dubai"
+    },
+    {
+      "id": "zr-branch-inactive",
+      "kind": "zoneResolution",
+      "operation": "ready_by",
+      "scopeZone": "Asia/Pyongyang",
+      "organizationZone": "Asia/Muscat",
+      "expect": "Asia/Muscat"
+    },
+    {
+      "id": "zr-org-only",
+      "kind": "zoneResolution",
+      "operation": "invoice",
+      "scopeZone": null,
+      "organizationZone": "Asia/Muscat",
+      "expect": "Asia/Muscat"
+    },
+    {
+      "id": "zr-both-missing",
+      "kind": "zoneResolution",
+      "operation": "ledger",
+      "scopeZone": null,
+      "organizationZone": null,
+      "expect": null
+    },
+    {
+      "id": "zr-unknown-op",
+      "kind": "zoneResolution",
+      "operation": "acept_order",
+      "scopeZone": "Asia/Dubai",
+      "organizationZone": "Asia/Muscat",
+      "expect": {
+        "error": "CLOCK_UNKNOWN_OPERATION"
+      }
+    },
+    {
+      "id": "zr-notify-branch-a",
+      "kind": "zoneResolution",
+      "operation": "notify",
+      "scopeZone": "America/Los_Angeles",
+      "organizationZone": "Asia/Muscat",
+      "expect": "America/Los_Angeles"
+    },
+    {
+      "id": "zr-delivery-branch-b",
+      "kind": "zoneResolution",
+      "operation": "delivery",
+      "scopeZone": "Asia/Dubai",
+      "organizationZone": "Asia/Muscat",
+      "expect": "Asia/Dubai"
+    }
+  ]
+}

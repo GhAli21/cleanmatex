@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
+import { ReportInstantDay } from '@features/reports/ui/reports-clock';
 import type { OrderRow, ReportPagination } from '@/lib/types/report-types';
 
 interface OrdersReportTableProps {
@@ -160,7 +160,7 @@ export default function OrdersReportTable({
                   </span>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {order.createdAt ? format(new Date(order.createdAt), 'dd MMM yyyy') : '-'}
+                  <ReportInstantDay value={order.createdAt} />
                 </td>
               </tr>
             ))}

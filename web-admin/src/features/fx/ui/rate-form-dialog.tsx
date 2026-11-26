@@ -7,7 +7,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxButton, CmxInput, CmxSwitch, CmxTextarea, Label } from '@ui/primitives';
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxSummaryMessage } from '@ui/feedback';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { civilDateInZone } from '@/lib/utils/operational-time';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { CURRENCY_FX_PERMISSIONS } from '@/lib/constants/permissions/currency-fx-perm';
 import { createRateFormSchema, type CreateRateFormValues } from '../model/rate-schema';
@@ -23,16 +25,13 @@ interface RateFormDialogProps {
   onSuccess: () => void;
 }
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export function RateFormDialog({ open, onClose, onSuccess }: RateFormDialogProps) {
   const t = useTranslations('currencyFx');
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('currencyFx.errors');
   const [isPending, startTransition] = useTransition();
   const canManualOverride = useHasPermissionCode(CURRENCY_FX_PERMISSIONS.FX_RATES_MANUAL_OVERRIDE);
+  const { organization, isPending: zonePending } = useOperationalZones('invoice', []);
 
   const [portfolioCurrencies, setPortfolioCurrencies] = useState<SelectableCurrency[]>([]);
   const [rateTypes, setRateTypes] = useState<FxRateTypeOption[]>([]);
@@ -59,13 +58,13 @@ export function RateFormDialog({ open, onClose, onSuccess }: RateFormDialogProps
 
   const form = useForm<CreateRateFormValues>({
     resolver: zodResolver(createRateFormSchema) as Resolver<CreateRateFormValues>,
-    defaultValues: { rateDate: todayIso(), approveNow: false },
+    defaultValues: { rateDate: '', approveNow: false },
   });
 
   useEffect(() => {
-    if (open) form.reset({ rateDate: todayIso(), approveNow: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+    if (!open) return;
+    form.reset({ rateDate: civilDateInZone(new Date(), organization), approveNow: false });
+  }, [open, organization, form]);
 
   const fromCurrencyCode = useWatch({ control: form.control, name: 'fromCurrencyCode' });
   const toCurrencyCode = useWatch({ control: form.control, name: 'toCurrencyCode' });
@@ -93,6 +92,9 @@ export function RateFormDialog({ open, onClose, onSuccess }: RateFormDialogProps
           <CmxDialogTitle>{t('rates.add')}</CmxDialogTitle>
         </CmxDialogHeader>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 p-4">
+          {!zonePending && !organization ? (
+            <CmxSummaryMessage type="warning" message={tErrors('timezoneNotConfigured')} />
+          ) : null}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>{t('rates.form.fromCurrency')}</Label>

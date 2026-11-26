@@ -1,5 +1,7 @@
 # Work packages
 
+Live queue: [`../RESUME_CONTINUATION.md`](../RESUME_CONTINUATION.md). Read **Risks while implementing** in that file before editing. Refresh that file at the end of every slice. Current version is `0.1.43` (S1 done; S2 migration files `0842`/`0843` written 2026-11-27, not applied). The next step is the user applying them, then S3 (`0.1.44`) in [`../MASTER_PLAN_v2.md`](../MASTER_PLAN_v2.md), which maps the open packages to slices (WP6→S3/S4/S14, WP10/WP11→S6, WP16/WP17→S7, WP18→S8, WP19→S11, WP20→S12, WP21→S13, WP22→S14). Do not start again at WP1. Do not treat a route or screen named below as still open until you check `CHANGELOG.md`. `0828` through `0841` are already applied. Do not edit them. Only the user applies migrations (D17): the agent writes the SQL file and stops, as the "write the SQL and stop" line below says. SQL names in the master plan use `fn_cmx_dt_*` (the deployed `fn_ops_zone` is wrapped by `fn_cmx_dt_zone`); a package below that says `fn_ops_*` for new work means that family. `RESUME_CONTINUATION.md` wins when they disagree.
+
 Do the packages in order. A package that says "migration" produces a new SQL file and stops. It does not apply the file.
 
 Rule: [`docs/dev/rules/time-and-timezone.md`](../../../dev/rules/time-and-timezone.md).
@@ -9,7 +11,7 @@ This pack follows that contract: the operations zone is the feature's documented
 
 ## Close-out after every package
 
-A package is not done until `progress_summary.md`, `current_status.md`, and this folder's surface-map row match the work. Add one `CHANGELOG.md` line and bump `version.txt`. A migration is recorded as Written, not applied. After the user applies it, record `npm run prisma:pull`. The HQ sibling plan in `cleanmatexsaas` (`docs/features/Time_and_Timezone/`) closes out in that folder.
+A package is not done until `progress_summary.md`, `current_status.md`, and this folder's surface-map row match the work. Add the manual cases for that step to `testing_guide_and_scenarios.md`. Add one `CHANGELOG.md` line and bump `version.txt`. A migration is recorded as Written, not applied. After the user applies it, record `npm run prisma:pull`. The HQ sibling plan in `cleanmatexsaas` (`docs/features/Time_and_Timezone/`) closes out in that folder.
 
 ## Production gate
 
@@ -26,15 +28,15 @@ A package is production-ready only when every layer that owns that clock changes
 
 Tests cover the clock rule that changed. A test sets an explicit zone. The machine zone is not the shop zone. A cache key or a default of today includes the civil date and the zone id.
 
-The operation codes are a closed list, shared by the TypeScript door and `fn_ops_zone`: `accept_order`, `ready_by`, `pos_session`, `delivery`, `invoice`, `ledger`. A report that shows a stored row reads that row's snapshot. A report limited to one zone says so. Registration is not an operation of either door.
+The operation codes are a closed list, shared by the TypeScript door and `fn_ops_zone`: `accept_order`, `ready_by`, `pos_session`, `delivery`, `invoice`, `ledger`, `notify` (D27; quiet hours and notification scheduling use `notify`). A report that shows a stored row reads that row's snapshot. A report limited to one zone says so. Registration is not an operation of either door.
 
 ## WP1 — Shared clock (no migration)
 
 **Done when** feature code can resolve a zone, format an instant, and reject a naive datetime without copying `Intl` logic.
 
 - Add `resolveOperationalTimeZone` next to `web-admin/lib/utils/business-date.ts`. The caller passes `tenantOrgId`, one closed operation code, and the scope id. For a branch-scoped operation: branch `timezone_code`, else organization `timezone`, else null. Both must be valid IANA names and active `sys_timezone_cd` codes. The query filters `tenant_org_id` and uses the existing branch and organization keys. One read per action. Reuse the result for the rest of that request only. A TTL must not choose the civil day.
-- The scope id is the owning branch. Delivery uses the branch on the route or slot. An invoice uses `org_invoice_mst.branch_id`. A ledger journal uses `org_fin_journal_mst.branch_id`. The customer ledger follows the invoice. Those tables store the place, and the branch stores the zone. `sys_country_cd.default_timezone_code` is catalog metadata and is not a fallback. A client `timeZone` cannot win. This is the TypeScript door in `operational-zone.server.ts`. `fn_ops_zone` in WP12 returns the same answer for the same inputs. Do not add a React context that holds one zone for the session. When the document is issued, freeze that zone on the row the way a POS session freezes `business_timezone`.
-- A persisted business date takes one database instant. POS open, the rollover sweep, a live `previewReadyTimes` call, `quoteCheckout`, the tax lines written from that quote, tax-document issue, advance receipts, gift-card sales, and refund reversal read that instant. `createTaxDocumentTx` still takes the fiscal year from `new Date().getFullYear()`. Order create, order change, split, and preparation completion persist `ready_by_at`. `formatReadyByDate` stays empty without a zone (WP6).
+- The scope id is the owning branch. Delivery uses the branch on the route or slot. An invoice uses `org_invoice_mst.branch_id`. A ledger journal uses `org_fin_journal_mst.branch_id`. A notification uses the branch the notification is for (the customer's or order's branch, or the campaign's branch). The customer ledger follows the invoice. Those tables store the place, and the branch stores the zone. `sys_country_cd.default_timezone_code` is catalog metadata and is not a fallback. A client `timeZone` cannot win. This is the TypeScript door in `operational-zone.server.ts`. `fn_ops_zone` in WP12 returns the same answer for the same inputs. Do not add a React context that holds one zone for the session. When the document is issued, freeze that zone on the row the way a POS session freezes `business_timezone`.
+- A persisted business date takes one database instant. POS open, the rollover sweep, a live `previewReadyTimes` call, `quoteCheckout`, the tax lines written from that quote, tax-document issue, advance receipts, gift-card sales, and refund reversal read that instant. `createTaxDocumentTx` takes the fiscal year from one database instant in the invoice zone (`0.1.26-plan`). Order create, order change, split, and preparation completion persist `ready_by_at`. `formatReadyByDate` stays empty without a zone (WP6).
 - Add `parseInstant` that accepts only RFC 3339 with `Z` or a numeric offset.
 - Add `formatInstant(value, zone, locale)` and `civilDayBounds(date, zone)` that return a half-open UTC range.
 - Keep `getTenantTimeZone` as the organization helper. Layout may keep passing it for non-operational chrome. Operational pages pass the resolver result.
@@ -52,6 +54,10 @@ The operation codes are a closed list, shared by the TypeScript door and `fn_ops
 **Tests:** T1, T2, T3, T6, T9, T18, T19, F1, F3 in the testing guide. Keep the vectors. WP12 runs the same vectors through `fn_ops_zone`.
 
 **Close-out:** WP1 row becomes Done. No migration.
+
+**S1 (2026-11-27):** the shared clock now lives in `packages/clock` (`@cmx/clock`, web-admin entry `@/lib/utils/clock`). The older helpers in `operational-time.ts` keep working until their callers move (S3–S7).
+
+**S2 (2026-11-27):** the SQL side of the same vectors is `supabase/tests/clock_vectors.test.sql`, generated by `node scripts/gen-clock-vectors-sql.mjs` (`--check` in CI-style runs). It runs against the `fn_cmx_dt_*` functions of `0842`/`0843` once the user has applied them; `fn_ops_zone` is reached through `fn_cmx_dt_zone` (`zoneResolution` vectors).
 
 ## WP2 — Provenance note for Class A
 
@@ -124,13 +130,13 @@ Replace operational formatting in batches. Suggested order, because these files 
 2. Reports under `src/features/reports/ui/` and `app/dashboard/reports/`. The orders, payments, invoices, revenue, customer, and reconciliation reports now use the organization civil day (`0.1.16-plan`).
 3. Finance vouchers and `app/dashboard/internal_fin/vouchers/`.
 4. Cash drawers use the till branch (`0.1.26-plan`). Refund timestamps and reconciliation run instants use that row's branch, then the organization. Reconciliation periods stay civil dates. Gift-card liability uses the organization zone. A tax-document fiscal year is the civil year of one database instant in the invoice zone.
-5. Customers, notifications, marketing, delivery, workboard.
+5. Customers, notifications, marketing lists, delivery, pickup, workboard, and the workflow queues use the operations zone (`0.1.27-plan`). "Due today" is the civil day in the fulfilment branch zone. Discount-rule validity is an instant and is entered in WP14.
 
 Each batch: the screen waits for the operations zone, EN and AR show the same instant, and the print matches the screen. A missing zone shows a skeleton and a message through `cmxMessage`, with keys in both languages. A list joins each row's zone in the same query. A day filter uses `civilDayBounds` once and compares a stored date or a bare `timestamptz`. Print roots keep `data-mode="LIGHT"`. Check the changed flow in the browser, including the empty and missing-zone states.
 
 Do not reformat jhtestui debug viewers except to label them UTC. They are not an operations clock.
 
-**Close-out:** name the batches that landed and the screens still open.
+**Close-out:** name the batches that landed and the screens still open. Add the manual cases to `testing_guide_and_scenarios.md`.
 
 **Tests:** T1, T7, T8, E3, T19.
 
@@ -151,7 +157,7 @@ One migration per domain, each with its own provenance note:
 
 `s_date`, `handed_to_date`, `effective_from`, `effective_until`, `effective_to`, `scheduled_time`, `estimated_arrival`, and `actual_time` are classified in the migration comment as instant or civil. Civil values become `date` or `time`, not `timestamptz`.
 
-Each batch closes out on its own. B6 waits for the HQ reader list and the sibling plan's note that those readers are ready.
+B1 through B5, and the remaining organization event stamps, are applied (`0835`–`0839`, OTP in `0841`). `s_date`, `handed_to_date`, delivery stop times, and feature-flag effective instants are instants. B6 waits for the HQ reader list.
 
 ## WP8 — Audit stamps
 
@@ -166,7 +172,7 @@ Leave out:
 - A column that is a civil day or a time of day. Those stay `date` or `time`.
 - `sys_*` and `hq_*` stamps. They wait for `technical_docs/hq-readers.md` (WP21).
 
-Close out as Written, not applied. After apply, record the Prisma pull.
+Applied on local and remote as `0834_org_audit_stamps_timestamptz.sql`. Views that read the stamps were recreated in that file. `anon` and `authenticated` are not granted. Prisma is pulled from the local database after apply.
 
 ## WP9 — CI guard
 
@@ -176,6 +182,8 @@ Close out as Written, not applied. After apply, record the Prisma pull.
 - The T and E cases that can run without a browser live next to `business-date` tests, including the two-door vectors.
 
 **Close-out:** name the script path and the first green run.
+
+**Status (S1, 2026-11-27):** guard v2 is `scripts/check-clock-contract.mjs` with the per-file baseline `scripts/clock-contract-baseline.json` (`npm run check:clock-contract`). First green run with the baseline: 2026-11-27 in `cleanmatex` (tenant profile) and `cleanmatexsaas` (HQ profile). CI runs it in the web-admin job. The baseline only goes down (S4, S14). S2: the exemption pattern for `fn_cmx_dt__fake_*` was fixed (two underscores); the guard exits 0 with `0842`/`0843` present.
 
 ## WP10 — HTTP APIs, webhooks, and Zod
 
@@ -221,7 +229,7 @@ Each hit is either already correct, fixed in a new migration, or listed with a r
 
 **Done when** the function list is in `technical_docs/sql-clock-inventory.md` and every open hit has a new migration waiting for review. T18 passes against the function with the same vectors as the TypeScript door.
 
-**Close-out:** Written, not applied. The inventory file is checked in.
+**Close-out:** Done. The inventory file classifies every former open function. `0840` and `0841` are applied on local and remote.
 
 ## WP13 — Document numbers
 
@@ -237,13 +245,19 @@ Refresh the picker list. Starting screens: order filters, report filters, proces
 
 Classify each control. A day filter submits `YYYY-MM-DD`. An appointment submits civil date and time. The server converts. The control does not send the result of the browser's `Date`. A typed gap or overlap is rejected unless the form captured earlier or later. Check the changed controls in the browser.
 
-**Close-out:** name the controls changed and any control left as civil on purpose.
+Promo validity (`promo-form-dialog`) displays and saves `datetime-local` as civil time in the organization zone (`0.1.28-plan`). Gift-card issue and sell default the expiry to 31 December of that civil year and store the last millisecond of the chosen day. A missing zone blocks the save. Manual check is T29.
+
+Discount-rule validity is the same kind of instant (`0.1.29-plan`). The FX rate date, tax-exemption dates, AR invoice dates, and the new voucher date are civil dates. Their default is the operations-zone civil day. A missing zone leaves that day empty. Manual check is T30. Order, report, processing, and reconciliation filters already submit `YYYY-MM-DD` from the control. B2B contract dates start empty. The ready-by picker already uses the fulfilment branch zone.
+
+ERP Lite expense, cash transaction, cash reconciliation, and purchase-order dates default to the organization civil day (`0.1.30-plan`). The number month is that civil date. The expected date stays empty. Manual check is T31. A cashbox, supplier, bank account, cost component, and an allocation rule with no effective date take their month from one database instant in the organization zone (`0.1.31-plan`). A missing zone refuses the save. Manual check is T32.
+
+**Close-out:** name the controls changed and any control left as civil on purpose. Add the manual cases to `testing_guide_and_scenarios.md`.
 
 ## WP15 — Customer message text
 
 `web-admin/lib/notifications/order-event-variables.ts` formats Ready By with `toLocaleDateString`. With no valid zone it uses the server zone. Templates for SMS, email, WhatsApp, and in-app text take the operations zone into that formatter. A missing zone omits the clock rather than printing the server's day. `delivery-policy.ts` remains the quiet-hours civil rule. The outbox instant stays WP4. EN and AR templates both change.
 
-**Close-out:** name the templates and the missing-zone sample.
+**Close-out:** Done. `buildOrderCreatedNotificationVariables` takes the fulfilment zone. A missing zone leaves `estimated_ready_at` empty. Submit-order passes that zone. The existing notification tests cover Muscat, Los Angeles, and a missing zone.
 
 ## WP16 — Exports and imports
 

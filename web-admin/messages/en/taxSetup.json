@@ -1,4 +1,5 @@
 {
+  "timezoneNotConfigured": "No time zone is set for this organization, so a date cannot be chosen. Ask an administrator to set one.",
   "title": "Tax Setup",
   "description": "Configure tax profiles and exemptions",
   "profiles": "Tax Profiles",
@@ -46,6 +47,8 @@
   "editExemption": "Edit Exemption",
   "updated": "Tax profile updated",
   "exemptionUpdated": "Exemption updated",
+  "invalidCivilDate": "Enter a valid date (YYYY-MM-DD).",
+  "validToBeforeFrom": "Valid To must be on or after Valid From",
   "exemptionDeactivated": "Exemption deactivated",
   "actions": "Actions",
   "noDefaultProfile": {

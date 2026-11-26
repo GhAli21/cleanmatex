@@ -5,6 +5,9 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CmxButton, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives';
+import { CmxSummaryMessage } from '@ui/feedback';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { useCivilTodayDefault } from '@/lib/hooks/use-civil-today';
 import { createBizVoucherAction } from '@/app/actions/finance/voucher-actions';
 import { VOUCHER_TYPE, VOUCHER_DIRECTION, PARTY_TYPE } from '@/lib/constants/voucher';
 import type { VoucherDirection, VoucherType } from '@/lib/types/voucher';
@@ -31,6 +34,8 @@ export default function CreateVoucherForm() {
   const [partyName, setPartyName] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
+  const { organization, isPending: zonePending } = useOperationalZones('ledger', []);
+  const [voucherDate] = useCivilTodayDefault(organization);
 
   const VOUCHER_TYPE_OPTIONS: { value: VoucherType; labelKey: string }[] = [
     { value: VOUCHER_TYPE.RECEIPT,    labelKey: 'RECEIPT_VOUCHER' },
@@ -52,6 +57,11 @@ export default function CreateVoucherForm() {
     e.preventDefault();
     setError(null);
 
+    if (!voucherDate) {
+      setError(t('timezoneNotConfigured'));
+      return;
+    }
+
     startTransition(async () => {
       const result = await createBizVoucherAction({
         voucher_type:  voucherType,
@@ -60,7 +70,7 @@ export default function CreateVoucherForm() {
         party_name:    partyName   || undefined,
         description:   description || undefined,
         notes:         notes       || undefined,
-        voucher_date:  new Date().toISOString().split('T')[0],
+        voucher_date:  voucherDate,
       });
 
       if (result.success && result.data) {
@@ -78,6 +88,9 @@ export default function CreateVoucherForm() {
           {error}
         </div>
       )}
+      {!zonePending && !organization ? (
+        <CmxSummaryMessage type="warning" message={t('timezoneNotConfigured')} />
+      ) : null}
 
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <div className="space-y-5">
@@ -187,7 +200,7 @@ export default function CreateVoucherForm() {
             {tCommon('cancel')}
           </Link>
         </CmxButton>
-        <CmxButton type="submit" variant="primary" loading={isPending} disabled={isPending}>
+        <CmxButton type="submit" variant="primary" loading={isPending} disabled={isPending || zonePending || !voucherDate}>
           {isPending ? tCommon('loading') : tCommon('create')}
         </CmxButton>
       </div>

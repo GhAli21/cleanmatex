@@ -12,6 +12,8 @@ import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { civilDateInZone, formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import {
   CheckCircle2,
   ChevronDown,
@@ -178,6 +180,7 @@ function getLocalizedStatus(
 function getSlaInfo(
   readyByAt: string | null,
   nowMs: number,
+  zone: string | null,
   tTable: (key: string) => string
 ): { label: string; tone: CmxBadgeTone } | null {
   if (!readyByAt) return null;
@@ -186,25 +189,14 @@ function getSlaInfo(
   const diffMs = due.getTime() - nowMs;
   if (diffMs < 0) return { label: tTable('slaOverdue'), tone: 'danger' };
   if (diffMs <= 2 * 60 * 60 * 1000) return { label: tTable('slaDueSoon'), tone: 'warning' };
-  const now = new Date(nowMs);
-  if (
-    due.getFullYear() === now.getFullYear() &&
-    due.getMonth() === now.getMonth() &&
-    due.getDate() === now.getDate()
-  ) {
-    return { label: tTable('slaToday'), tone: 'info' };
-  }
+  const dueDay = civilDateInZone(readyByAt, zone);
+  const today = civilDateInZone(new Date(nowMs), zone);
+  if (dueDay && dueDay === today) return { label: tTable('slaToday'), tone: 'info' };
   return null;
 }
 
-function formatDateTime(value: string | null, locale: string): string {
-  if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(d);
+function formatDateTime(value: string | null, locale: string, zone: string | null): string {
+  return formatInstantOrEmpty(value, zone, locale === 'ar' ? 'ar' : 'en') || '—';
 }
 
 /**
@@ -452,6 +444,9 @@ export default function ProcessingDetailPage() {
     [orderId, refetchOrder, tDetail]
   );
 
+  const { zoneFor } = useOperationalZones('ready_by', [order?.branch_id]);
+  const opsZone = zoneFor(order?.branch_id);
+
   const toggleItemExpansion = useCallback((itemId: string) => {
     setExpandedItemIds((prev) => {
       const next = new Set(prev);
@@ -516,7 +511,7 @@ export default function ProcessingDetailPage() {
   const displayCustomerName =
     getBilingual(order.customer.name, order.customer.name2) || order.customer.name;
   const localizedOrderStatus = getLocalizedStatus(order.status, tStatus);
-  const slaInfo = getSlaInfo(order.ready_by_at, nowMs, tTable);
+  const slaInfo = getSlaInfo(order.ready_by_at, nowMs, opsZone, tTable);
   const priorityLower = order.priority.toLowerCase();
   const priorityBadge =
     priorityLower === PRIORITY_LEVELS.URGENT
@@ -643,7 +638,7 @@ export default function ProcessingDetailPage() {
             </div>
             <div>
               <span className="font-medium text-foreground">{tDetail('readyBy')}:</span>{' '}
-              <span className="tabular-nums">{formatDateTime(order.ready_by_at, locale)}</span>
+              <span className="tabular-nums">{formatDateTime(order.ready_by_at, locale, opsZone)}</span>
             </div>
             <div className="tabular-nums">
               <span className="font-medium text-foreground">{tDetail('piecesReady')}:</span>{' '}

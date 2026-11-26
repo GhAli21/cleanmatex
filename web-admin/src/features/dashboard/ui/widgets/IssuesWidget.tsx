@@ -12,6 +12,7 @@ import { useRTL } from '@/lib/hooks/useRTL'
 import { AlertTriangle, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
+import { useDashboardZone } from '../use-dashboard-zone'
 
 interface IssuesData {
   open: number
@@ -25,6 +26,7 @@ interface IssuesData {
  */
 export function IssuesWidget() {
   const { currentTenant } = useAuth()
+  const { organization, isPending } = useDashboardZone()
   const t = useTranslations('dashboard')
   const isRTL = useRTL()
   const [data, setData] = useState<IssuesData>({
@@ -37,12 +39,13 @@ export function IssuesWidget() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!currentTenant) return
+      if (!currentTenant || isPending) return
 
       try {
         setIsLoading(true)
         const kpiData = await dashboardService.getKPIOverview(
-          currentTenant.tenant_id
+          currentTenant.tenant_id,
+          { timeZone: organization }
         )
 
         setData({
@@ -59,7 +62,7 @@ export function IssuesWidget() {
     }
 
     fetchData()
-  }, [currentTenant])
+  }, [currentTenant, organization, isPending])
 
   if (isLoading) {
     return (

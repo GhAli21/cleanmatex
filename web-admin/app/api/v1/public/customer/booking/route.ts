@@ -17,6 +17,8 @@ import { resolveOrderTypeFromBookingFulfillment } from '@/lib/constants/order-ty
 import { PreferenceCatalogService } from '@/lib/services/preference-catalog.service';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
+import { civilDateInZone, civilDayBounds, instantFromCivilDateTime } from '@/lib/utils/operational-time';
+import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import {
   isWorkflowProfileCreateErrorCode,
@@ -101,41 +103,38 @@ function extractBearerToken(request: NextRequest): string | null {
   return authorization.slice(7).trim();
 }
 
-function buildSlotWindows(): BookingSlot[] {
-  const now = new Date();
-  const todayEvening = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    18,
-    0,
-    0,
-    0,
-  );
-  const tomorrowMorning = new Date(todayEvening.getTime() + 16 * 60 * 60 * 1000);
-  const tomorrowEvening = new Date(todayEvening.getTime() + 24 * 60 * 60 * 1000);
+async function buildSlotWindows(tenantId: string, branchId: string | null): Promise<BookingSlot[]> {
+  const zone = await resolveOperationalTimeZone(tenantId, 'delivery', branchId);
+  const today = civilDateInZone(new Date(), zone);
+  if (!zone || !today) return [];
+  const tomorrow = civilDateInZone(civilDayBounds(today, zone).end, zone);
+  if (!tomorrow) return [];
+  const span = (start: Date) => new Date(start.getTime() + 2 * 60 * 60 * 1000);
+  const evening = instantFromCivilDateTime(today, '18:00', zone);
+  const morning = instantFromCivilDateTime(tomorrow, '10:00', zone);
+  const nextEvening = instantFromCivilDateTime(tomorrow, '17:00', zone);
 
   return [
     {
       id: 'slot-1',
       label: 'Today, 6:00 PM - 8:00 PM',
       label2: 'اليوم، 6:00 م - 8:00 م',
-      startAt: todayEvening.toISOString(),
-      endAt: new Date(todayEvening.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+      startAt: evening.toISOString(),
+      endAt: span(evening).toISOString(),
     },
     {
       id: 'slot-2',
       label: 'Tomorrow, 10:00 AM - 12:00 PM',
       label2: 'غداً، 10:00 ص - 12:00 م',
-      startAt: tomorrowMorning.toISOString(),
-      endAt: new Date(tomorrowMorning.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+      startAt: morning.toISOString(),
+      endAt: span(morning).toISOString(),
     },
     {
       id: 'slot-3',
       label: 'Tomorrow, 5:00 PM - 7:00 PM',
       label2: 'غداً، 5:00 م - 7:00 م',
-      startAt: tomorrowEvening.toISOString(),
-      endAt: new Date(tomorrowEvening.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+      startAt: nextEvening.toISOString(),
+      endAt: span(nextEvening).toISOString(),
     },
   ];
 }
@@ -629,7 +628,7 @@ export async function GET(request: NextRequest) {
         area: address.area,
         city: address.city,
       })),
-      slots: buildSlotWindows(),
+      slots: await buildSlotWindows(tenantId, branchId),
     };
 
     return NextResponse.json(

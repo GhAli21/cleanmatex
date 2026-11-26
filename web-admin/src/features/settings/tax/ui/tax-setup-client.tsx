@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +14,8 @@ import { cmxMessage, CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback';
 import { CmxTabsPanel } from '@ui/navigation';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { civilDateInZone, civilDateInputValue, formatCivilDate } from '@/lib/utils/operational-time';
 import {
   createTaxExemptionAction,
   updateTaxExemptionAction,
@@ -66,11 +68,6 @@ interface TaxSetupClientProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function toDateInput(d: Date | string | null | undefined): string {
-  if (!d) return '';
-  return new Date(d).toISOString().slice(0, 10);
-}
-
 const EXEMPTION_TYPES = ['CUSTOMER_EXEMPT', 'PRODUCT_EXEMPT', 'ZERO_RATED', 'REDUCED_RATE', 'OTHER'] as const;
 
 // ---------------------------------------------------------------------------
@@ -85,7 +82,9 @@ const EXEMPTION_TYPES = ['CUSTOMER_EXEMPT', 'PRODUCT_EXEMPT', 'ZERO_RATED', 'RED
 export function TaxSetupClient({ initialExemptions }: TaxSetupClientProps) {
   const t = useTranslations('taxSetup');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
+  const { organization, isPending: zonePending } = useOperationalZones('invoice', []);
 
   const [exemptions, setExemptions] = useState<SerializedTaxExemption[]>(initialExemptions);
 
@@ -103,7 +102,7 @@ export function TaxSetupClient({ initialExemptions }: TaxSetupClientProps) {
       exemption_type: 'CUSTOMER_EXEMPT',
       certificate_no: '',
       service_type: '',
-      valid_from: new Date().toISOString().slice(0, 10),
+      valid_from: '',
       valid_to: '',
     },
   });
@@ -115,7 +114,7 @@ export function TaxSetupClient({ initialExemptions }: TaxSetupClientProps) {
       exemption_type: 'CUSTOMER_EXEMPT',
       certificate_no: '',
       service_type: '',
-      valid_from: new Date().toISOString().slice(0, 10),
+      valid_from: civilDateInZone(new Date(), organization),
       valid_to: '',
     });
     setEditingExemption(null);
@@ -127,8 +126,8 @@ export function TaxSetupClient({ initialExemptions }: TaxSetupClientProps) {
       exemption_type: e.exemption_type,
       certificate_no: e.certificate_no ?? '',
       service_type: e.service_type ?? '',
-      valid_from: toDateInput(e.valid_from),
-      valid_to: toDateInput(e.valid_to),
+      valid_from: civilDateInputValue(e.valid_from),
+      valid_to: civilDateInputValue(e.valid_to),
     });
     setEditingExemption(e);
     setExemptionDialogMode('edit');
@@ -229,9 +228,9 @@ export function TaxSetupClient({ initialExemptions }: TaxSetupClientProps) {
       sortable: true,
       render: (e: SerializedTaxExemption) => (
         <div className="text-sm">
-          <div>{new Date(e.valid_from).toLocaleDateString()}</div>
+          <div>{formatCivilDate(civilDateInputValue(e.valid_from), locale) || '—'}</div>
           {e.valid_to
-            ? <div className="text-xs text-muted-foreground">→ {new Date(e.valid_to).toLocaleDateString()}</div>
+            ? <div className="text-xs text-muted-foreground">→ {formatCivilDate(civilDateInputValue(e.valid_to), locale)}</div>
             : <div className="text-xs text-muted-foreground">{t('noExpiry')}</div>
           }
         </div>
@@ -341,6 +340,9 @@ export function TaxSetupClient({ initialExemptions }: TaxSetupClientProps) {
               <CmxInput {...exemptionForm.register('service_type')} />
             </div>
 
+            {!zonePending && !organization ? (
+              <CmxSummaryMessage type="warning" message={t('timezoneNotConfigured')} />
+            ) : null}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>{t('validFrom')} *</Label>

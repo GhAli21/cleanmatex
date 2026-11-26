@@ -47,6 +47,8 @@
     "check:s0-session-catalog-reads": "python scripts/db/scan-s0-session-catalog-reads.py",
     "check:ui-access-contract": "tsx scripts/docs/rebuild-ui-access-contract.ts check",
     "check:clock-contract": "node scripts/check-clock-contract.mjs",
+    "build:clock": "npm run build --workspace=@cmx/clock",
+    "test:clock": "npm run test --workspace=@cmx/clock && npm run test:clock-tz --workspace=web-admin",
     "sync:ui-access-contract": "tsx scripts/docs/rebuild-ui-access-contract.ts sync",
     "rebuild:ui-access-contract": "tsx scripts/docs/rebuild-ui-access-contract.ts full",
     "scaffold:ui-access-contract": "tsx scripts/docs/rebuild-ui-access-contract.ts scaffold",

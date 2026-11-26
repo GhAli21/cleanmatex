@@ -85,6 +85,7 @@
     "void": "Invoice voided successfully."
   },
   "errors": {
-    "actionFailed": "The AR action could not be completed."
+    "actionFailed": "The AR action could not be completed.",
+    "timezoneNotConfigured": "No time zone is set for this organization, so a date cannot be chosen. Ask an administrator to set one."
   }
 }

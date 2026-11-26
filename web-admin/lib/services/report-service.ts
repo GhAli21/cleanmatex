@@ -16,7 +16,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from './tenant-settings.service';
 import { ORDER_PAYMENT_LIFECYCLE_STATUSES } from '@/lib/constants/order-financial';
 import { REFUND_STATUSES } from '@/lib/constants/payment';
-import { format, eachDayOfInterval, differenceInDays } from 'date-fns';
+import { civilDateInZone, prismaDateToCivil, shiftCivilDate } from '@/lib/utils/operational-time';
 import type {
   ReportFilters,
   OrdersReportData,
@@ -38,6 +38,32 @@ import type {
   CustomerRow,
   TopCustomer,
 } from '../types/report-types';
+
+function fillCivilDays<T>(start: Date, end: Date, zone: string, empty: () => T): Map<string, T> {
+  const map = new Map<string, T>();
+  const from = civilDateInZone(start, zone);
+  const to = civilDateInZone(end, zone);
+  if (!from || !to) return map;
+  let cursor = from;
+  let guard = 0;
+  while (cursor <= to && guard < 400) {
+    map.set(cursor, empty());
+    cursor = shiftCivilDate(cursor, 1);
+    guard += 1;
+  }
+  return map;
+}
+
+function dueCivilDay(value: Date | string): string {
+  if (value instanceof Date) return prismaDateToCivil(value);
+  return /^(\d{4}-\d{2}-\d{2})/.exec(value)?.[1] ?? '';
+}
+
+function civilDaySpan(from: string, to: string): number {
+  const [fromYear, fromMonth, fromDay] = from.split('-').map(Number);
+  const [toYear, toMonth, toDay] = to.split('-').map(Number);
+  return Math.round((Date.UTC(toYear, toMonth - 1, toDay) - Date.UTC(fromYear, fromMonth - 1, fromDay)) / 86_400_000);
+}
 
 // ============================================================================
 // Helper: Get currency code for tenant
@@ -115,14 +141,10 @@ export async function getOrdersReport(params: {
     const cancelledOrders = allOrders.filter((o) => o.status === 'cancelled').length;
 
     // 3. Revenue by day
-    const dayMap = new Map<string, { revenue: number; orders: number }>();
-    const days = eachDayOfInterval({ start: filters.startDate, end: filters.endDate });
-    for (const day of days) {
-      dayMap.set(format(day, 'yyyy-MM-dd'), { revenue: 0, orders: 0 });
-    }
+    const dayMap = fillCivilDays(filters.startDate, filters.endDate, filters.timeZone, () => ({ revenue: 0, orders: 0 }));
     for (const order of allOrders) {
       if (order.created_at) {
-        const key = format(order.created_at, 'yyyy-MM-dd');
+        const key = civilDateInZone(order.created_at, filters.timeZone);
         const existing = dayMap.get(key);
         if (existing) {
           existing.revenue += Number(order.total_amount ?? 0);
@@ -351,15 +373,11 @@ export async function getPaymentsReport(params: {
     const paymentsByStatus = Array.from(statusMap.values());
 
     // By day (collected money only)
-    const dayMap = new Map<string, { revenue: number; orders: number }>();
-    const days = eachDayOfInterval({ start: filters.startDate, end: filters.endDate });
-    for (const day of days) {
-      dayMap.set(format(day, 'yyyy-MM-dd'), { revenue: 0, orders: 0 });
-    }
+    const dayMap = fillCivilDays(filters.startDate, filters.endDate, filters.timeZone, () => ({ revenue: 0, orders: 0 }));
     for (const p of completedRows) {
       const paidDate = p.paid_at ?? p.created_at;
       if (paidDate) {
-        const key = format(paidDate, 'yyyy-MM-dd');
+        const key = civilDateInZone(paidDate, filters.timeZone);
         const existing = dayMap.get(key);
         if (existing) {
           existing.revenue += Number(p.amount);
@@ -489,7 +507,7 @@ export async function getInvoicesReport(params: {
 
   return withTenantContext(tenantOrgId, async () => {
     const currencyCode = await getTenantCurrency(tenantOrgId, filters.branchId);
-    const now = new Date();
+    const todayCivil = civilDateInZone(new Date(), filters.timeZone);
 
     const where: Record<string, unknown> = {
       tenant_org_id: tenantOrgId,
@@ -529,7 +547,8 @@ export async function getInvoicesReport(params: {
     const overdueCount = allInvoices.filter((inv) => {
       if (!inv.due_date) return false;
       const balance = Number(inv.total ?? 0) - Number(inv.paid_amount ?? 0);
-      return balance > 0 && new Date(inv.due_date) < now;
+      const due = dueCivilDay(inv.due_date);
+      return balance > 0 && !!todayCivil && !!due && due < todayCivil;
     }).length;
 
     // By status
@@ -560,7 +579,8 @@ export async function getInvoicesReport(params: {
         buckets[0].amount += balance;
         continue;
       }
-      const daysOverdue = differenceInDays(now, new Date(inv.due_date));
+      const due = dueCivilDay(inv.due_date);
+      const daysOverdue = due && todayCivil ? civilDaySpan(due, todayCivil) : 0;
       if (daysOverdue <= 0) {
         buckets[0].count += 1;
         buckets[0].amount += balance;
@@ -580,14 +600,10 @@ export async function getInvoicesReport(params: {
     }
 
     // Collection trend by day
-    const dayMap = new Map<string, { revenue: number; orders: number }>();
-    const days = eachDayOfInterval({ start: filters.startDate, end: filters.endDate });
-    for (const day of days) {
-      dayMap.set(format(day, 'yyyy-MM-dd'), { revenue: 0, orders: 0 });
-    }
+    const dayMap = fillCivilDays(filters.startDate, filters.endDate, filters.timeZone, () => ({ revenue: 0, orders: 0 }));
     for (const inv of allInvoices) {
       if (inv.created_at) {
-        const key = format(inv.created_at, 'yyyy-MM-dd');
+        const key = civilDateInZone(inv.created_at, filters.timeZone);
         const existing = dayMap.get(key);
         if (existing) {
           existing.revenue += Number(inv.paid_amount ?? 0);
@@ -622,7 +638,8 @@ export async function getInvoicesReport(params: {
       const total = Number(inv.total ?? 0);
       const paidAmount = Number(inv.paid_amount ?? 0);
       const balance = total - paidAmount;
-      const isOverdue = inv.due_date ? balance > 0 && new Date(inv.due_date) < now : false;
+      const due = inv.due_date ? dueCivilDay(inv.due_date) : '';
+      const isOverdue = balance > 0 && !!todayCivil && !!due && due < todayCivil;
 
       return {
         id: inv.id,
@@ -881,14 +898,10 @@ export async function getCustomerReport(params: {
     }));
 
     // New vs returning trend by day
-    const trendMap = new Map<string, { newCustomers: number; returningCustomers: number }>();
-    const days = eachDayOfInterval({ start: filters.startDate, end: filters.endDate });
-    for (const day of days) {
-      trendMap.set(format(day, 'yyyy-MM-dd'), { newCustomers: 0, returningCustomers: 0 });
-    }
+    const trendMap = fillCivilDays(filters.startDate, filters.endDate, filters.timeZone, () => ({ newCustomers: 0, returningCustomers: 0 }));
     for (const o of allOrders) {
       if (!o.created_at) continue;
-      const key = format(o.created_at, 'yyyy-MM-dd');
+      const key = civilDateInZone(o.created_at, filters.timeZone);
       const existing = trendMap.get(key);
       if (!existing) continue;
       const firstOrder = firstOrderMap.get(o.customer_id);

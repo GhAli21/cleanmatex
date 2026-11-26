@@ -7,6 +7,8 @@ import { CmxSummaryMessage } from '@ui/feedback';
 import { CmxButton, CmxInput, CmxMoneyField, CmxSelect, CmxTextarea, Label } from '@ui/primitives';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { parseMoneyDraft } from '@/lib/money/money-draft';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { useCivilTodayDefault } from '@/lib/hooks/use-civil-today';
 
 type WizardMode = 'MANUAL' | 'FROM_ORDERS';
 
@@ -23,10 +25,6 @@ function draftToValue(draft: string | undefined): number | null {
   if (draft === '' || draft == null) return null;
   const n = parseMoneyDraft(draft);
   return Number.isFinite(n) ? n : null;
-}
-
-function todayDateString() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function createLineDraft(index: number): ManualLineDraft {
@@ -63,9 +61,11 @@ export function ArInvoiceCreateWizard() {
 
   const [customerId, setCustomerId] = useState('');
   const [branchId, setBranchId] = useState('');
+  const { zoneFor, isPending: zonePending } = useOperationalZones('invoice', [branchId]);
+  const invoiceZone = zoneFor(branchId);
+  const [invoiceDate, setInvoiceDate] = useCivilTodayDefault(invoiceZone);
+  const [dueDate, setDueDate] = useCivilTodayDefault(invoiceZone);
   const [currencyCode, setCurrencyCode] = useState(tenantCurrencyCode);
-  const [invoiceDate, setInvoiceDate] = useState(todayDateString());
-  const [dueDate, setDueDate] = useState(todayDateString());
   const [paymentTerms, setPaymentTerms] = useState('');
   const [paymentMethodCode, setPaymentMethodCode] = useState('');
   const [notes, setNotes] = useState('');
@@ -117,6 +117,9 @@ export function ArInvoiceCreateWizard() {
       issues.push(t('errors.currencyInvalid'));
     if (mode === 'FROM_ORDERS' && orderIds.length === 0)
       issues.push(t('errors.orderIdsRequired'));
+    if (!invoiceDate || !dueDate) {
+      issues.push(invoiceZone ? t('errors.datesRequired') : t('errors.timezoneNotConfigured'));
+    }
     if (
       mode === 'MANUAL' &&
       computedLines.some((line) => !line.description.trim())
@@ -128,7 +131,7 @@ export function ArInvoiceCreateWizard() {
     )
       issues.push(t('errors.quantityInvalid'));
     return issues;
-  }, [computedLines, currencyCode, customerId, mode, orderIds.length, t]);
+  }, [computedLines, currencyCode, customerId, dueDate, invoiceDate, invoiceZone, mode, orderIds.length, t]);
 
   const canContinueFromStepOne =
     currencyCode.trim().length === 3 &&
@@ -345,6 +348,9 @@ export function ArInvoiceCreateWizard() {
               value={paymentMethodCode}
               onChange={(event) => setPaymentMethodCode(event.target.value)}
             />
+            {!zonePending && !invoiceZone ? (
+              <CmxSummaryMessage type="warning" message={t('errors.timezoneNotConfigured')} />
+            ) : null}
             <CmxInput
               label={t('fields.invoiceDate')}
               type="date"

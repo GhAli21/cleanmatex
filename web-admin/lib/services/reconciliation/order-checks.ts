@@ -1608,9 +1608,9 @@ export async function checkRefundReopensDueBound(
  */
 export async function checkTaxDocSequenceGaps(
   tenantId: string,
-  window: PeriodWindow,
+  _window: PeriodWindow,
+  fiscalYear: number,
 ): Promise<CheckResult[]> {
-  const fiscalYear = window.periodFrom.getFullYear();
 
   const [counters, issuedDocs] = await Promise.all([
     prisma.org_tax_doc_seq_counters.findMany({

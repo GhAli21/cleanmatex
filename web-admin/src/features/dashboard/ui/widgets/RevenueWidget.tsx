@@ -12,12 +12,14 @@ import { DollarSign, TrendingUp } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
+import { useDashboardZone } from '../use-dashboard-zone'
 
 /**
  *
  */
 export function RevenueWidget() {
   const { currentTenant } = useAuth()
+  const { organization, isPending } = useDashboardZone()
   const t = useTranslations('dashboard')
   const { formatMoney, formatNumber } = useTenantCurrency()
   const [data, setData] = useState<{
@@ -37,12 +39,13 @@ export function RevenueWidget() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!currentTenant) return
+      if (!currentTenant || isPending) return
 
       try {
         setIsLoading(true)
         const kpi = await dashboardService.getKPIOverview(
-          currentTenant.tenant_id
+          currentTenant.tenant_id,
+          { timeZone: organization }
         )
         setData({
           today: kpi.revenue.today,
@@ -59,7 +62,7 @@ export function RevenueWidget() {
     }
 
     fetchData()
-  }, [currentTenant])
+  }, [currentTenant, organization, isPending])
 
   const formatRevenueMoney = (amount: number) =>
     formatMoney(amount, data.currency || undefined)

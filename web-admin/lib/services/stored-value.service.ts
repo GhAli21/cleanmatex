@@ -19,6 +19,7 @@ import {
   syncAvailableLoyaltyPoints,
 } from '@/lib/services/loyalty.service';
 import { recordAdvanceReceiptTaxTx } from '@/lib/services/tax/prepaid-tax.service';
+import { operationalCivilToday } from '@/lib/utils/operational-zone.server';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -631,7 +632,7 @@ export async function redeemCreditNoteTx(
 
   const rows = await tx.$queryRaw<{ id: string; remaining_balance: number; currency_code: string; is_expired: boolean }[]>`
     SELECT id, remaining_balance::float8, currency_code,
-           (expires_at IS NOT NULL AND expires_at < (now() AT TIME ZONE 'UTC')::date) AS is_expired
+           (expires_at IS NOT NULL AND expires_at < (now() AT TIME ZONE public.fn_ops_zone(${tenantId}::uuid, 'ledger', NULL))::date) AS is_expired
     FROM org_credit_notes_mst
     WHERE tenant_org_id = ${tenantId}::uuid
       AND id            = ${creditNoteId}::uuid
@@ -675,15 +676,22 @@ export async function redeemCreditNoteTx(
   });
 }
 
+function civilDateValue(day: string): Date {
+  return new Date(`${day}T00:00:00.000Z`);
+}
+
 export async function getCreditNotes(tenantId: string, customerId: string) {
+  const today = await operationalCivilToday(tenantId, 'ledger', null);
   return withTenantContext(tenantId, () =>
     prisma.org_credit_notes_mst.findMany({
       where: {
         tenant_org_id: tenantId,
         customer_id: customerId,
         status: CREDIT_NOTE_STATUSES.ACTIVE,
-        // Spendable only: a note past its date is hidden before the daily expiry marks it.
-        OR: [{ expires_at: null }, { expires_at: { gte: utcTodayDate() } }],
+        // A missing zone does not hide the note. Expiry uses the organization civil day.
+        ...(today
+          ? { OR: [{ expires_at: null }, { expires_at: { gte: civilDateValue(today) } }] }
+          : {}),
       },
       orderBy: { created_at: 'desc' },
     })
@@ -723,11 +731,6 @@ export async function getStoredValueSummary(tenantId: string, customerId: string
   };
 }
 
-function utcTodayDate(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-}
-
 /**
  * Expire one credit note through `fn_fin_credit_note_expire_one` (migration 0823), the single
  * copy of credit note expiry: row lock, EXPIRED + zero balance, one EXPIRY ledger row keyed
@@ -760,19 +763,20 @@ export async function expireCreditNote(
 }
 
 /**
- * Batch-expire ACTIVE credit notes whose `expires_at` is before today (UTC
- * date), matching the retired `fn_expire_credit_notes()` predicate
- * `expires_at < NOW()::date`. One note's failure never blocks the rest.
+ * Batch-expire ACTIVE credit notes whose expiry date is before the organization
+ * civil day. A missing zone expires nothing. One note's failure never blocks the rest.
  */
 export async function expireCreditNotes(
   tenantOrgId: string,
 ): Promise<{ expiredCount: number; failedCount: number }> {
+  const today = await operationalCivilToday(tenantOrgId, 'ledger', null);
+  if (!today) return { expiredCount: 0, failedCount: 0 };
   return withTenantContext(tenantOrgId, async () => {
     const eligible = await prisma.org_credit_notes_mst.findMany({
       where: {
         tenant_org_id: tenantOrgId,
         status: CREDIT_NOTE_STATUSES.ACTIVE,
-        expires_at: { lt: utcTodayDate() },
+        expires_at: { lt: civilDateValue(today) },
       },
       select: { id: true },
     });

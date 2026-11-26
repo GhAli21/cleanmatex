@@ -1,6 +1,6 @@
 # Time and Timezone
 
-**Status:** `0828` through `0833` are applied on the local and remote databases. Version: [`version.txt`](./version.txt).
+**Status:** `0828` through `0841` are applied on the local and remote databases. Version: [`version.txt`](./version.txt). The plan for all remaining work is [`MASTER_PLAN_v2.md`](./MASTER_PLAN_v2.md) (pack `0.1.43`: slice S1 done 2026-11-27; slice S2 migration files `0842`/`0843` written 2026-11-27, **not applied**; decisions D1–D29 and D32–D35 accepted, D30/D31 superseded by D33). S1 and S2 evidence: [`IMPLEMENTATION_REPORT.md`](./IMPLEMENTATION_REPORT.md). It wins over the older queue where they disagree about what comes next. Only the user applies migrations; the agent writes files and stops.
 
 Bring every instant, civil date, local time-of-day, schedule, log, and audit timestamp in the tenant app up to [`docs/dev/rules/time-and-timezone.md`](../../dev/rules/time-and-timezone.md).
 
@@ -31,6 +31,7 @@ The shape to copy is `org_pos_sessions_mst`: `opened_at timestamptz`, `business_
 | You are | Read |
 |---|---|
 | Anyone (status) | [`current_status.md`](./current_status.md), [`progress_summary.md`](./progress_summary.md) |
+| Planner or developer (remaining work) | [`MASTER_PLAN_v2.md`](./MASTER_PLAN_v2.md): target model, gaps G1–G26, decisions D1–D29 and D32–D35 (accepted; D30/D31 superseded by D33), SQL time API `fn_cmx_dt_*`, health checks, layer plan, slices S0–S15 with migration slots `0842`–`0851` |
 | Planner | [`development_plan.md`](./development_plan.md), [`technical_docs/work-packages.md`](./technical_docs/work-packages.md), [`technical_docs/surface-map.md`](./technical_docs/surface-map.md) |
 | Developer | [`developer_guide.md`](./developer_guide.md), [`developer_guide_mermaid.md`](./developer_guide_mermaid.md) |
 | Staff / admin | [`user_guide.md`](./user_guide.md), [`user_guide_mermaid.md`](./user_guide_mermaid.md) |

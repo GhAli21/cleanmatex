@@ -24,6 +24,7 @@ import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { readableTextOn } from '@/lib/theme/brand-palette';
 import { useBilingual } from '@/lib/utils/bilingual';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { cn } from '@/lib/utils';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
 import { PiecePreferenceReadonlyChips } from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
@@ -61,6 +62,7 @@ interface ProcessingPieceRowProps {
   isCommercialLocked?: boolean;
   onPieceNotesUpdated?: (pieceId: string, notes: PrefsFollowupNote[], trxCode?: string) => void;
   onTagSaved?: (pieceId: string, saved: PieceTagSaved) => void;
+  opsZone?: string | null;
 }
 
 const KNOWN_PIECE_STATUS_KEYS = new Set([
@@ -75,16 +77,13 @@ const KNOWN_PIECE_STATUS_KEYS = new Set([
   'assembly',
 ]);
 
-function formatShortDate(value: string | Date | null | undefined, locale: string): string | null {
-  if (!value) return null;
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(d);
+function formatShortDate(
+  value: string | Date | null | undefined,
+  locale: string,
+  zone: string | null | undefined,
+): string | null {
+  const label = formatInstantOrEmpty(value, zone, locale === 'ar' ? 'ar' : 'en');
+  return label || null;
 }
 
 /**
@@ -116,6 +115,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow(
     isCommercialLocked = false,
     onPieceNotesUpdated,
     onTagSaved,
+    opsZone = null,
   } = props;
 
   const [showLinkTagDialog, setShowLinkTagDialog] = React.useState(false);
@@ -210,8 +210,8 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow(
     typeof piece.serviceSpeed === 'string' &&
     piece.serviceSpeed.trim().length > 0 &&
     piece.serviceSpeed.toLowerCase() !== 'standard';
-  const lastStepFormatted = formatShortDate(piece.lastStepAt, locale);
-  const readyByFormatted = formatShortDate(piece.readyByAt, locale);
+  const lastStepFormatted = formatShortDate(piece.lastStepAt, locale, opsZone);
+  const readyByFormatted = formatShortDate(piece.readyByAt, locale, opsZone);
 
   return (
     <CmxCard

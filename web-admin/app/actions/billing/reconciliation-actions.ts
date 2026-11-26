@@ -9,6 +9,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import {
   listReconRuns,
@@ -18,8 +19,9 @@ import {
 import type { ReconciliationParams } from '@/lib/services/reconciliation.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '@/lib/db/prisma';
-import { resolveOperationalTimeZonesForBranches } from '@/lib/utils/operational-zone.server';
+import { OperationalZoneMissingError, resolveOperationalTimeZonesForBranches } from '@/lib/utils/operational-zone.server';
 import { prismaDateToCivil } from '@/lib/utils/operational-time';
+import { isRealIsoDate } from '@/lib/validations/iso-date';
 
 function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
@@ -88,10 +90,13 @@ export async function runReconciliationAction(params: {
   branchId?: string;
 }) {
   try {
+    if (!isRealIsoDate(params.periodFrom) || !isRealIsoDate(params.periodTo) || params.periodFrom > params.periodTo) {
+      return { success: false as const, error: 'periodFrom and periodTo must be YYYY-MM-DD' };
+    }
     const auth = await getAuthContext();
     const reconParams: ReconciliationParams = {
-      periodFrom:   new Date(params.periodFrom),
-      periodTo:     new Date(params.periodTo),
+      periodFrom:   new Date(`${params.periodFrom}T00:00:00.000Z`),
+      periodTo:     new Date(`${params.periodTo}T00:00:00.000Z`),
       currencyCode: params.currencyCode,
       branchId:     params.branchId,
       triggeredBy:  auth.userId,
@@ -101,6 +106,10 @@ export async function runReconciliationAction(params: {
     return { success: true as const, data: { id: run.id, run_no: run.run_no, status: run.status } };
   } catch (error) {
     console.error('[runReconciliationAction] Error:', error);
+    if (error instanceof OperationalZoneMissingError) {
+      const t = await getTranslations('reports');
+      return { success: false as const, error: t('timezoneNotConfigured') };
+    }
     return {
       success: false as const,
       error: error instanceof Error ? error.message : 'Failed to run reconciliation',

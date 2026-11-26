@@ -49,6 +49,11 @@ const GLOBAL_RESTRICTED_PATTERNS = [
     group: ['pg-boss', 'pg-boss/*', 'bullmq', 'bullmq/*'],
     message: 'Background work goes through @cmx/jobs (enqueue, publish, claimEffect). See docs/features/Background_Jobs/DESIGN.md §5.3.',
   },
+  {
+    // Time & Timezone D1: the Temporal polyfill is imported only inside packages/clock/src/temporal.ts.
+    group: ['temporal-polyfill', 'temporal-polyfill/*', '@js-temporal/polyfill', '@js-temporal/*'],
+    message: 'Use @cmx/clock (or @/lib/utils/clock) for date and time rules; Temporal stays inside packages/clock. See docs/dev/rules/time-and-timezone.md.',
+  },
 ];
 
 // Raw Tailwind palette classes (black is allowed: overlays stay black in dark mode).
@@ -197,6 +202,10 @@ const eslintConfig = [...nextVitals, {
         {
           group: ['@/messages', '@/messages/*'],
           message: 'Do not import locale JSON directly. Load messages on the server with loadLocaleMessages() and consume text through next-intl.',
+        },
+        {
+          group: ['temporal-polyfill', 'temporal-polyfill/*', '@js-temporal/polyfill', '@js-temporal/*'],
+          message: 'Use @cmx/clock for date and time rules; Temporal stays inside packages/clock (Time & Timezone D1).',
         },
       ],
     }],

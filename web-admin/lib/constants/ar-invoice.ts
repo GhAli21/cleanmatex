@@ -5,6 +5,8 @@
  * Keep every persisted string exactly aligned with the database values.
  */
 
+import { prismaDateToCivil } from '@/lib/utils/operational-time';
+
 export const AR_INVOICE_DOC_TYPES = {
   AR_INV: 'AR_INV',
 } as const;
@@ -352,19 +354,23 @@ export function isArInvoiceOpenBalanceStatus(value?: string | null): boolean {
   );
 }
 
+function dueDateCivilDay(dueDate: Date | string | null | undefined): string {
+  if (dueDate == null || dueDate === '') return '';
+  if (dueDate instanceof Date) return prismaDateToCivil(dueDate);
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(dueDate);
+  return match?.[1] ?? '';
+}
+
 /**
- *
- * @param params
- * @param params.currentStatus
- * @param params.totalAmount
- * @param params.paidAmount
- * @param params.dueDate
+ * @param params.todayCivil Civil today in the invoice zone. Empty leaves a past due date open.
  */
 export function deriveArInvoiceStatus(params: {
   currentStatus?: string | null;
   totalAmount?: number | null;
   paidAmount?: number | null;
   dueDate?: Date | string | null;
+  /** Civil today in the invoice zone. Empty means the due day cannot be judged. */
+  todayCivil?: string | null;
 }): ArInvoiceStatus {
   const currentStatus = normalizeArInvoiceStatus(params.currentStatus);
 
@@ -382,13 +388,12 @@ export function deriveArInvoiceStatus(params: {
   const totalAmount = Number(params.totalAmount ?? 0);
   const paidAmount = Number(params.paidAmount ?? 0);
   const outstanding = Math.max(0, totalAmount - paidAmount);
-  const dueDate = params.dueDate ? new Date(params.dueDate) : null;
-  // Compare date-only strings (UTC) so that invoices due today are OPEN, not OVERDUE.
-  // A datetime vs. timestamp comparison would flip today's invoices to OVERDUE immediately.
-  const isPastDue =
-    !!dueDate &&
-    !Number.isNaN(dueDate.getTime()) &&
-    dueDate.toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10);
+  const dueCivil = dueDateCivilDay(params.dueDate);
+  const todayCivil = params.todayCivil && /^\d{4}-\d{2}-\d{2}$/.test(params.todayCivil)
+    ? params.todayCivil
+    : '';
+  // An invoice due on the civil today stays open. A missing zone leaves today empty, so it is not overdue.
+  const isPastDue = !!dueCivil && !!todayCivil && dueCivil < todayCivil;
 
   if (currentStatus === AR_INVOICE_STATUSES.DRAFT) {
     return AR_INVOICE_STATUSES.DRAFT;

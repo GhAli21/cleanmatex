@@ -21,6 +21,7 @@ import { CmxProgressIndicator } from '@/src/ui/feedback/cmx-progress-indicator';
 import { CmxStatusBadge } from '@/src/ui/feedback/cmx-status-badge';
 import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
 import { useBilingual } from '@/lib/utils/bilingual';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { cn } from '@/lib/utils';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
 import type { ItemPiece, OrderItem, ProcessingStepConfig } from '@/types/order';
@@ -61,6 +62,7 @@ interface ProcessingItemRowProps {
   onItemNotesUpdated?: (itemId: string, notes: PrefsFollowupNote[], trxCode?: string) => void;
   onPieceNotesUpdated?: (pieceId: string, notes: PrefsFollowupNote[], trxCode?: string) => void;
   onTagSaved?: (pieceId: string, saved: PieceTagSaved) => void;
+  opsZone?: string | null;
 }
 
 const KNOWN_STATUS_KEYS = new Set([
@@ -78,16 +80,13 @@ const KNOWN_STATUS_KEYS = new Set([
   'assembly',
 ]);
 
-function formatShortDate(value: string | Date | null | undefined, locale: string): string | null {
-  if (!value) return null;
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(d);
+function formatShortDate(
+  value: string | Date | null | undefined,
+  locale: string,
+  zone: string | null | undefined,
+): string | null {
+  const label = formatInstantOrEmpty(value, zone, locale === 'ar' ? 'ar' : 'en');
+  return label || null;
 }
 
 /**
@@ -123,6 +122,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow(
     onItemNotesUpdated,
     onPieceNotesUpdated,
     onTagSaved,
+    opsZone = null,
   } = props;
 
   const t = useTranslations('processing.modal');
@@ -168,8 +168,8 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow(
     typeof item.service_speed === 'string' &&
     item.service_speed.trim().length > 0 &&
     item.service_speed.toLowerCase() !== 'standard';
-  const itemReadyByFormatted = formatShortDate(item.ready_by_at, locale);
-  const itemStepAtFormatted = formatShortDate(item.item_last_step_at, locale);
+  const itemReadyByFormatted = formatShortDate(item.ready_by_at, locale, opsZone);
+  const itemStepAtFormatted = formatShortDate(item.item_last_step_at, locale, opsZone);
 
   return (
     <CmxCard
@@ -378,6 +378,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow(
                 isCommercialLocked={isCommercialLocked}
                 onPieceNotesUpdated={onPieceNotesUpdated}
                 onTagSaved={onTagSaved}
+                opsZone={opsZone}
               />
             ))}
           </div>

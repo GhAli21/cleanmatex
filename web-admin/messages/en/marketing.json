@@ -35,7 +35,7 @@
       "currentUses": "Current Uses",
       "validFrom": "Valid From",
       "validTo": "Valid To",
-      "validToHint": "Leave empty for no expiry. Times use your local timezone.",
+      "validToHint": "Leave empty for no expiry. Times use the organization time zone.",
       "noExpiry": "No expiry",
       "unlimited": "Unlimited",
       "unlimitedPerCustomer": "Unlimited per customer",
@@ -74,7 +74,8 @@
       "maxUsesPerCustomerRequired": "Enter a per-customer limit, or turn on Unlimited per customer",
       "percentageMax": "Percentage discount cannot exceed 100",
       "validToBeforeFrom": "Valid To must be on or after Valid From",
-      "codeOrAutoRequired": "Enter a promo code and/or enable Auto-apply"
+      "codeOrAutoRequired": "Enter a promo code and/or enable Auto-apply",
+      "timezoneNotConfigured": "No time zone is set for this organization, so a time cannot be saved. Ask an administrator to set one."
     }
   },
   "giftCards": {
@@ -145,6 +146,7 @@
       "INSUFFICIENT_BALANCE": "Insufficient balance on this gift card",
       "INVALID_CODE": "Gift card code not found",
       "INVALID_PIN": "Incorrect PIN",
+      "timezoneNotConfigured": "No time zone is set for this organization, so a time cannot be saved. Ask an administrator to set one.",
       "MAX_REDEMPTIONS_REACHED": "This gift card has reached its redemption limit",
       "CURRENCY_MISMATCH": "Gift card currency does not match order currency"
     },
@@ -264,6 +266,7 @@
       "canStackWithOtherRules": "Stack with Other Rules",
       "validFrom": "Valid From",
       "validTo": "Valid To",
+      "validToHint": "Leave empty for no expiry. Times use the organization time zone.",
       "conditions": "Conditions",
       "isActive": "Active",
       "isEnabled": "Enabled",
@@ -291,7 +294,9 @@
       "timeRanges": "Time Ranges"
     },
     "errors": {
-      "codeExists": "Rule code already exists"
+      "codeExists": "Rule code already exists",
+      "validToBeforeFrom": "Valid To must be on or after Valid From",
+      "timezoneNotConfigured": "No time zone is set for this organization, so a time cannot be saved. Ask an administrator to set one."
     }
   },
   "promotionsV2": {

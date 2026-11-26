@@ -33,6 +33,8 @@ import {
 } from '@ui/forms';
 import { createDiscountRule, updateDiscountRule } from '@/app/actions/marketing/discount-rule-actions';
 import type { DiscountRule } from '@/lib/types/payment';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { civilDatetimeLocalValue, instantFromDatetimeLocal } from '@/lib/utils/operational-time';
 
 const schema = z.object({
   rule_code: z
@@ -84,6 +86,7 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
   const t = useTranslations('marketing.discountRules');
   const tCond = useTranslations('marketing.discountRules.conditions');
   const tCommon = useTranslations('common');
+  const { organization, isPending: zonePending } = useOperationalZones('invoice', []);
 
   const [serverError, setServerError] = useState<string | null>(null);
   const isEdit = !!rule;
@@ -106,7 +109,7 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
       priority: 0,
       can_stack_with_promo: false,
       can_stack_with_other_rules: false,
-      valid_from: new Date().toISOString().slice(0, 16),
+      valid_from: '',
       valid_to: '',
       is_enabled: true,
     },
@@ -125,8 +128,8 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
         priority: rule.priority,
         can_stack_with_promo: rule.can_stack_with_promo,
         can_stack_with_other_rules: rule.can_stack_with_other_rules,
-        valid_from: rule.valid_from?.slice(0, 16) ?? '',
-        valid_to: rule.valid_to?.slice(0, 16) ?? '',
+        valid_from: civilDatetimeLocalValue(rule.valid_from, organization),
+        valid_to: civilDatetimeLocalValue(rule.valid_to, organization),
         is_enabled: rule.is_enabled,
         min_order_amount: typeof c.min_order_amount === 'number' ? c.min_order_amount : undefined,
         min_items: typeof c.min_items === 'number' ? c.min_items : undefined,
@@ -136,12 +139,12 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
         rule_code: '', rule_name: '', rule_type: 'seasonal',
         discount_type: 'percentage', discount_value: 0, priority: 0,
         can_stack_with_promo: false, can_stack_with_other_rules: false,
-        valid_from: new Date().toISOString().slice(0, 16), valid_to: '',
+        valid_from: civilDatetimeLocalValue(new Date(), organization), valid_to: '',
         is_enabled: true,
       });
     }
     setServerError(null);
-  }, [rule, form]);
+  }, [rule, form, organization]);
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null);
@@ -151,6 +154,28 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
       ...(values.min_order_amount != null && values.min_order_amount > 0 && { min_order_amount: values.min_order_amount }),
       ...(values.min_items != null && values.min_items > 0 && { min_items: values.min_items }),
     };
+
+    if (!organization || !values.valid_from) {
+      setServerError(t('errors.timezoneNotConfigured'));
+      return;
+    }
+
+    let validFromIso = '';
+    let validToIso: string | undefined;
+    try {
+      validFromIso = instantFromDatetimeLocal(values.valid_from, organization).toISOString();
+      validToIso = values.valid_to
+        ? instantFromDatetimeLocal(values.valid_to, organization).toISOString()
+        : undefined;
+    } catch {
+      setServerError(t('errors.timezoneNotConfigured'));
+      return;
+    }
+
+    if (validToIso && validToIso < validFromIso) {
+      setServerError(t('errors.validToBeforeFrom'));
+      return;
+    }
 
     const payload = {
       rule_code: values.rule_code,
@@ -163,8 +188,8 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
       priority: values.priority,
       can_stack_with_promo: values.can_stack_with_promo,
       can_stack_with_other_rules: values.can_stack_with_other_rules,
-      valid_from: new Date(values.valid_from).toISOString(),
-      valid_to: values.valid_to ? new Date(values.valid_to).toISOString() : undefined,
+      valid_from: validFromIso,
+      valid_to: validToIso,
       is_enabled: values.is_enabled,
     };
 
@@ -192,6 +217,9 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
         </CmxDialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+          {!zonePending && !organization ? (
+            <CmxSummaryMessage type="warning" message={t('errors.timezoneNotConfigured')} />
+          ) : null}
           {serverError && (
             <CmxSummaryMessage type="error">
               <div>{serverError}</div>
@@ -290,6 +318,7 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
             <div>
               <Label>{t('fields.validTo')}</Label>
               <CmxInput type="datetime-local" {...form.register('valid_to')} />
+              <p className="mt-1 text-xs text-muted-foreground">{t('fields.validToHint')}</p>
             </div>
           </div>
 

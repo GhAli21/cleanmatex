@@ -11,6 +11,7 @@ import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
 import { ErpLiteExpensesService } from '@/lib/services/erp-lite-expenses.service';
 import { formatErpLiteMoney } from '@features/erp-lite/lib/display-format';
 import { getErpLiteDisplayConfig } from '@features/erp-lite/server/get-erp-lite-display-config';
+import { getErpLiteCivilToday } from '@features/erp-lite/server/get-erp-lite-civil-today';
 import { ErpLiteExpensesTable } from '@features/erp-lite/ui/erp-lite-expenses-table';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
@@ -63,6 +64,8 @@ export default async function ErpLiteExpensesPage({
       </ErpLitePageGuard>
     );
   }
+
+  const civilToday = await getErpLiteCivilToday();
 
   let loadError: string | null = null;
   let snapshot: ErpLiteExpensesDashboardSnapshot = {
@@ -123,6 +126,12 @@ export default async function ErpLiteExpensesPage({
           </CmxSummaryMessage>
         ) : null}
 
+        {civilToday ? null : (
+          <CmxSummaryMessage type="warning">
+            <div>{tCommon('timezoneNotConfigured')}</div>
+          </CmxSummaryMessage>
+        )}
+
         <div className="grid gap-4 xl:grid-cols-3">
           <CmxCard>
             <CmxCardHeader>
@@ -135,6 +144,7 @@ export default async function ErpLiteExpensesPage({
                   name="expense_date"
                   type="date"
                   label={t('forms.expense.fields.expenseDate')}
+                  defaultValue={civilToday}
                   required
                 />
                 <CmxInput
@@ -306,6 +316,7 @@ export default async function ErpLiteExpensesPage({
                   name="txn_date"
                   type="date"
                   label={t('forms.cashTxn.fields.txnDate')}
+                  defaultValue={civilToday}
                   required
                 />
                 <CmxInput
@@ -405,6 +416,7 @@ export default async function ErpLiteExpensesPage({
                   name="recon_date"
                   type="date"
                   label={t('forms.cashRecon.fields.reconDate')}
+                  defaultValue={civilToday}
                   required
                 />
                 <CmxInput

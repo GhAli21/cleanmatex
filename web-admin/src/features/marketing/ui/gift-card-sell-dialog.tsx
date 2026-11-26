@@ -35,6 +35,8 @@ import { sellGiftCardWithTenderAction } from '@/app/actions/marketing/gift-card-
 import { PosSessionRequiredAction } from '@features/pos-sessions/ui/pos-session-required-action';
 import { readPosSessionRequired, type PosSessionRequiredInfo } from '@features/pos-sessions/model/pos-session-required';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { civilYearEndDate, inclusiveEndOfCivilDay } from '@/lib/utils/operational-time';
 import { useAuth } from '@/lib/auth/auth-context';
 import {
   StoredValueTenderFields,
@@ -103,6 +105,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
   const tLedger = useTranslations('cashControl.ledgerErrors');
 
   const { currencyCode: tenantCurrency } = useTenantCurrency();
+  const { organization, isPending: zonePending } = useOperationalZones('invoice', []);
   const { currentTenant, user } = useAuth();
   const tenantOrgId = currentTenant?.tenant_id ?? '';
   const userId = user?.id;
@@ -128,15 +131,13 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
     if (open) setIdempotencyKey(crypto.randomUUID());
   }
 
-  const defaultExpiry = `${new Date().getFullYear()}-12-31`;
-
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as Resolver<FormValues>,
     defaultValues: {
       card_name:             '',
       card_name2:            '',
       amount:                undefined as unknown as number,
-      expiry_date:           defaultExpiry,
+      expiry_date:           '',
       purchased_by_cust_id:  '',
       issued_to_customer_id: '',
       card_pin:              '',
@@ -152,6 +153,12 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
   useEffect(() => {
     if (tenantCurrency) form.setValue('currency_code', tenantCurrency);
   }, [tenantCurrency, form]);
+
+  useEffect(() => {
+    if (!organization || form.getValues('expiry_date')) return;
+    const day = civilYearEndDate(new Date(), organization);
+    if (day) form.setValue('expiry_date', day);
+  }, [organization, form]);
 
   const sameAsBuyer = useWatch({ control: form.control, name: 'same_as_buyer' });
   const currencyCode = useWatch({ control: form.control, name: 'currency_code' });
@@ -210,13 +217,24 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       setServerError(t('fields.tenderRequired'));
       return;
     }
+    let expiryIso: string | undefined;
+    if (values.expiry_date) {
+      if (!organization) {
+        setServerError(t('errors.timezoneNotConfigured'));
+        return;
+      }
+      try {
+        expiryIso = inclusiveEndOfCivilDay(values.expiry_date, organization).toISOString();
+      } catch {
+        setServerError(t('errors.timezoneNotConfigured'));
+        return;
+      }
+    }
     const result = await sellGiftCardWithTenderAction({
       card_name:                values.card_name,
       card_name2:               values.card_name2 || undefined,
       amount:                   faceValue,
-      expiry_date:              values.expiry_date
-        ? new Date(values.expiry_date).toISOString()
-        : undefined,
+      expiry_date:              expiryIso,
       purchased_by_customer_id: values.purchased_by_cust_id || undefined,
       issued_to_customer_id:    issuedTo,
       card_pin:                 values.card_pin || undefined,
@@ -254,7 +272,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
   const handleClose = () => {
     form.reset({
       card_name: '', card_name2: '', amount: undefined as unknown as number,
-      expiry_date: defaultExpiry, purchased_by_cust_id: '',
+      expiry_date: civilYearEndDate(new Date(), organization), purchased_by_cust_id: '',
       issued_to_customer_id: '', card_pin: '',
       currency_code: tenantCurrency || '',
       rec_notes: '', same_as_buyer: false,
@@ -317,6 +335,9 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
             /* Form state                                                       */
             /* -------------------------------------------------------------- */
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+              {!zonePending && !organization ? (
+                <CmxSummaryMessage type="warning" message={t('errors.timezoneNotConfigured')} />
+              ) : null}
               {serverError && (
                 <CmxSummaryMessage type="error">
                   <div>{serverError}</div>

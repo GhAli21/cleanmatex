@@ -31,6 +31,13 @@ import { queueCampaignStartTx } from '@/lib/notifications/campaign-jobs.service'
 import { requirePermission } from '@/lib/middleware/require-permission'
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
+import { parseInstant } from '@/lib/utils/operational-time'
+
+function storedCampaignInstant(value: string): Date {
+  if (/[zZ]$|[+-]\d{2}:\d{2}$/.test(value)) return parseInstant(value)
+  const withT = value.includes('T') ? value : value.replace(' ', 'T')
+  return parseInstant(`${withT}Z`)
+}
 
 const TERMINAL_STATES = new Set(['COMPLETED', 'FAILED', 'CANCELLED'])
 /** Statuses that hand the campaign to the sender (cmx-workers ntf.campaign_start). */
@@ -159,7 +166,14 @@ export async function PATCH(
         { status: 400 }
       )
     }
-    updatePayload.scheduled_at = new Date(scheduled_at)
+    try {
+      updatePayload.scheduled_at = parseInstant(scheduled_at)
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'scheduled_at must be an instant with a time zone offset' },
+        { status: 400 },
+      )
+    }
   }
   if (targetStatus === 'PAUSED') {
     updatePayload.paused_at = now
@@ -180,8 +194,8 @@ export async function PATCH(
       if (count !== 1) return false
       if (START_STATES.has(targetStatus)) {
         const sendAt = targetStatus === 'RUNNING' ? null
-          : targetStatus === 'SCHEDULED' ? new Date(scheduled_at as string)
-          : campaign.scheduled_at ? new Date(campaign.scheduled_at.endsWith('Z') ? campaign.scheduled_at : `${campaign.scheduled_at}Z`) : null // stored as UTC without zone
+          : targetStatus === 'SCHEDULED' ? parseInstant(scheduled_at as string)
+          : campaign.scheduled_at ? storedCampaignInstant(campaign.scheduled_at) : null
         await queueCampaignStartTx(tx, tenantId, id, sendAt)
       }
       await tx.org_ntf_audit_dtl.create({

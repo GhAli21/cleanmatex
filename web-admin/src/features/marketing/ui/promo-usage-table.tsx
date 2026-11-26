@@ -6,7 +6,9 @@
  * Shows the usage log for a single promo code.
  */
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -31,6 +33,8 @@ interface PromoUsageTableProps {
 export function PromoUsageTable({ promoCodeId, onClose }: PromoUsageTableProps) {
   const t = useTranslations('marketing.promos');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const { organization } = useOperationalZones('invoice', []);
 
   const { usage, isLoading } = usePromoUsage(promoCodeId);
 
@@ -47,7 +51,7 @@ export function PromoUsageTable({ promoCodeId, onClose }: PromoUsageTableProps) 
               key: 'used_at',
               header: tCommon('date'),
               render: (row: PromoCodeUsage) =>
-                row.used_at ? new Date(row.used_at).toLocaleDateString() : '—',
+                formatInstantOrEmpty(row.used_at, organization, locale === 'ar' ? 'ar' : 'en') || '—',
             },
             {
               key: 'order_id',

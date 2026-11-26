@@ -66,6 +66,7 @@ function fmt(n: number | null | undefined, currency: string | null | undefined, 
  */
 export function FinancialReportsClient({ opsZone, initialFrom, initialTo }: FinancialReportsClientProps) {
   const t = useTranslations('reports.financial');
+  const tReports = useTranslations('reports');
   const locale = useLocale();
   const [from, setFrom] = useState(initialFrom);
   const [to, setTo] = useState(initialTo);
@@ -94,6 +95,10 @@ export function FinancialReportsClient({ opsZone, initialFrom, initialTo }: Fina
     try {
       const res = await fetch(`/api/v1/finance/reports/orders-summary?from=${from}&to=${to}`, { credentials: 'include' });
       const data = await res.json();
+      if (res.status === 422) {
+        cmxMessage.error(tReports('timezoneNotConfigured'));
+        return;
+      }
       if (data.success) {
         setOrders(data.data.orders);
         setKpis(data.data.kpis);
@@ -105,13 +110,17 @@ export function FinancialReportsClient({ opsZone, initialFrom, initialTo }: Fina
     } finally {
       setOrdersLoading(false);
     }
-  }, [from, to]);
+  }, [from, to, tReports]);
 
   const fetchPayments = useCallback(async () => {
     setPaymentsLoading(true);
     try {
       const res = await fetch(`/api/v1/finance/reports/payments-breakdown?from=${from}&to=${to}`, { credentials: 'include' });
       const data = await res.json();
+      if (res.status === 422) {
+        cmxMessage.error(tReports('timezoneNotConfigured'));
+        return;
+      }
       if (data.success) {
         setPayments(data.data);
       } else {
@@ -122,13 +131,17 @@ export function FinancialReportsClient({ opsZone, initialFrom, initialTo }: Fina
     } finally {
       setPaymentsLoading(false);
     }
-  }, [from, to]);
+  }, [from, to, tReports]);
 
   const fetchTax = useCallback(async () => {
     setTaxLoading(true);
     try {
       const res = await fetch(`/api/v1/finance/reports/tax-report?from=${from}&to=${to}`, { credentials: 'include' });
       const data = await res.json();
+      if (res.status === 422) {
+        cmxMessage.error(tReports('timezoneNotConfigured'));
+        return;
+      }
       if (data.success) {
         setTaxRows(data.data.rows);
         setTaxGrandTotal(data.data.grandTotal);
@@ -141,7 +154,7 @@ export function FinancialReportsClient({ opsZone, initialFrom, initialTo }: Fina
     } finally {
       setTaxLoading(false);
     }
-  }, [from, to]);
+  }, [from, to, tReports]);
 
   const handleApply = () => {
     if (activeTab === 'orders') fetchOrdersSummary();

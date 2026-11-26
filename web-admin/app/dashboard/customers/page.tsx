@@ -23,6 +23,8 @@ import {
   downloadCSV,
 } from '@/lib/api/customers'
 import { cmxMessage } from '@ui/feedback'
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
+import { civilDateInZone } from '@/lib/utils/operational-time'
 import { CmxButton } from '@ui/primitives'
 import { CmxCrudPageShell } from '@ui/patterns/cmx-crud-page-shell'
 import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults'
@@ -43,6 +45,7 @@ import CustomerCreateModal from '@features/customers/ui/customer-create-modal'
 export default function CustomersPage() {
   const { currentTenant } = useAuth()
   const t = useTranslations('customers')
+  const { organization } = useOperationalZones('invoice', [])
 
   // State
   const [customers, setCustomers] = useState<CustomerListItem[]>([])
@@ -151,7 +154,7 @@ export default function CustomersPage() {
         excludeB2b: true,
       })
 
-      const filename = `customers_${new Date().toISOString().split('T')[0]}.csv`
+      const filename = `customers_${civilDateInZone(new Date(), organization) || 'export'}.csv`
       downloadCSV(blob, filename)
     } catch (error) {
       cmxMessage.error(error instanceof Error ? error.message : t('errors.exportFailed'))

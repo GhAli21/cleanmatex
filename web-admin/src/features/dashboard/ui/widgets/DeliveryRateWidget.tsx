@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl'
 import { Truck, CheckCircle, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
+import { useDashboardZone } from '../use-dashboard-zone'
 
 interface DeliveryData {
   successRate: number
@@ -24,6 +25,7 @@ interface DeliveryData {
  */
 export function DeliveryRateWidget() {
   const { currentTenant } = useAuth()
+  const { organization, isPending } = useDashboardZone()
   const t = useTranslations('dashboard')
   const [data, setData] = useState<DeliveryData>({
     successRate: 0,
@@ -35,12 +37,12 @@ export function DeliveryRateWidget() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!currentTenant) return
+      if (!currentTenant || isPending) return
 
       try {
         setIsLoading(true)
 
-        const kpi = await dashboardService.getKPIOverview(currentTenant.tenant_id)
+        const kpi = await dashboardService.getKPIOverview(currentTenant.tenant_id, { timeZone: organization })
         const d = kpi.delivery
         setData({
           successRate: d.successRate,
@@ -56,7 +58,7 @@ export function DeliveryRateWidget() {
     }
 
     fetchData()
-  }, [currentTenant])
+  }, [currentTenant, organization, isPending])
 
   if (isLoading) {
     return (

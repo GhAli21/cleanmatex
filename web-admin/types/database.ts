@@ -39,6 +39,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      cmx_dt_env_cf: {
+        Row: {
+          config_id: boolean
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          env: string
+          rec_notes: string | null
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          config_id?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          env?: string
+          rec_notes?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          config_id?: boolean
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          env?: string
+          rec_notes?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
       cmx_effective_permissions: {
         Row: {
           allow: boolean
@@ -1390,6 +1426,7 @@ export type Database = {
       }
       hq_general_config: {
         Row: {
+          business_day_cutover: string
           config_id: boolean
           created_at: string
           created_by: string | null
@@ -1418,6 +1455,7 @@ export type Database = {
           updated_info: string | null
         }
         Insert: {
+          business_day_cutover?: string
           config_id?: boolean
           created_at?: string
           created_by?: string | null
@@ -1446,6 +1484,7 @@ export type Database = {
           updated_info?: string | null
         }
         Update: {
+          business_day_cutover?: string
           config_id?: boolean
           created_at?: string
           created_by?: string | null
@@ -4216,6 +4255,7 @@ export type Database = {
           area: string | null
           branch_name: string | null
           building: string | null
+          business_day_cutover: string | null
           business_hours: Json | null
           city: string | null
           country: string | null
@@ -4255,6 +4295,7 @@ export type Database = {
           area?: string | null
           branch_name?: string | null
           building?: string | null
+          business_day_cutover?: string | null
           business_hours?: Json | null
           city?: string | null
           country?: string | null
@@ -4294,6 +4335,7 @@ export type Database = {
           area?: string | null
           branch_name?: string | null
           building?: string | null
+          business_day_cutover?: string | null
           business_hours?: Json | null
           city?: string | null
           country?: string | null
@@ -29575,6 +29617,7 @@ export type Database = {
       org_tenants_mst: {
         Row: {
           address: string | null
+          business_day_cutover: string | null
           business_hours: Json | null
           business_type: string | null
           business_type_code: string | null
@@ -29632,6 +29675,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          business_day_cutover?: string | null
           business_hours?: Json | null
           business_type?: string | null
           business_type_code?: string | null
@@ -29689,6 +29733,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          business_day_cutover?: string | null
           business_hours?: Json | null
           business_type?: string | null
           business_type_code?: string | null
@@ -33749,14 +33794,18 @@ export type Database = {
       sys_country_cd: {
         Row: {
           address_format: string | null
+          cldr_version: string | null
+          clock_defaults_source: string | null
           code: string
           color: string | null
           continent: string | null
           created_at: string | null
           created_by: string | null
           default_currency_code: string | null
+          default_hour_cycle: string | null
           default_language_code: string | null
           default_timezone_code: string | null
+          default_week_start: number | null
           description: string | null
           description2: string | null
           display_order: number | null
@@ -33779,14 +33828,18 @@ export type Database = {
         }
         Insert: {
           address_format?: string | null
+          cldr_version?: string | null
+          clock_defaults_source?: string | null
           code: string
           color?: string | null
           continent?: string | null
           created_at?: string | null
           created_by?: string | null
           default_currency_code?: string | null
+          default_hour_cycle?: string | null
           default_language_code?: string | null
           default_timezone_code?: string | null
+          default_week_start?: number | null
           description?: string | null
           description2?: string | null
           display_order?: number | null
@@ -33809,14 +33862,18 @@ export type Database = {
         }
         Update: {
           address_format?: string | null
+          cldr_version?: string | null
+          clock_defaults_source?: string | null
           code?: string
           color?: string | null
           continent?: string | null
           created_at?: string | null
           created_by?: string | null
           default_currency_code?: string | null
+          default_hour_cycle?: string | null
           default_language_code?: string | null
           default_timezone_code?: string | null
+          default_week_start?: number | null
           description?: string | null
           description2?: string | null
           display_order?: number | null
@@ -48980,25 +49037,33 @@ export type Database = {
       }
       sys_timezone_cd: {
         Row: {
+          cldr_version: string | null
           code: string
           color: string | null
           country_code: string | null
+          country_codes: string[] | null
           created_at: string | null
           created_by: string | null
           description: string | null
           description2: string | null
           display_order: number | null
           dst_end_rule: string | null
+          dst_offset_minutes: number
           dst_start_rule: string | null
+          iana_name: string
           icon: string | null
           is_active: boolean | null
+          is_canonical: boolean
           is_default: boolean | null
           is_system: boolean | null
+          link_target: string | null
           metadata: Json | null
           name: string
           name2: string | null
           rec_status: number | null
           region: string | null
+          std_offset_minutes: number
+          tzdb_version: string
           updated_at: string | null
           updated_by: string | null
           uses_dst: boolean | null
@@ -49007,25 +49072,33 @@ export type Database = {
           utc_offset_string: string | null
         }
         Insert: {
+          cldr_version?: string | null
           code: string
           color?: string | null
           country_code?: string | null
+          country_codes?: string[] | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           description2?: string | null
           display_order?: number | null
           dst_end_rule?: string | null
+          dst_offset_minutes: number
           dst_start_rule?: string | null
+          iana_name: string
           icon?: string | null
           is_active?: boolean | null
+          is_canonical?: boolean
           is_default?: boolean | null
           is_system?: boolean | null
+          link_target?: string | null
           metadata?: Json | null
           name: string
           name2?: string | null
           rec_status?: number | null
           region?: string | null
+          std_offset_minutes: number
+          tzdb_version: string
           updated_at?: string | null
           updated_by?: string | null
           uses_dst?: boolean | null
@@ -49034,25 +49107,33 @@ export type Database = {
           utc_offset_string?: string | null
         }
         Update: {
+          cldr_version?: string | null
           code?: string
           color?: string | null
           country_code?: string | null
+          country_codes?: string[] | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           description2?: string | null
           display_order?: number | null
           dst_end_rule?: string | null
+          dst_offset_minutes?: number
           dst_start_rule?: string | null
+          iana_name?: string
           icon?: string | null
           is_active?: boolean | null
+          is_canonical?: boolean
           is_default?: boolean | null
           is_system?: boolean | null
+          link_target?: string | null
           metadata?: Json | null
           name?: string
           name2?: string | null
           rec_status?: number | null
           region?: string | null
+          std_offset_minutes?: number
+          tzdb_version?: string
           updated_at?: string | null
           updated_by?: string | null
           uses_dst?: boolean | null
@@ -49060,7 +49141,15 @@ export type Database = {
           utc_offset_minutes?: number | null
           utc_offset_string?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_sys_tz_link_target"
+            columns: ["link_target"]
+            isOneToOne: false
+            referencedRelation: "sys_timezone_cd"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       sys_ui_font_pair_cd: {
         Row: {
@@ -52629,6 +52718,359 @@ export type Database = {
         Args: { p_retention_days?: number }
         Returns: number
       }
+      fn_cmx_dt__accept_zone: { Args: { p_zone: string }; Returns: string }
+      fn_cmx_dt__check_cutover: { Args: { p_value: string }; Returns: string }
+      fn_cmx_dt__fake_clock: { Args: never; Returns: string }
+      fn_cmx_dt__fake_instant: { Args: never; Returns: string }
+      fn_cmx_dt__fake_now: { Args: never; Returns: string }
+      fn_cmx_dt__guard_scope: { Args: { p_tenant: string }; Returns: undefined }
+      fn_cmx_dt__guard_tenant_read: {
+        Args: { p_tenant: string }
+        Returns: undefined
+      }
+      fn_cmx_dt__resolve_cutover: {
+        Args: { p_branch: string; p_platform: string; p_tenant: string }
+        Returns: {
+          source: string
+          value: string
+        }[]
+      }
+      fn_cmx_dt__resolve_date_format: {
+        Args: { p_platform: string; p_tenant: string }
+        Returns: {
+          source: string
+          value: string
+        }[]
+      }
+      fn_cmx_dt__resolve_hour_cycle: {
+        Args: { p_country: string; p_platform: string; p_tenant: string }
+        Returns: {
+          source: string
+          value: string
+        }[]
+      }
+      fn_cmx_dt__resolve_week_start: {
+        Args: { p_country: number; p_platform: number; p_tenant: number }
+        Returns: {
+          source: string
+          value: number
+        }[]
+      }
+      fn_cmx_dt__shc: {
+        Args: { p_branch: string; p_check_fn: string; p_tenant: string }
+        Returns: Json
+      }
+      fn_cmx_dt_at_local: {
+        Args: {
+          p_date: string
+          p_disambiguation?: string
+          p_operation: string
+          p_scope: string
+          p_tenant: string
+          p_time: string
+        }
+        Returns: string
+      }
+      fn_cmx_dt_business_date: {
+        Args: {
+          p_at?: string
+          p_operation: string
+          p_scope?: string
+          p_tenant: string
+        }
+        Returns: string
+      }
+      fn_cmx_dt_business_date_in: {
+        Args: { p_at?: string; p_cutover: string; p_zone: string }
+        Returns: string
+      }
+      fn_cmx_dt_business_day_bounds: {
+        Args: {
+          p_from: string
+          p_operation: string
+          p_scope: string
+          p_tenant: string
+          p_to_exclusive: string
+        }
+        Returns: {
+          end_at: string
+          start_at: string
+        }[]
+      }
+      fn_cmx_dt_business_day_bounds_in: {
+        Args: {
+          p_cutover: string
+          p_from: string
+          p_to_exclusive: string
+          p_zone: string
+        }
+        Returns: {
+          end_at: string
+          start_at: string
+        }[]
+      }
+      fn_cmx_dt_canonical_zone: { Args: { p_zone: string }; Returns: string }
+      fn_cmx_dt_chk_catalog_unknown: {
+        Args: { p_tenant?: string }
+        Returns: {
+          branch_id: string
+          check_code: string
+          detail: Json
+          severity: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_cmx_dt_chk_country_unknown: {
+        Args: { p_tenant?: string }
+        Returns: {
+          branch_id: string
+          check_code: string
+          detail: Json
+          severity: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_cmx_dt_chk_cutover_inconsistent: {
+        Args: { p_tenant?: string }
+        Returns: {
+          branch_id: string
+          check_code: string
+          detail: Json
+          severity: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_cmx_dt_chk_cutover_invalid: {
+        Args: { p_tenant?: string }
+        Returns: {
+          branch_id: string
+          check_code: string
+          detail: Json
+          severity: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_cmx_dt_chk_defaults_missing: {
+        Args: { p_tenant?: string }
+        Returns: {
+          branch_id: string
+          check_code: string
+          detail: Json
+          severity: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_cmx_dt_chk_fake_env: {
+        Args: { p_tenant?: string }
+        Returns: {
+          branch_id: string
+          check_code: string
+          detail: Json
+          severity: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_cmx_dt_chk_role_tz_utc: {
+        Args: { p_tenant?: string }
+        Returns: {
+          branch_id: string
+          check_code: string
+          detail: Json
+          severity: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_cmx_dt_chk_setting_unresolved: {
+        Args: { p_tenant?: string }
+        Returns: {
+          branch_id: string
+          check_code: string
+          detail: Json
+          severity: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_cmx_dt_chk_zone_invalid: {
+        Args: { p_tenant?: string }
+        Returns: {
+          branch_id: string
+          check_code: string
+          detail: Json
+          severity: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_cmx_dt_chk_zone_missing: {
+        Args: { p_tenant?: string }
+        Returns: {
+          branch_id: string
+          check_code: string
+          detail: Json
+          severity: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_cmx_dt_chk_zone_noncanonical: {
+        Args: { p_tenant?: string }
+        Returns: {
+          branch_id: string
+          check_code: string
+          detail: Json
+          severity: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_cmx_dt_civil_add: {
+        Args: { p_date: string; p_n: number; p_unit: string }
+        Returns: string
+      }
+      fn_cmx_dt_clock: { Args: never; Returns: string }
+      fn_cmx_dt_cutover: {
+        Args: { p_branch?: string; p_tenant: string }
+        Returns: string
+      }
+      fn_cmx_dt_date_format: { Args: { p_tenant: string }; Returns: string }
+      fn_cmx_dt_day_bounds: {
+        Args: {
+          p_from: string
+          p_operation: string
+          p_scope: string
+          p_tenant: string
+          p_to_exclusive: string
+        }
+        Returns: {
+          end_at: string
+          start_at: string
+        }[]
+      }
+      fn_cmx_dt_day_bounds_in: {
+        Args: { p_from: string; p_to_exclusive: string; p_zone: string }
+        Returns: {
+          end_at: string
+          start_at: string
+        }[]
+      }
+      fn_cmx_dt_health: {
+        Args: { p_tenant?: string }
+        Returns: {
+          branch_id: string
+          check_code: string
+          detail: Json
+          severity: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_cmx_dt_hour_cycle: { Args: { p_tenant: string }; Returns: string }
+      fn_cmx_dt_hq_zone: { Args: never; Returns: string }
+      fn_cmx_dt_instant_at_zone: {
+        Args: {
+          p_date: string
+          p_disambiguation?: string
+          p_time: string
+          p_zone: string
+        }
+        Returns: string
+      }
+      fn_cmx_dt_is_valid_zone: { Args: { p_zone: string }; Returns: boolean }
+      fn_cmx_dt_local_now: {
+        Args: {
+          p_at?: string
+          p_operation: string
+          p_scope?: string
+          p_tenant: string
+        }
+        Returns: string
+      }
+      fn_cmx_dt_local_parts: {
+        Args: { p_instant: string; p_zone: string }
+        Returns: {
+          hour: number
+          iso_dow: number
+          local_date: string
+          local_time: string
+          minute: number
+          utc_offset_min: number
+        }[]
+      }
+      fn_cmx_dt_local_time: {
+        Args: {
+          p_at?: string
+          p_operation: string
+          p_scope?: string
+          p_tenant: string
+        }
+        Returns: string
+      }
+      fn_cmx_dt_now: { Args: never; Returns: string }
+      fn_cmx_dt_operations: { Args: never; Returns: string[] }
+      fn_cmx_dt_period_key: {
+        Args: {
+          p_at?: string
+          p_grain: string
+          p_operation: string
+          p_scope: string
+          p_tenant: string
+        }
+        Returns: string
+      }
+      fn_cmx_dt_period_key_in: {
+        Args: {
+          p_at: string
+          p_fy_start?: number
+          p_grain: string
+          p_week_start?: number
+          p_zone: string
+        }
+        Returns: string
+      }
+      fn_cmx_dt_settings: {
+        Args: { p_branch?: string; p_tenant: string }
+        Returns: {
+          cutover: string
+          cutover_source: string
+          date_format: string
+          date_format_source: string
+          hour_cycle: string
+          hour_cycle_source: string
+          week_start: number
+          week_start_source: string
+        }[]
+      }
+      fn_cmx_dt_to_local: {
+        Args: { p_instant: string; p_zone: string }
+        Returns: string
+      }
+      fn_cmx_dt_today: {
+        Args: {
+          p_at?: string
+          p_operation: string
+          p_scope?: string
+          p_tenant: string
+        }
+        Returns: string
+      }
+      fn_cmx_dt_today_in: {
+        Args: { p_at?: string; p_zone: string }
+        Returns: string
+      }
+      fn_cmx_dt_today_or_null: {
+        Args: {
+          p_at?: string
+          p_operation: string
+          p_scope?: string
+          p_tenant: string
+        }
+        Returns: string
+      }
+      fn_cmx_dt_week_start: { Args: { p_tenant: string }; Returns: number }
+      fn_cmx_dt_zone: {
+        Args: { p_operation: string; p_scope?: string; p_tenant: string }
+        Returns: string
+      }
+      fn_cmx_dt_zone_required: {
+        Args: { p_operation: string; p_scope?: string; p_tenant: string }
+        Returns: string
+      }
       fn_doc_seq_caller_role: { Args: never; Returns: string }
       fn_doc_seq_consistency_data: {
         Args: never
@@ -53574,6 +54016,50 @@ export type Database = {
         Returns: Json
       }
       fn_shc_cal_no_business_hours: {
+        Args: { p_branch: string; p_tenant: string }
+        Returns: Json
+      }
+      fn_shc_clock_catalog_unknown: {
+        Args: { p_branch: string; p_tenant: string }
+        Returns: Json
+      }
+      fn_shc_clock_country_unknown: {
+        Args: { p_branch: string; p_tenant: string }
+        Returns: Json
+      }
+      fn_shc_clock_cutover_inconsistent: {
+        Args: { p_branch: string; p_tenant: string }
+        Returns: Json
+      }
+      fn_shc_clock_cutover_invalid: {
+        Args: { p_branch: string; p_tenant: string }
+        Returns: Json
+      }
+      fn_shc_clock_defaults_missing: {
+        Args: { p_branch: string; p_tenant: string }
+        Returns: Json
+      }
+      fn_shc_clock_fake_env: {
+        Args: { p_branch: string; p_tenant: string }
+        Returns: Json
+      }
+      fn_shc_clock_role_tz_utc: {
+        Args: { p_branch: string; p_tenant: string }
+        Returns: Json
+      }
+      fn_shc_clock_setting_unresolved: {
+        Args: { p_branch: string; p_tenant: string }
+        Returns: Json
+      }
+      fn_shc_clock_zone_invalid: {
+        Args: { p_branch: string; p_tenant: string }
+        Returns: Json
+      }
+      fn_shc_clock_zone_missing: {
+        Args: { p_branch: string; p_tenant: string }
+        Returns: Json
+      }
+      fn_shc_clock_zone_noncanonical: {
         Args: { p_branch: string; p_tenant: string }
         Returns: Json
       }

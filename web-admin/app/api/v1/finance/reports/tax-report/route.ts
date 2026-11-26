@@ -3,6 +3,8 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { TAX_CATEGORIES } from '@/lib/constants/commercial';
+import { civilDayBounds } from '@/lib/utils/operational-time';
+import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 
 /**
  *
@@ -19,10 +21,22 @@ export async function GET(request: NextRequest) {
   const branchId = searchParams.get('branchId') ?? undefined;
   const format   = searchParams.get('format'); // 'csv' returns CSV text
 
-  const dateFilter = {
-    ...(from ? { gte: new Date(from) } : {}),
-    ...(to   ? { lte: new Date(to)   } : {}),
-  };
+  const zone = from || to
+    ? await resolveOperationalTimeZone(tenantId, 'invoice', branchId ?? null)
+    : null;
+  if ((from || to) && !zone) {
+    return NextResponse.json(
+      { error: 'No time zone is set for this organization, so a date cannot be chosen.' },
+      { status: 422 },
+    );
+  }
+  const dateFilter: { gte?: Date; lt?: Date } = {};
+  if (from && zone && /^\d{4}-\d{2}-\d{2}/.test(from)) {
+    dateFilter.gte = civilDayBounds(from.slice(0, 10), zone).start;
+  }
+  if (to && zone && /^\d{4}-\d{2}-\d{2}/.test(to)) {
+    dateFilter.lt = civilDayBounds(to.slice(0, 10), zone).end;
+  }
 
   try {
     const orderWhere = {

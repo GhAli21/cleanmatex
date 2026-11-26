@@ -23,6 +23,8 @@ import { CmxPagination } from '@ui/navigation'
 import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults'
 import { CmxPhoneDisplay } from '@ui/data-display'
 import { useLocale } from '@/lib/hooks/useRTL'
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time'
 import type { CustomerListItem } from '@/lib/types/customer'
 
 interface CustomerTableProps {
@@ -72,16 +74,13 @@ export default function CustomerTable({
   const t = useTranslations('customers')
   const tCommon = useTranslations('common')
   const locale = useLocale()
+  const { organization } = useOperationalZones('invoice', [])
   const allSelected =
     customers.length > 0 && selectedCustomers.length === customers.length
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return t('never')
-    return new Date(dateString).toLocaleDateString(locale === 'ar' ? 'ar' : 'en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
+    return formatInstantOrEmpty(dateString, organization, locale === 'ar' ? 'ar' : 'en') || '—'
   }
 
   const getTypeTone = (type: string): 'neutral' | 'warning' | 'success' => {

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import type { ColumnDef } from '@tanstack/react-table';
 import { CmxDataTable } from '@ui/data-display/cmx-datatable';
+import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxInput } from '@ui/primitives/cmx-input';
@@ -36,7 +37,7 @@ import { OutboxEventDetailDialog } from './outbox-event-detail-dialog';
 
 const ALL = '__all__';
 const STATUS_OPTIONS: OutboxStatus[] = ['PENDING', 'PROCESSING', 'FAILED', 'DEAD_LETTERED', 'PROCESSED'];
-const PAGE_SIZE_OPTIONS = [20, 50];
+const PAGE_SIZE_OPTIONS = [CMX_DEFAULT_PAGE_SIZE, 20, 50];
 const AUTO_REFRESH_MS = 15_000;
 
 const STATUS_VARIANT: Record<string, CmxBadgeTone> = {
@@ -89,6 +90,7 @@ const EMPTY_COUNTS: OutboxMonitorCounts = {
  */
 export function OutboxMonitorPage() {
   const t = useTranslations('billing.outboxMonitor');
+  const tReports = useTranslations('reports');
   const tCommon = useTranslations('common');
   const locale = useLocale();
   const message = useMessage();
@@ -104,7 +106,7 @@ export function OutboxMonitorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(CMX_DEFAULT_PAGE_SIZE);
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
   const [eventTypeFilter, setEventTypeFilter] = useState('');
@@ -130,8 +132,8 @@ export function OutboxMonitorPage() {
       aggregateType: aggregateTypeFilter,
       search,
       stuckOnly,
-      from: fromDate ? new Date(`${fromDate}T00:00:00`).toISOString() : '',
-      to: toDate ? new Date(`${toDate}T23:59:59`).toISOString() : '',
+      from: fromDate,
+      to: toDate,
     }),
     [page, pageSize, statusFilter, eventTypeFilter, aggregateTypeFilter, search, stuckOnly, fromDate, toDate],
   );
@@ -142,7 +144,7 @@ export function OutboxMonitorPage() {
     try {
       const json = await fetchOutboxMonitor(query);
       if (json.success === false) {
-        setError(json.error ?? t('loadFailed'));
+        setError(json.error === 'TIMEZONE_NOT_CONFIGURED' ? tReports('timezoneNotConfigured') : (json.error ?? t('loadFailed')));
         return;
       }
       setCounts(json.data.counts);
@@ -157,7 +159,7 @@ export function OutboxMonitorPage() {
     } finally {
       if (!opts?.silent) setLoading(false);
     }
-  }, [query, t]);
+  }, [query, t, tReports]);
 
   useEffect(() => { void fetchOutbox(); }, [fetchOutbox]);
 

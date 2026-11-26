@@ -3,6 +3,8 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { exportArInvoicesCsv } from '@/lib/services/ar-invoice.service';
 import { arInvoiceListQuerySchema } from '@/lib/validations/ar-invoice-schemas';
 import { jsonApiError, jsonValidationError, parseSearchParams } from '@/app/api/v1/ar/_shared';
+import { civilDateInZone } from '@/lib/utils/operational-time';
+import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 
 /**
  *
@@ -19,7 +21,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const csv = await exportArInvoicesCsv(parsed.data, { tenantId: auth.tenantId });
-    const filename = `ar-invoices-${new Date().toISOString().slice(0, 10)}.csv`;
+    const zone = await resolveOperationalTimeZone(auth.tenantId, 'invoice', null);
+    const filename = `ar-invoices-${civilDateInZone(new Date(), zone) || 'export'}.csv`;
 
     return new NextResponse(csv, {
       headers: {

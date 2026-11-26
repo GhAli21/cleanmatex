@@ -50,6 +50,7 @@ export class DeliveryProofAuditService {
       select: {
         id: true,
         order_no: true,
+        branch_id: true,
         current_status: true,
         outstanding_amount: true,
         currency_code: true,
@@ -166,6 +167,7 @@ export class DeliveryProofAuditService {
       order: {
         id: order.id,
         orderNo: order.order_no,
+        branchId: order.branch_id,
         workflowOutcome: order.current_status,
         paymentState: outstandingAmount > OUTSTANDING_AMOUNT_EPSILON ? 'balance_due' : 'settled',
         outstandingAmount,

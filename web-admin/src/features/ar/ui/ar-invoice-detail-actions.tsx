@@ -21,6 +21,9 @@ import {
   type ArInvoiceDetail,
 } from '@/lib/types/ar-invoice';
 import { useHasPermission } from '@/lib/hooks/usePermissions';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { useCivilTodayDefault } from '@/lib/hooks/use-civil-today';
+import { civilDateInputValue } from '@/lib/utils/operational-time';
 
 type DialogMode =
   | null
@@ -36,10 +39,6 @@ type DialogMode =
 
 interface ArInvoiceDetailActionsProps {
   detail: ArInvoiceDetail;
-}
-
-function todayDate() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function buildIdempotencyKey(action: string, invoiceId: string) {
@@ -76,12 +75,14 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
   const [dialog, setDialog] = useState<DialogMode>(null);
   const [submitting, setSubmitting] = useState<DialogMode | null>(null);
 
-  const [editDueDate, setEditDueDate] = useState(invoice.due_date ?? '');
+  const { zoneFor, isPending: zonePending } = useOperationalZones('invoice', [invoice.branch_id]);
+  const invoiceZone = zoneFor(invoice.branch_id);
+  const [editDueDate, setEditDueDate] = useState(civilDateInputValue(invoice.due_date));
   const [editPaymentTerms, setEditPaymentTerms] = useState(invoice.payment_terms ?? '');
   const [editPaymentMethod, setEditPaymentMethod] = useState(invoice.payment_method_code ?? '');
   const [editNotes, setEditNotes] = useState('');
 
-  const [issueDate, setIssueDate] = useState(todayDate());
+  const [issueDate, setIssueDate] = useCivilTodayDefault(invoiceZone);
   const [issueNotes, setIssueNotes] = useState('');
 
   const [approvalAction, setApprovalAction] = useState(
@@ -91,11 +92,11 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
 
   const [allocatedAmount, setAllocatedAmount] = useState(invoice.outstanding_amount.toFixed(4));
   const [voucherId, setVoucherId] = useState('');
-  const [allocationDate, setAllocationDate] = useState(todayDate());
+  const [allocationDate, setAllocationDate] = useCivilTodayDefault(invoiceZone);
   const [allocationNotes, setAllocationNotes] = useState('');
 
   const [reverseAllocationId, setReverseAllocationId] = useState(activeAllocations[0]?.id ?? '');
-  const [reverseDate, setReverseDate] = useState(todayDate());
+  const [reverseDate, setReverseDate] = useCivilTodayDefault(invoiceZone);
   const [reverseReason, setReverseReason] = useState('');
 
   const [creditAmount, setCreditAmount] = useState(invoice.outstanding_amount.toFixed(4));
@@ -299,6 +300,9 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
             <CmxDialogDescription>{t('issue.description')}</CmxDialogDescription>
           </CmxDialogHeader>
           <div className="grid gap-4">
+            {!zonePending && !invoiceZone ? (
+              <CmxSummaryMessage type="warning" message={t('errors.timezoneNotConfigured')} />
+            ) : null}
             <CmxInput label={t('fields.issueDate')} type="date" value={issueDate} onChange={(event) => setIssueDate(event.target.value)} />
             <div>
               <Label className="mb-1 block">{t('fields.notes')}</Label>
@@ -311,13 +315,17 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
             </CmxDialogClose>
             <CmxButton
               loading={submitting === 'issue'}
-              onClick={() =>
-                submitJson('issue', `/api/v1/ar/invoices/${invoice.id}/issue`, {
+              onClick={() => {
+                if (!issueDate) {
+                  showErrorFrom(new Error(t('errors.timezoneNotConfigured')));
+                  return;
+                }
+                void submitJson('issue', `/api/v1/ar/invoices/${invoice.id}/issue`, {
                   issue_date: issueDate,
                   notes: issueNotes || undefined,
                   idempotency_key: buildIdempotencyKey('issue', invoice.id),
-                })
-              }
+                });
+              }}
             >
               {t('buttons.issue')}
             </CmxButton>
@@ -373,6 +381,9 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
             <CmxDialogDescription>{t('allocate.description')}</CmxDialogDescription>
           </CmxDialogHeader>
           <div className="grid gap-4 md:grid-cols-2">
+            {!zonePending && !invoiceZone ? (
+              <CmxSummaryMessage type="warning" message={t('errors.timezoneNotConfigured')} className="md:col-span-2" />
+            ) : null}
             <CmxInput label={t('fields.allocatedAmount')} type="number" min="0.0001" step="0.0001" value={allocatedAmount} onChange={(event) => setAllocatedAmount(event.target.value)} />
             <CmxInput label={t('fields.allocationDate')} type="date" value={allocationDate} onChange={(event) => setAllocationDate(event.target.value)} />
             <CmxInput label={t('fields.voucherId')} value={voucherId} onChange={(event) => setVoucherId(event.target.value)} />
@@ -388,15 +399,19 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
             <CmxButton
               loading={submitting === 'allocate'}
               disabled={!voucherId.trim()}
-              onClick={() =>
-                submitJson('allocate', `/api/v1/ar/invoices/${invoice.id}/allocations`, {
+              onClick={() => {
+                if (!allocationDate) {
+                  showErrorFrom(new Error(t('errors.timezoneNotConfigured')));
+                  return;
+                }
+                void submitJson('allocate', `/api/v1/ar/invoices/${invoice.id}/allocations`, {
                   voucher_id: voucherId.trim() || undefined,
                   allocated_amount: Number(allocatedAmount || 0),
                   applied_at: allocationDate,
                   notes: allocationNotes || undefined,
                   idempotency_key: buildIdempotencyKey('allocate', invoice.id),
-                })
-              }
+                });
+              }}
             >
               {t('buttons.allocate')}
             </CmxButton>
@@ -411,6 +426,9 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
             <CmxDialogDescription>{t('reverse.description')}</CmxDialogDescription>
           </CmxDialogHeader>
           <div className="grid gap-4">
+            {!zonePending && !invoiceZone ? (
+              <CmxSummaryMessage type="warning" message={t('errors.timezoneNotConfigured')} />
+            ) : null}
             <CmxSelect
               label={t('fields.allocation')}
               value={reverseAllocationId}
@@ -434,8 +452,12 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
               variant="destructive"
               loading={submitting === 'reverse'}
               disabled={!reverseAllocationId || !reverseReason.trim()}
-              onClick={() =>
-                submitJson(
+              onClick={() => {
+                if (!reverseDate) {
+                  showErrorFrom(new Error(t('errors.timezoneNotConfigured')));
+                  return;
+                }
+                void submitJson(
                   'reverse',
                   `/api/v1/ar/invoices/${invoice.id}/allocations/${reverseAllocationId}/reverse`,
                   {
@@ -443,8 +465,8 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
                     reversed_at: reverseDate,
                     idempotency_key: buildIdempotencyKey('reverse', invoice.id),
                   }
-                )
-              }
+                );
+              }}
             >
               {t('buttons.reverseAllocation')}
             </CmxButton>

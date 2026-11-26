@@ -8,15 +8,16 @@ import { CmxButton, CmxSpinner } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { CmxStatusBadge } from '@ui/feedback';
 import { useDeliveryProofAudit } from '@features/delivery/hooks/use-delivery-proof-audit';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import type { DeliveryProofEvidenceLink } from '@features/delivery/model/delivery-proof-audit';
 
 interface DeliveryProofAuditCardProps {
   orderId: string;
 }
 
-function formatAuditDate(value: string | null, locale: string): string | null {
-  if (!value) return null;
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+function formatAuditDate(value: string | null, locale: string, zone: string | null): string | null {
+  return formatInstantOrEmpty(value, zone, locale) || null;
 }
 
 function EvidenceLink({
@@ -44,6 +45,8 @@ export function DeliveryProofAuditCard({ orderId }: DeliveryProofAuditCardProps)
   const t = useTranslations('workflow.delivery.audit');
   const locale = useLocale();
   const { data: audit, error, isFetching, isLoading, refetch } = useDeliveryProofAudit(orderId);
+  const { zoneFor } = useOperationalZones('delivery', [audit?.order.branchId]);
+  const deliveryZone = zoneFor(audit?.order.branchId);
 
   return (
     <CmxCard>
@@ -115,7 +118,7 @@ export function DeliveryProofAuditCard({ orderId }: DeliveryProofAuditCardProps)
                 <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                   <div>
                     <dt className="text-muted-foreground">{t('deliveredAt')}</dt>
-                    <dd className="mt-1 font-medium">{formatAuditDate(entry.deliveredAt ?? entry.verifiedAt, locale) ?? t('notRecorded')}</dd>
+                    <dd className="mt-1 font-medium">{formatAuditDate(entry.deliveredAt ?? entry.verifiedAt, locale, deliveryZone) ?? t('notRecorded')}</dd>
                   </div>
                   <div>
                     <dt className="flex items-center gap-1 text-muted-foreground"><UserRound className="h-4 w-4" aria-hidden="true" />{t('deliveredBy')}</dt>

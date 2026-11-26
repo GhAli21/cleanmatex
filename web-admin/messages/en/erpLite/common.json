@@ -18,5 +18,6 @@
       "PETTY_CASH_FX_UNSUPPORTED": "Petty cash must stay in {baseCurrency}. This entry is in {currency}, and petty cash does not keep an exchange rate."
     }
   },
-  "exchangeRate": "Exchange Rate"
+  "exchangeRate": "Exchange Rate",
+  "timezoneNotConfigured": "No time zone is set for this organization, so a date cannot be chosen. Ask an administrator to set one."
 }

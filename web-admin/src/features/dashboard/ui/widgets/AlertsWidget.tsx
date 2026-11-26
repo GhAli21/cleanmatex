@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
+import { useDashboardZone } from '../use-dashboard-zone'
 
 type AlertType = 'critical' | 'warning' | 'info'
 type AlertCategory = 'order' | 'payment' | 'system' | 'delivery'
@@ -38,6 +39,7 @@ interface Alert {
  */
 export function AlertsWidget() {
   const { currentTenant } = useAuth()
+  const { organization, isPending } = useDashboardZone()
   const t = useTranslations('dashboard')
   const isRTL = useRTL()
   const [alerts, setAlerts] = useState<Alert[]>([])
@@ -45,11 +47,11 @@ export function AlertsWidget() {
 
   useEffect(() => {
     async function fetchAlerts() {
-      if (!currentTenant) return
+      if (!currentTenant || isPending) return
 
       try {
         setIsLoading(true)
-        const kpi = await dashboardService.getKPIOverview(currentTenant.tenant_id)
+        const kpi = await dashboardService.getKPIOverview(currentTenant.tenant_id, { timeZone: organization })
         const mapped: Alert[] = (kpi.alerts || []).map((a) => ({
           id: a.id,
           type: a.type,
@@ -71,7 +73,7 @@ export function AlertsWidget() {
     }
 
     fetchAlerts()
-  }, [currentTenant])
+  }, [currentTenant, organization, isPending, t])
 
   const getAlertIcon = (type: AlertType) => {
     switch (type) {

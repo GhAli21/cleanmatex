@@ -22,8 +22,13 @@ jobs:
           filters: |
             cmx-api:
               - 'cmx-api/**'
+              - 'packages/clock/**'
             web-admin:
               - 'web-admin/**'
+              - 'packages/clock/**'
+              - 'scripts/check-clock-contract.mjs'
+              - 'scripts/clock-contract-baseline.json'
+              - 'supabase/migrations/**'
             platform-inventories:
               - 'scripts/docs/**'
               - 'docs/platform/inventories/**'
@@ -72,6 +77,10 @@ jobs:
         run: npm run lint --workspace=web-admin
       - name: Tenant isolation static audit
         run: npm run audit:tenant-guard:strict --workspace=web-admin
+      - name: Clock contract guard (Time & Timezone §7.12)
+        run: npm run check:clock-contract
+      - name: Clock tests under two process time zones (@cmx/clock + web-admin)
+        run: npm run test:clock
       - name: Test web-admin
         run: npm run test --workspace=web-admin -- --ci
       - name: Build web-admin

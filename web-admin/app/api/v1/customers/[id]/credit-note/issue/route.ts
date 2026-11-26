@@ -3,13 +3,14 @@ import { z } from 'zod';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { issueCreditNote } from '@/lib/services/stored-value.service';
+import { isRealIsoDate } from '@/lib/validations/iso-date';
 
 const schema = z.object({
   amount:       z.number().positive(),
   reason:       z.string().min(1),
   currencyCode: z.string().min(1),
   orderId:      z.string().uuid().optional(),
-  expiresAt:    z.string().datetime().optional(),
+  expiresAt:    z.string().refine(isRealIsoDate, 'YYYY-MM-DD').optional(),
 });
 
 /**
@@ -41,7 +42,7 @@ export async function POST(
       reason:       parsed.data.reason,
       currencyCode: parsed.data.currencyCode,
       orderId:      parsed.data.orderId,
-      expiresAt:    parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : undefined,
+      expiresAt:    parsed.data.expiresAt ? new Date(`${parsed.data.expiresAt}T00:00:00.000Z`) : undefined,
       issuedBy:     userId,
     });
     return NextResponse.json({ success: true, data: creditNote }, { status: 201 });

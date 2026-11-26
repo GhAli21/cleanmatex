@@ -26,6 +26,7 @@ export interface DeliveryProofAudit {
   order: {
     id: string;
     orderNo: string;
+    branchId: string | null;
     workflowOutcome: string | null;
     paymentState: 'settled' | 'balance_due';
     outstandingAmount: number;

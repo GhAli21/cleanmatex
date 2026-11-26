@@ -2,7 +2,8 @@
 
 import { createContext, useContext, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { civilRangeQuery, shiftCivilDate } from '@/lib/utils/operational-time';
+import { useLocale } from 'next-intl';
+import { civilDateInZone, civilDateInputValue, civilRangeQuery, formatCivilDate, shiftCivilDate } from '@/lib/utils/operational-time';
 
 interface ReportsClock {
   zone: string | null;
@@ -21,6 +22,21 @@ export function ReportsClockProvider({
 
 export function useReportsClock(): ReportsClock {
   return useContext(ReportsClockContext);
+}
+
+/** Civil day of an instant in the organization zone. A missing zone shows no day. */
+export function ReportInstantDay({ value }: { value?: string | null }) {
+  const { zone } = useReportsClock();
+  const locale = useLocale();
+  const day = civilDateInZone(value, zone);
+  return <>{day ? formatCivilDate(day, locale) : '-'}</>;
+}
+
+/** A stored civil date. The UTC calendar day of a date column stays that day. */
+export function ReportCivilDay({ value }: { value?: string | null }) {
+  const locale = useLocale();
+  const day = civilDateInputValue(value);
+  return <>{day ? formatCivilDate(day, locale) : '-'}</>;
 }
 
 /** Civil range from the address bar, otherwise the organization day. The query bounds use that zone. */

@@ -38,6 +38,7 @@ import {
 } from '@features/orders/model/ready-order-types';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { PickupReleaseStatus } from '@features/pickup/ui/pickup-release-status';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
 import { ReadyFulfilmentPanel } from '@features/pickup/ui/ready-fulfilment-panel';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
@@ -122,6 +123,8 @@ export default function ReadyDetailPage() {
   };
 
   const isReadyForPickup = order?.currentStatus === 'ready_for_pickup';
+  const { zoneFor } = useOperationalZones('ready_by', [order?.branchId]);
+  const opsZone = zoneFor(order?.branchId);
 
   if (loading) {
     return (
@@ -263,6 +266,7 @@ export default function ReadyDetailPage() {
               release={order.pickupRelease}
               workflowStatus={order.currentStatus}
               showTimestamp
+              opsZone={opsZone}
             />
             <p className="text-xs text-muted-foreground">
               {isReadyForPickup

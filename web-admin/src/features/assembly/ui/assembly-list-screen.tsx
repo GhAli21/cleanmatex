@@ -29,6 +29,7 @@ import {
   type WorkflowQueueFocusOption,
   type WorkflowQueueKpi,
 } from '@features/workflow/ui/workflow-queue-shell';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
 
 interface AssemblyOrderRecord {
   id: string;
@@ -37,6 +38,7 @@ interface AssemblyOrderRecord {
   current_status?: string | null;
   status?: string | null;
   ready_by_at?: string | null;
+  branch_id?: string | null;
   priority?: string | null;
   has_issue?: boolean | null;
   customer?: { name?: string; phone?: string };
@@ -49,6 +51,7 @@ interface AssemblyOrder {
   total_items: number;
   current_status: string;
   ready_by_at: string | null;
+  branch_id: string | null;
   priority: string;
   has_issue: boolean;
 }
@@ -117,6 +120,7 @@ export function AssemblyListScreen() {
       total_items: order.total_items || 0,
       current_status: order.current_status || order.status || 'assembly',
       ready_by_at: order.ready_by_at || null,
+      branch_id: order.branch_id ?? null,
       priority: order.priority || 'normal',
       has_issue: Boolean(order.has_issue),
       customer: {
@@ -125,6 +129,7 @@ export function AssemblyListScreen() {
       },
     }));
   }, [rawOrders, t]);
+  const { zoneFor } = useOperationalZones('ready_by', orders.map((order) => order.branch_id));
 
   const openAssemblyForOrder = useCallback(
     async (orderId: string, orderNo: string) => {
@@ -310,7 +315,7 @@ export function AssemblyListScreen() {
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {orders.map((order) => {
-            const formattedReadyBy = formatQueueDateTime(order.ready_by_at, locale);
+            const formattedReadyBy = formatQueueDateTime(order.ready_by_at, locale, zoneFor(order.branch_id));
             return (
               <CmxCard key={order.id} className="transition-all hover:shadow-md">
                 <CmxCardContent className="p-5">
@@ -334,6 +339,7 @@ export function AssemblyListScreen() {
                       priority={order.priority}
                       hasIssue={order.has_issue}
                       nowMs={nowMs}
+                      opsZone={zoneFor(order.branch_id)}
                     />
                   </div>
 

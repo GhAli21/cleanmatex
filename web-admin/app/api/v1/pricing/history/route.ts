@@ -14,9 +14,22 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+
+function historyBoundStart(value: string, zone: string): Date {
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? civilDayBounds(value, zone).start : parseInstant(value)
+}
+
+function historyBoundEnd(value: string, zone: string): { at: Date; exclusive: boolean } {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return { at: civilDayBounds(value, zone).end, exclusive: true }
+    }
+    return { at: parseInstant(value), exclusive: false }
+}
 import { getTenantIdFromSession } from '@/lib/db/tenant-context'
 import { prisma } from '@/lib/db/prisma'
 import { PRICE_HISTORY_SPEED_RULE } from '@/lib/constants/commercial'
+import { civilDayBounds, parseInstant } from '@/lib/utils/operational-time'
+import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server'
 
 /**
  *
@@ -55,17 +68,38 @@ export async function GET(request: NextRequest) {
             where.product_id = productId
         }
 
-        if (fromDate) {
+        const zone = fromDate || toDate
+            ? await resolveOperationalTimeZone(tenantId, 'invoice', null)
+            : null
+        if ((fromDate || toDate) && !zone) {
+            return NextResponse.json(
+                { error: 'No time zone is set for this organization, so a date cannot be chosen.' },
+                { status: 422 },
+            )
+        }
+        let fromInstant: Date | undefined
+        let toBound: { at: Date; exclusive: boolean } | undefined
+        try {
+            fromInstant = fromDate && zone ? historyBoundStart(fromDate, zone) : undefined
+            toBound = toDate && zone ? historyBoundEnd(toDate, zone) : undefined
+        } catch {
+            return NextResponse.json(
+                { error: 'fromDate and toDate must be YYYY-MM-DD or an instant with a time zone offset' },
+                { status: 400 },
+            )
+        }
+
+        if (fromInstant) {
             where.created_at = {
                 ...where.created_at,
-                gte: new Date(fromDate),
+                gte: fromInstant,
             }
         }
 
-        if (toDate) {
+        if (toBound) {
             where.created_at = {
                 ...where.created_at,
-                lte: new Date(toDate),
+                ...(toBound.exclusive ? { lt: toBound.at } : { lte: toBound.at }),
             }
         }
 
@@ -97,15 +131,15 @@ export async function GET(request: NextRequest) {
             paramIndex++
         }
 
-        if (fromDate) {
-            conditions.push(`pha.created_at >= $${paramIndex}::timestamp`)
-            params.push(new Date(fromDate))
+        if (fromInstant) {
+            conditions.push(`pha.created_at >= $${paramIndex}::timestamptz`)
+            params.push(fromInstant)
             paramIndex++
         }
 
-        if (toDate) {
-            conditions.push(`pha.created_at <= $${paramIndex}::timestamp`)
-            params.push(new Date(toDate))
+        if (toBound) {
+            conditions.push(`pha.created_at ${toBound.exclusive ? '<' : '<='} $${paramIndex}::timestamptz`)
+            params.push(toBound.at)
             paramIndex++
         }
 

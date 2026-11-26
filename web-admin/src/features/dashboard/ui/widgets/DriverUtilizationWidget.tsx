@@ -12,6 +12,7 @@ import { useRTL } from '@/lib/hooks/useRTL'
 import { Truck, Users, TrendingUp } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
+import { useDashboardZone } from '../use-dashboard-zone'
 
 interface DriverData {
   activePct: number
@@ -25,6 +26,7 @@ interface DriverData {
  */
 export function DriverUtilizationWidget() {
   const { currentTenant } = useAuth()
+  const { organization, isPending } = useDashboardZone()
   const t = useTranslations('dashboard')
   const isRTL = useRTL()
   const [data, setData] = useState<DriverData>({
@@ -37,12 +39,13 @@ export function DriverUtilizationWidget() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!currentTenant) return
+      if (!currentTenant || isPending) return
 
       try {
         setIsLoading(true)
         const kpiData = await dashboardService.getKPIOverview(
-          currentTenant.tenant_id
+          currentTenant.tenant_id,
+          { timeZone: organization }
         )
 
         setData({
@@ -59,7 +62,7 @@ export function DriverUtilizationWidget() {
     }
 
     fetchData()
-  }, [currentTenant])
+  }, [currentTenant, organization, isPending])
 
   if (isLoading) {
     return (

@@ -26,12 +26,14 @@ import {
   type WorkflowQueueFocusOption,
   type WorkflowQueueKpi,
 } from '@features/workflow/ui/workflow-queue-shell';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
 
 interface HomeCollectionListOrder {
   id: string;
   order_no: string;
   current_status?: string | null;
   ready_by_at?: string | null;
+  branch_id?: string | null;
   priority?: string | null;
   has_issue?: boolean | null;
   total_items?: number | null;
@@ -93,6 +95,7 @@ export function HomeCollectionListScreen() {
     });
 
   const rows = useMemo(() => orders ?? [], [orders]);
+  const { zoneFor } = useOperationalZones('ready_by', rows.map((order) => order.branch_id));
 
   const handleSearchSubmit = useCallback(
     async (submit: CodeSearchSubmit) => {
@@ -214,6 +217,7 @@ export function HomeCollectionListScreen() {
               priority={order.priority}
               hasIssue={Boolean(order.has_issue)}
               nowMs={nowMs}
+              opsZone={zoneFor(order.branch_id)}
             />
           </div>
         ),
@@ -240,7 +244,7 @@ export function HomeCollectionListScreen() {
         header: tWorkflow('ready.sortBy.readyBy'),
         sortable: false,
         render: (order) => {
-          const formatted = formatQueueDateTime(order.ready_by_at, locale);
+          const formatted = formatQueueDateTime(order.ready_by_at, locale, zoneFor(order.branch_id));
           return <span className="text-sm tabular-nums">{formatted ?? '—'}</span>;
         },
       },
@@ -284,7 +288,7 @@ export function HomeCollectionListScreen() {
         ),
       },
     ],
-    [locale, nowMs, t, tCommon, tWorkflow],
+    [locale, nowMs, t, tCommon, tWorkflow, zoneFor],
   );
 
   if (!currentTenant) return null;

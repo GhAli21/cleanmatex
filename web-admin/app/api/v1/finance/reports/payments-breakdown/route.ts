@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import { civilInstantRange } from '@/lib/utils/operational-time';
+import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 
 /**
  *
@@ -16,10 +18,14 @@ export async function GET(request: NextRequest) {
   const from = searchParams.get('from');
   const to   = searchParams.get('to');
 
-  const dateFilter = {
-    ...(from ? { gte: new Date(from) } : {}),
-    ...(to   ? { lte: new Date(to)   } : {}),
-  };
+  if ((from && !/^\d{4}-\d{2}-\d{2}/.test(from)) || (to && !/^\d{4}-\d{2}-\d{2}/.test(to))) {
+    return NextResponse.json({ success: false, error: 'from and to must be YYYY-MM-DD' }, { status: 400 });
+  }
+  const zone = from || to ? await resolveOperationalTimeZone(tenantId, 'invoice', null) : null;
+  if ((from || to) && !zone) {
+    return NextResponse.json({ success: false, error: 'TIMEZONE_NOT_CONFIGURED' }, { status: 422 });
+  }
+  const dateFilter = zone ? civilInstantRange(from, to, zone) : {};
 
   try {
     const where = {

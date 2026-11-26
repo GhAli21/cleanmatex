@@ -1,5 +1,7 @@
 # Development plan
 
+> Remaining work is planned in [`MASTER_PLAN_v2.md`](./MASTER_PLAN_v2.md) (pack `0.1.43`; decisions D1–D29 and D32–D35 accepted, D30/D31 superseded by D33). Phases 0, 2, 4, and 5 below are done for organization tables; Phases 1, 3, 6, and 7 continue as slices S1–S15 there (S1 done 2026-11-27: `packages/clock`, guard v2; S2 files `0842`/`0843` written 2026-11-27, not applied). New SQL uses the `fn_cmx_dt_*` family (the deployed `fn_ops_zone` stays under it); TypeScript uses `dt*`. Closed operations include `notify`.
+
 Contract: [`docs/dev/rules/time-and-timezone.md`](../../dev/rules/time-and-timezone.md).
 Work packages: [`technical_docs/work-packages.md`](./technical_docs/work-packages.md).
 Inventory date: 2026-11-24, from `web-admin/prisma/schema.prisma`.
@@ -16,6 +18,7 @@ A step is one work package, or one batch inside a package (one domain migration,
 | `current_status.md` | State, next action, and any new risk. |
 | `technical_docs/surface-map.md` | The row notes the search date and the hits still open. |
 | `CHANGELOG.md` and `version.txt` | One line, and the next `0.1.x-plan` version. |
+| `testing_guide_and_scenarios.md` | The manual cases for this step, with the screen, the setup, and the expected clock. |
 | This file | The phase is marked done only when every package in it has closed out. |
 
 A migration stays Written, not applied until the user says it was applied. The close-out then records `npm run prisma:pull` from the repo root. Conversation notes do not replace these files.

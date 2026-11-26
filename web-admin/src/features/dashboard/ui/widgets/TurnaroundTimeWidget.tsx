@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl'
 import { Clock, Target } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
+import { useDashboardZone } from '../use-dashboard-zone'
 
 interface TATData {
   avgTATHours: number
@@ -23,6 +24,7 @@ interface TATData {
  */
 export function TurnaroundTimeWidget() {
   const { currentTenant } = useAuth()
+  const { organization, isPending } = useDashboardZone()
   const t = useTranslations('dashboard')
   const [data, setData] = useState<TATData>({
     avgTATHours: 0,
@@ -33,12 +35,13 @@ export function TurnaroundTimeWidget() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!currentTenant) return
+      if (!currentTenant || isPending) return
 
       try {
         setIsLoading(true)
         const kpiData = await dashboardService.getKPIOverview(
-          currentTenant.tenant_id
+          currentTenant.tenant_id,
+          { timeZone: organization }
         )
 
         setData({
@@ -54,7 +57,7 @@ export function TurnaroundTimeWidget() {
     }
 
     fetchData()
-  }, [currentTenant])
+  }, [currentTenant, organization, isPending])
 
   const formatTAT = (hours: number): string => {
     if (hours < 24) {

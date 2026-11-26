@@ -33,15 +33,11 @@ import {
 } from '@ui/forms';
 import { createPromoCode, updatePromoCode } from '@/app/actions/marketing/promo-actions';
 import type { PromoCode } from '@/lib/types/payment';
-
-/** Format an ISO timestamp for `<input type="datetime-local">` in local TZ. */
-function toLocalDatetimeInput(iso: string | null | undefined): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import {
+  civilDatetimeLocalValue,
+  instantFromDatetimeLocal,
+} from '@/lib/utils/operational-time';
 
 function splitCsv(value: string): string[] {
   return value
@@ -122,6 +118,7 @@ interface PromoFormDialogProps {
 export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDialogProps) {
   const t = useTranslations('marketing.promos');
   const tCommon = useTranslations('common');
+  const { organization, isPending: zonePending } = useOperationalZones('invoice', []);
 
   const [serverError, setServerError] = useState<string | null>(null);
   const isEdit = !!promo;
@@ -145,7 +142,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
       max_uses_unlimited: true,
       max_uses_per_customer: 1,
       max_uses_per_customer_unlimited: false,
-      valid_from: toLocalDatetimeInput(new Date().toISOString()),
+      valid_from: '',
       valid_to: '',
       is_enabled: true,
       is_auto_apply: false,
@@ -191,8 +188,8 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
         max_uses_unlimited: unlimited,
         max_uses_per_customer: perCustomerUnlimited ? null : promo.max_uses_per_customer,
         max_uses_per_customer_unlimited: perCustomerUnlimited,
-        valid_from: toLocalDatetimeInput(promo.valid_from),
-        valid_to: toLocalDatetimeInput(promo.valid_to),
+        valid_from: civilDatetimeLocalValue(promo.valid_from, organization),
+        valid_to: civilDatetimeLocalValue(promo.valid_to, organization),
         is_enabled: promo.is_enabled,
         is_auto_apply: promo.is_auto_apply ?? false,
         stackable: promo.stackable ?? false,
@@ -217,7 +214,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
         max_uses_unlimited: true,
         max_uses_per_customer: 1,
         max_uses_per_customer_unlimited: false,
-        valid_from: toLocalDatetimeInput(new Date().toISOString()),
+        valid_from: civilDatetimeLocalValue(new Date(), organization),
         valid_to: '',
         is_enabled: true,
         is_auto_apply: false,
@@ -226,7 +223,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
         max_stacking_discount: null,
       });
     }
-  }, [promo, form]);
+  }, [promo, form, organization]);
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null);
@@ -258,11 +255,24 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
       return;
     }
 
-    if (
-      values.valid_to &&
-      values.valid_from &&
-      new Date(values.valid_to) < new Date(values.valid_from)
-    ) {
+    if (!organization || !values.valid_from) {
+      setServerError(t('errors.timezoneNotConfigured'));
+      return;
+    }
+
+    let validFromIso = '';
+    let validToIso: string | null = null;
+    try {
+      validFromIso = instantFromDatetimeLocal(values.valid_from, organization).toISOString();
+      validToIso = values.valid_to
+        ? instantFromDatetimeLocal(values.valid_to, organization).toISOString()
+        : null;
+    } catch {
+      setServerError(t('errors.timezoneNotConfigured'));
+      return;
+    }
+
+    if (validToIso && validFromIso && validToIso < validFromIso) {
       form.setError('valid_to', { message: t('errors.validToBeforeFrom') });
       return;
     }
@@ -296,10 +306,8 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
       })(),
       max_uses: maxUses,
       max_uses_per_customer: maxUsesPerCustomer,
-      valid_from: values.valid_from
-        ? new Date(values.valid_from).toISOString()
-        : new Date().toISOString(),
-      valid_to: values.valid_to ? new Date(values.valid_to).toISOString() : null,
+      valid_from: validFromIso,
+      valid_to: validToIso,
       is_enabled: values.is_enabled,
       is_auto_apply: values.is_auto_apply,
       stackable: values.stackable,
@@ -631,6 +639,9 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
           {/* Validity */}
           <section className="space-y-3">
             <p className="text-sm font-medium text-muted-foreground">{t('sections.validity')}</p>
+            {!zonePending && !organization ? (
+              <CmxSummaryMessage type="warning" message={t('errors.timezoneNotConfigured')} />
+            ) : null}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label>{t('fields.validFrom')}</Label>

@@ -12,7 +12,9 @@
  */
 
 import { useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -96,6 +98,9 @@ interface GiftCardDetailDialogProps {
 export function GiftCardDetailDialog({ card, onClose, onSuccess }: GiftCardDetailDialogProps) {
   const t = useTranslations('marketing.giftCards');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const { organization } = useOperationalZones('invoice', []);
+  const clockLocale = locale === 'ar' ? 'ar' : 'en';
 
   const [serverError,         setServerError]         = useState<string | null>(null);
   const [showAdjust,          setShowAdjust]          = useState(false);
@@ -248,13 +253,13 @@ export function GiftCardDetailDialog({ card, onClose, onSuccess }: GiftCardDetai
             {card.activation_date && (
               <div>
                 <span className="text-muted-foreground">{t('fields.activationDate')}: </span>
-                <span>{new Date(card.activation_date).toLocaleDateString()}</span>
+                <span>{formatInstantOrEmpty(card.activation_date, organization, clockLocale) || '—'}</span>
               </div>
             )}
             {card.expiry_date && (
               <div>
                 <span className="text-muted-foreground">{t('fields.expiryDate')}: </span>
-                <span>{new Date(card.expiry_date).toLocaleDateString()}</span>
+                <span>{formatInstantOrEmpty(card.expiry_date, organization, clockLocale) || '—'}</span>
               </div>
             )}
             {card.issued_to_customer_name && (
@@ -403,7 +408,7 @@ export function GiftCardDetailDialog({ card, onClose, onSuccess }: GiftCardDetai
                 key: 'transaction_date',
                 header: tCommon('date'),
                 render: (row: GiftCardTransaction) =>
-                  new Date(row.transaction_date).toLocaleDateString(),
+                  formatInstantOrEmpty(row.transaction_date, organization, clockLocale) || '—',
               },
               {
                 key: 'transaction_type',

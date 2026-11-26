@@ -9,6 +9,7 @@
 
 import * as React from 'react';
 import { useQueries, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
 import { useLocale, useTranslations } from 'next-intl';
 import {
   AlertCircle,
@@ -271,6 +272,9 @@ export function ProcessingModal(props: ProcessingModalProps) {
   });
 
   const order: Order | null = (orderData?.order as unknown as Order | null) ?? null;
+  const branchId = typeof orderData?.order?.branch_id === 'string' ? orderData.order.branch_id : null;
+  const { zoneFor } = useOperationalZones('ready_by', [branchId]);
+  const opsZone = zoneFor(branchId);
   const isCommercialLocked = Boolean(orderData?.isCommercialLocked);
   const items = React.useMemo(
     () => (orderData?.items as unknown as OrderItem[]) ?? [],
@@ -1307,6 +1311,7 @@ export function ProcessingModal(props: ProcessingModalProps) {
                               trackByPiece={trackByPiece}
                               rejectColor={rejectColor}
                               orderId={orderId || undefined}
+                              opsZone={opsZone}
                               tenantId={tenantId}
                               processingConfirmationEnabled={processingConfirmationEnabled}
                               processingSteps={

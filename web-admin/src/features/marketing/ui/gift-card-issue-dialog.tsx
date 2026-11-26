@@ -26,6 +26,8 @@ import {
 } from '@ui/overlays';
 import { CmxButton, CmxInput, CmxMoneyFieldController, CmxSelect, Label } from '@ui/primitives';
 import { issueGiftCardAdmin } from '@/app/actions/marketing/gift-card-actions';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { civilYearEndDate, inclusiveEndOfCivilDay } from '@/lib/utils/operational-time';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import {
   GIFT_CARD_TYPE,
@@ -100,6 +102,7 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
   const tCommon = useTranslations('common');
 
   const { currencyCode: tenantCurrency } = useTenantCurrency();
+  const { organization, isPending: zonePending } = useOperationalZones('invoice', []);
 
   const [serverError, setServerError]     = useState<string | null>(null);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -110,15 +113,13 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
   const [buyerDisplay, setBuyerDisplay]         = useState('');
   const [recipientDisplay, setRecipientDisplay] = useState('');
 
-  const defaultExpiry = `${new Date().getFullYear()}-12-31`;
-
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as Resolver<FormValues>,
     defaultValues: {
       card_name:             '',
       card_name2:            '',
       amount:                0,
-      expiry_date:           defaultExpiry,
+      expiry_date:           '',
       issued_to_customer_id: '',
       purchased_by_cust_id:  '',
       card_pin:              '',
@@ -133,6 +134,12 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
   useEffect(() => {
     if (tenantCurrency) form.setValue('currency_code', tenantCurrency);
   }, [tenantCurrency, form]);
+
+  useEffect(() => {
+    if (!organization || form.getValues('expiry_date')) return;
+    const day = civilYearEndDate(new Date(), organization);
+    if (day) form.setValue('expiry_date', day);
+  }, [organization, form]);
 
   const currencyCode = useWatch({ control: form.control, name: 'currency_code' });
 
@@ -166,13 +173,24 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null);
+    let expiryIso: string | undefined;
+    if (values.expiry_date) {
+      if (!organization) {
+        setServerError(t('errors.timezoneNotConfigured'));
+        return;
+      }
+      try {
+        expiryIso = inclusiveEndOfCivilDay(values.expiry_date, organization).toISOString();
+      } catch {
+        setServerError(t('errors.timezoneNotConfigured'));
+        return;
+      }
+    }
     const result = await issueGiftCardAdmin({
       card_name:             values.card_name,
       card_name2:            values.card_name2 || undefined,
       amount:                values.amount,
-      expiry_date:           values.expiry_date
-        ? new Date(values.expiry_date).toISOString()
-        : undefined,
+      expiry_date:           expiryIso,
       issued_to_customer_id: values.issued_to_customer_id || undefined,
       card_pin:              values.card_pin || undefined,
       issue_type:            values.issue_type,
@@ -197,7 +215,7 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
   const handleClose = () => {
     form.reset({
       card_name: '', card_name2: '', amount: 0,
-      expiry_date: defaultExpiry, issued_to_customer_id: '',
+      expiry_date: civilYearEndDate(new Date(), organization), issued_to_customer_id: '',
       purchased_by_cust_id: '', card_pin: '',
       issue_type: GIFT_CARD_ISSUE_TYPE.PROMOTIONAL,
       gift_card_type: GIFT_CARD_TYPE.FIXED_VALUE,
@@ -271,6 +289,9 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
               </CmxSummaryMessage>
 
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+                {!zonePending && !organization ? (
+                  <CmxSummaryMessage type="warning" message={t('errors.timezoneNotConfigured')} />
+                ) : null}
                 {serverError && (
                   <CmxSummaryMessage type="error">
                     <div>{serverError}</div>

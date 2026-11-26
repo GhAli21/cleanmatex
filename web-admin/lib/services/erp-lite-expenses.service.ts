@@ -26,6 +26,7 @@ import { DOC_SEQ_TYPES } from '@/lib/constants/doc-seq';
 import { assertOrgBaseCurrency, resolveDocFxRate } from '@/lib/services/fx/doc-fx-rate';
 import { resolvePurchaseTax, writePurchaseTaxLines } from '@/lib/services/tax/purchase-tax.service';
 import { sumMoney } from '@/lib/commercial/money';
+import { civilYearMonthToken } from '@/lib/utils/operational-zone.server';
 import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -149,7 +150,8 @@ export class ErpLiteExpensesService {
           'EXP',
           'expense_no',
           'org_fin_exp_mst',
-          tx
+          tx,
+          input.expense_date
         );
         if (input.supplier_id) {
           const supplier = await tx.org_fin_supp_mst.findFirst({
@@ -378,7 +380,8 @@ export class ErpLiteExpensesService {
           'PCT',
           'txn_no',
           'org_fin_cash_txn_tr',
-          tx
+          tx,
+          input.txn_date
         );
         const amountTotal = this.roundAmount(input.amount_total);
         const cashbox = await this.findCashbox(input.cashbox_id, tenantId, tx);
@@ -583,7 +586,9 @@ export class ErpLiteExpensesService {
         tenantId,
         'PCR',
         'recon_no',
-        'org_fin_cash_rec_mst'
+        'org_fin_cash_rec_mst',
+        prisma,
+        input.recon_date
       );
 
       await prisma.$queryRaw<CashReconciliationInsertRow[]>(Prisma.sql`
@@ -1184,12 +1189,10 @@ export class ErpLiteExpensesService {
     prefix: string,
     columnName: 'expense_no' | 'cashbox_code' | 'txn_no' | 'recon_no',
     tableName: 'org_fin_exp_mst' | 'org_fin_cashbox_mst' | 'org_fin_cash_txn_tr' | 'org_fin_cash_rec_mst',
-    db: PrismaSqlExecutor = prisma
+    db: PrismaSqlExecutor = prisma,
+    civilDate?: string
   ): Promise<string> {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const serialPrefix = `${prefix}-${year}${month}`;
+    const serialPrefix = `${prefix}-${await civilYearMonthToken(db, tenantId, civilDate)}`;
     const countColumn =
       columnName === 'expense_no'
         ? Prisma.sql`expense_no`

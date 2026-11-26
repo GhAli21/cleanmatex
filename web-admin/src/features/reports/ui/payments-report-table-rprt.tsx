@@ -1,11 +1,12 @@
 'use client';
 
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
+import { CmxButton } from '@ui/primitives';
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
+import { ReportInstantDay } from '@features/reports/ui/reports-clock';
 import type { PaymentRow, ReportPagination } from '@/lib/types/report-types';
 
 interface PaymentsReportTableProps {
@@ -44,6 +45,7 @@ export default function PaymentsReportTable({
   basePath,
 }: PaymentsReportTableProps) {
   const t = useTranslations('reports');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -87,7 +89,7 @@ export default function PaymentsReportTable({
                   </span>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {p.paidAt ? format(new Date(p.paidAt), 'dd MMM yyyy') : '-'}
+                  <ReportInstantDay value={p.paidAt} />
                 </td>
               </tr>
             ))}
@@ -110,13 +112,13 @@ export default function PaymentsReportTable({
             })}
           </span>
           <div className="flex items-center gap-1">
-            <button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page <= 1} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30">
-              <ChevronLeft className="h-4 w-4" />
-            </button>
+            <CmxButton type="button" variant="ghost" size="icon" onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page <= 1} aria-label={tCommon('previous')}>
+              <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+            </CmxButton>
             <span className="px-3 py-1 text-sm font-medium text-foreground">{pagination.page} / {pagination.totalPages}</span>
-            <button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30">
-              <ChevronRight className="h-4 w-4" />
-            </button>
+            <CmxButton type="button" variant="ghost" size="icon" onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} aria-label={tCommon('next')}>
+              <ChevronRight className="h-4 w-4 rtl:rotate-180" />
+            </CmxButton>
           </div>
         </div>
       )}

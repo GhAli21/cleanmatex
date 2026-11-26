@@ -27,6 +27,7 @@ import {
   type WorkflowQueueFocusOption,
   type WorkflowQueueKpi,
 } from '@features/workflow/ui/workflow-queue-shell';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
 
 interface PackingOrderRecord {
   id: string;
@@ -34,6 +35,7 @@ interface PackingOrderRecord {
   total_items?: number | null;
   rack_location?: string | null;
   ready_by_at?: string | null;
+  branch_id?: string | null;
   priority?: string | null;
   has_issue?: boolean | null;
   customer?: { name?: string; phone?: string };
@@ -46,6 +48,7 @@ interface PackingOrder {
   total_items: number;
   rack_location: string;
   ready_by_at: string | null;
+  branch_id: string | null;
   priority: string;
   has_issue: boolean;
 }
@@ -107,6 +110,7 @@ export function PackingListScreen() {
       total_items: o.total_items || 0,
       rack_location: o.rack_location || '',
       ready_by_at: o.ready_by_at || null,
+      branch_id: o.branch_id ?? null,
       priority: o.priority || 'normal',
       has_issue: Boolean(o.has_issue),
       customer: {
@@ -115,6 +119,7 @@ export function PackingListScreen() {
       },
     }));
   }, [rawOrders, t]);
+  const { zoneFor } = useOperationalZones('ready_by', orders.map((order) => order.branch_id));
 
   const handleSearchSubmit = useCallback(
     async (submit: CodeSearchSubmit) => {
@@ -281,7 +286,7 @@ export function PackingListScreen() {
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {orders.map((order) => {
-          const formattedReadyBy = formatQueueDateTime(order.ready_by_at, locale);
+          const formattedReadyBy = formatQueueDateTime(order.ready_by_at, locale, zoneFor(order.branch_id));
           return (
             <CmxCard key={order.id} className="transition-all hover:shadow-md">
               <CmxCardContent className="p-5">
@@ -305,6 +310,7 @@ export function PackingListScreen() {
                     priority={order.priority}
                     hasIssue={order.has_issue}
                     nowMs={nowMs}
+                    opsZone={zoneFor(order.branch_id)}
                   />
                 </div>
 

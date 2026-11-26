@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "timezoneNotConfigured": "لم تُحدَّد منطقة زمنية لهذه المنشأة أو الفرع، لذلك لا يمكن اختيار هذا التاريخ. اطلب من المسؤول تحديدها.",
+    "localTimeNonexistent": "هذا الوقت غير موجود في ذلك اليوم بسبب تغيير الساعة. اختر وقتًا آخر.",
+    "localTimeAmbiguous": "هذا الوقت يتكرر مرتين في ذلك اليوم بسبب إرجاع الساعة. اختر الأول أو الثاني.",
+    "instantOffsetRequired": "يجب أن يتضمن التاريخ والوقت فرق التوقيت.",
+    "invalidCivilDate": "أدخل تاريخًا صحيحًا.",
+    "invalidLocalTime": "أدخل وقتًا صحيحًا.",
+    "zoneMismatch": "تغيّرت المنطقة الزمنية للمحل. أعد تحميل الصفحة وحاول مرة أخرى.",
+    "invalidTimeZone": "اختر منطقة زمنية من القائمة.",
+    "settingInvalid": "إعداد التاريخ والوقت هذا غير صالح.",
+    "zoneChangeBlockedOpenSession": "أغلق جلسات نقاط البيع المفتوحة في هذا الفرع قبل تغيير منطقته الزمنية."
+  },
+  "disambiguation": {
+    "title": "أي {time}؟",
+    "earlier": "{time} الأول ({offset})",
+    "later": "{time} الثاني ({offset})"
+  },
+  "zone": {
+    "timesShownIn": "الأوقات معروضة بتوقيت {zone} ({offset})"
+  }
+}

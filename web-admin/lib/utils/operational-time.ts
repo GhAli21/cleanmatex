@@ -1,26 +1,23 @@
 import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
 
 /**
- * Closed operation codes shared with the future SQL door `fn_ops_zone`.
+ * Closed operation codes, shared with the SQL door `fn_ops_zone`; the one list lives in @cmx/clock.
  * The caller names which branch owns the action. Delivery, invoice, and ledger
  * rows do not store a timezone; they store `branch_id`, and that branch is the scope.
+ * `notify` (D27) resolves in TypeScript now; it is not sent to the deployed `fn_ops_zone`
+ * until migration 0842 adds it there (see SQL_DOOR_OPERATIONS / assertSqlDoorOperation).
  */
-export const OPERATIONAL_ZONE_OPERATIONS = [
-  'accept_order',
-  'ready_by',
-  'pos_session',
-  'delivery',
-  'invoice',
-  'ledger',
-] as const;
-
-export type OperationalZoneOperation = (typeof OPERATIONAL_ZONE_OPERATIONS)[number];
+export {
+  OPERATIONAL_ZONE_OPERATIONS,
+  SQL_DOOR_OPERATIONS,
+  assertSqlDoorOperation,
+  isSqlDoorOperation,
+  type OperationalZoneOperation,
+} from '@cmx/clock';
 
 const INSTANT_WITH_OFFSET = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?)(Z|[+-]\d{2}:\d{2})$/;
 
-export function isOperationalZoneOperation(value: string): value is OperationalZoneOperation {
-  return (OPERATIONAL_ZONE_OPERATIONS as readonly string[]).includes(value);
-}
+export { isOperationalZoneOperation } from '@cmx/clock';
 
 /**
  * Branch zone when it is a valid active catalog code, otherwise the organization
@@ -103,6 +100,21 @@ export function formatStoredClock(
   return formatInstantOrEmpty(value, zone, locale);
 }
 
+/**
+ * Locale label for a stored civil date or a real instant.
+ * A civil date stays that calendar day. An instant with no zone stays blank.
+ */
+export function formatStoredClockLabel(
+  value: Date | string | null | undefined,
+  zone: string | null | undefined,
+  locale: string,
+): string {
+  const stored = formatStoredClock(value, zone, locale);
+  if (!stored) return '';
+  if (CIVIL_DATE.test(stored)) return formatCivilDate(stored, locale);
+  return stored;
+}
+
 /** Moves a civil date by a number of calendar days. The shift does not use the machine zone. */
 export function shiftCivilDate(civilDate: string, days: number): string {
   if (!CIVIL_DATE.test(civilDate) || !Number.isInteger(days)) {
@@ -160,6 +172,18 @@ export function prismaDateToCivil(value: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Value for `<input type="date">` from a stored civil date.
+ * A `YYYY-MM-DD` string stays that day. A Prisma `@db.Date` instant is read as its UTC calendar day.
+ */
+export function civilDateInputValue(value: Date | string | null | undefined): string {
+  if (value == null || value === '') return '';
+  if (typeof value === 'string' && CIVIL_DATE.test(value)) return value;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return prismaDateToCivil(date);
+}
+
 /** Civil year of an instant in a zone. The year is the first four characters of that civil day. */
 export function civilYearInZone(value: Date, zone: string): number {
   const day = civilDateInZone(value, zone);
@@ -215,6 +239,58 @@ function nextCivilDate(civilDate: string): string {
   const cursor = new Date(Date.UTC(year, month - 1, day));
   cursor.setUTCDate(cursor.getUTCDate() + 1);
   return cursor.toISOString().slice(0, 10);
+}
+
+/**
+ * Half-open instant range for civil `YYYY-MM-DD` bounds. A side that is not a
+ * date is omitted. The end is the next civil midnight.
+ */
+export function civilInstantRange(
+  from: string | null | undefined,
+  to: string | null | undefined,
+  zone: string,
+): { gte?: Date; lt?: Date } {
+  const range: { gte?: Date; lt?: Date } = {};
+  if (from && /^\d{4}-\d{2}-\d{2}/.test(from)) {
+    range.gte = civilDayBounds(from.slice(0, 10), zone).start;
+  }
+  if (to && /^\d{4}-\d{2}-\d{2}/.test(to)) {
+    range.lt = civilDayBounds(to.slice(0, 10), zone).end;
+  }
+  return range;
+}
+
+/** `datetime-local` value for an instant in a zone. Empty when the zone is missing. */
+export function civilDatetimeLocalValue(
+  value: Date | string | null | undefined,
+  zone: string | null | undefined,
+): string {
+  if (value == null || value === '') return '';
+  const day = civilDateInZone(value, zone);
+  const time = civilTimeInZone(value, zone);
+  if (!CIVIL_DATE.test(day) || !/^\d{2}:\d{2}$/.test(time)) return '';
+  return `${day}T${time}`;
+}
+
+/** Instant for a `datetime-local` value. The fields are civil in the given zone. */
+export function instantFromDatetimeLocal(value: string, zone: string): Date {
+  const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(value);
+  if (!match) throw new RangeError('CIVIL_DATE_TIME_REQUIRED');
+  return instantFromCivilDateTime(match[1], match[2], zone);
+}
+
+/**
+ * Last millisecond of a civil day. A date-only expiry stays valid through that day
+ * and still displays that calendar day.
+ */
+export function inclusiveEndOfCivilDay(civilDate: string, zone: string): Date {
+  return new Date(civilDayBounds(civilDate, zone).end.getTime() - 1);
+}
+
+/** 31 December of the civil year that contains `now` in the given zone. */
+export function civilYearEndDate(now: Date, zone: string | null | undefined): string {
+  const day = civilDateInZone(now, zone);
+  return day ? `${day.slice(0, 4)}-12-31` : '';
 }
 
 /** Instant for a civil date and HH:mm in a zone. A gap uses the corrected offset. */

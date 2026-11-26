@@ -17,6 +17,9 @@ import { addVoucherLineAction, deleteDraftVoucherLineAction } from '@/app/action
 import { VOUCHER_TYPE, VOUCHER_DIRECTION, PARTY_TYPE, VOUCHER_STATUS } from '@/lib/constants/voucher';
 import { createBizVoucherSchema } from '@/lib/validators/voucher-validators';
 import { useMessage } from '@ui/feedback/useMessage';
+import { CmxSummaryMessage } from '@ui/feedback';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { useCivilTodayDefault } from '@/lib/hooks/use-civil-today';
 import type {
   CreateVoucherLineInput,
   VoucherDirection,
@@ -81,6 +84,8 @@ export function NewVoucherClient() {
   const [partyName, setPartyName] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
+  const { organization, isPending: zonePending } = useOperationalZones('ledger', []);
+  const [voucherDate, setVoucherDate] = useCivilTodayDefault(organization);
   const [headerError,  setHeaderError]  = useState<string | null>(null);
   const [fieldErrors,  setFieldErrors]  = useState<Record<string, string | undefined>>({});
 
@@ -114,6 +119,10 @@ export function NewVoucherClient() {
     e.preventDefault();
     setHeaderError(null);
     setFieldErrors({});
+    if (!voucherDate) {
+      setHeaderError(t('timezoneNotConfigured'));
+      return;
+    }
 
     const parsedTotal = parseFloat(totalAmountStr);
     const payload = {
@@ -123,7 +132,7 @@ export function NewVoucherClient() {
       party_name:    partyName   || undefined,
       description:   description || undefined,
       notes:         notes       || undefined,
-      voucher_date:  new Date().toISOString().split('T')[0],
+      voucher_date:  voucherDate,
       total_amount:  parsedTotal > 0 ? parsedTotal : undefined,
     };
 
@@ -284,6 +293,9 @@ export function NewVoucherClient() {
             {headerError}
           </div>
         )}
+        {!zonePending && !organization ? (
+          <CmxSummaryMessage type="warning" message={t('timezoneNotConfigured')} />
+        ) : null}
 
         <CmxCard>
           <CmxCardHeader>
@@ -329,6 +341,16 @@ export function NewVoucherClient() {
                   </CmxButton>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <Label className="mb-1.5 block">{t('voucherDate')}</Label>
+              <CmxInput
+                type="date"
+                value={voucherDate}
+                onChange={(event) => setVoucherDate(event.target.value)}
+                dir="ltr"
+              />
             </div>
 
             {/* Declared Total */}

@@ -1,0 +1,80 @@
+{
+ "tzdb": "2026f",
+ "cldr": "49",
+ "canonical": 419,
+ "aliases": 117,
+ "countries": 249,
+ "spot": {
+  "OM": "  ('OM', 'H12', 6, 'h', 'sat', 'CLDR 49 supplemental timeData[OM]+weekData firstDay[OM]')",
+  "SA": "  ('SA', 'H12', 0, 'h', 'sun', 'CLDR 49 supplemental timeData[SA]+weekData firstDay[SA]')",
+  "AE": "  ('AE', 'H12', 1, 'h', 'mon', 'CLDR 49 supplemental timeData[AE]+weekData firstDay[AE]')",
+  "US": "  ('US', 'H12', 0, 'h', 'sun', 'CLDR 49 supplemental timeData[US]+weekData firstDay[US]')",
+  "DE": "  ('DE', 'H23', 1, 'H', 'mon', 'CLDR 49 supplemental timeData[DE]+weekData firstDay[DE]')",
+  "MV": "  ('MV', 'H23', 5, 'H', 'fri', 'CLDR 49 supplemental timeData[MV]+weekData firstDay[MV]')",
+  "KW": "  ('KW', 'H12', 6, 'h', 'sat', 'CLDR 49 supplemental timeData[KW]+weekData firstDay[KW]')",
+  "EG": "  ('EG', 'H12', 6, 'h', 'sat', 'CLDR 49 supplemental timeData[EG]+weekData firstDay[EG]')",
+  "IN": "  ('IN', 'H12', 0, 'h', 'sun', 'CLDR 49 supplemental timeData[IN]+weekData firstDay[IN]')",
+  "GB": "  ('GB', 'H23', 1, 'H', 'mon', 'CLDR 49 supplemental timeData[GB]+weekData firstDay[GB]')"
+ },
+ "names": {
+  "Asia/Muscat": [
+   "Gulf Standard Time (Muscat)",
+   "توقيت الخليج (مسقط)"
+  ],
+  "Asia/Riyadh": [
+   "Arabian Time (Riyadh)",
+   "التوقيت العربي (الرياض)"
+  ],
+  "America/New_York": [
+   "Eastern Time (New York)",
+   "التوقيت الشرقي لأمريكا الشمالية (نيويورك)"
+  ],
+  "Asia/Kolkata": [
+   "India Standard Time (Kolkata)",
+   "توقيت الهند (كالكتا)"
+  ],
+  "Europe/Kyiv": [
+   "Eastern European Time (Kyiv)",
+   "توقيت شرق أوروبا (كييف)"
+  ],
+  "UTC": [
+   "Coordinated Universal Time",
+   "التوقيت العالمي المنسق"
+  ],
+  "Asia/Kathmandu": [
+   "Nepal Time (Kathmandu)",
+   "توقيت نيبال (كاتماندو)"
+  ],
+  "Africa/Casablanca": [
+   "Western European Time (Casablanca)",
+   "توقيت غرب أوروبا (الدار البيضاء)"
+  ]
+ },
+ "off": {
+  "Europe/Dublin": [
+   60,
+   0,
+   true
+  ],
+  "Africa/Casablanca": [
+   60,
+   0,
+   true
+  ],
+  "Australia/Lord_Howe": [
+   630,
+   660,
+   true
+  ],
+  "America/St_Johns": [
+   -210,
+   -150,
+   true
+  ],
+  "Asia/Kathmandu": [
+   345,
+   345,
+   false
+  ]
+ }
+}

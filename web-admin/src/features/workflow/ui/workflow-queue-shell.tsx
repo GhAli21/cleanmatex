@@ -19,6 +19,7 @@ import { CmxCodeSearchInput, type CodeSearchSubmit } from '@ui/forms/cmx-code-se
 import { CmxPagination } from '@ui/navigation';
 import { CmxButton, CmxSelect, CmxSkeleton, CmxSkeletonTable } from '@ui/primitives';
 import { cn } from '@/lib/utils';
+import { civilDateInZone, formatInstantOrEmpty } from '@/lib/utils/operational-time';
 
 export interface WorkflowQueueKpi {
   key: string;
@@ -86,36 +87,35 @@ export interface WorkflowQueueShellProps {
 
 export type QueueSlaState = 'overdue' | 'dueSoon' | 'today' | null;
 
-/** Computes SLA urgency from an order's ready-by timestamp. */
-export function getQueueSlaState(readyByAt?: string | null, nowMs: number = Date.now()): QueueSlaState {
+/**
+ * SLA urgency from the promised Ready By instant.
+ * Overdue and due-soon compare instants. "Today" is the civil day in the fulfilment branch zone.
+ */
+export function getQueueSlaState(
+  readyByAt?: string | null,
+  nowMs: number = Date.now(),
+  zone?: string | null,
+): QueueSlaState {
   if (!readyByAt) return null;
   const due = new Date(readyByAt);
   if (Number.isNaN(due.getTime())) return null;
   const diffMs = due.getTime() - nowMs;
   if (diffMs < 0) return 'overdue';
   if (diffMs <= 2 * 60 * 60 * 1000) return 'dueSoon';
-  const now = new Date(nowMs);
-  if (
-    due.getFullYear() === now.getFullYear() &&
-    due.getMonth() === now.getMonth() &&
-    due.getDate() === now.getDate()
-  ) {
-    return 'today';
-  }
+  const dueDay = civilDateInZone(readyByAt, zone);
+  const today = civilDateInZone(new Date(nowMs), zone);
+  if (dueDay && dueDay === today) return 'today';
   return null;
 }
 
-/** Formats an ISO timestamp using the active locale. */
-export function formatQueueDateTime(value: string | null | undefined, locale: string): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date);
+/** Formats a Ready By instant in the fulfilment branch zone. A missing zone shows no clock. */
+export function formatQueueDateTime(
+  value: string | null | undefined,
+  locale: string,
+  zone?: string | null,
+): string | null {
+  const label = formatInstantOrEmpty(value, zone, locale === 'ar' ? 'ar' : 'en');
+  return label || null;
 }
 
 /** Shared SLA + Priority + Issue badges for workflow queue cards and rows. */
@@ -126,6 +126,7 @@ export function WorkflowQueueOrderBadges({
   hasStain,
   hasDamage,
   nowMs,
+  opsZone,
 }: {
   readyByAt?: string | null;
   priority?: string | null;
@@ -133,9 +134,10 @@ export function WorkflowQueueOrderBadges({
   hasStain?: boolean;
   hasDamage?: boolean;
   nowMs: number;
+  opsZone?: string | null;
 }) {
   const tTable = useTranslations('processing.table');
-  const slaState = getQueueSlaState(readyByAt, nowMs);
+  const slaState = getQueueSlaState(readyByAt, nowMs, opsZone);
   const normalizedPriority = String(priority ?? '').trim().toLowerCase();
 
   const priorityBadge: { label: string; tone: CmxBadgeTone } | null =

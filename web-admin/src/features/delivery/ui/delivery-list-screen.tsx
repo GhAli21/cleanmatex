@@ -28,6 +28,8 @@ import { CmxStatusBadge, CmxSummaryMessage, type CmxBadgeTone } from '@ui/feedba
 import { CmxCodeSearchInput, type CodeSearchSubmit } from '@ui/forms/cmx-code-search-input';
 import { CmxPagination, CmxTabsPanel } from '@ui/navigation';
 import { CmxButton, CmxSkeleton } from '@ui/primitives';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { civilDateInZone, civilRangeQuery, formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
 
 interface DeliveryOrderRecord {
@@ -75,6 +77,8 @@ interface DeliveryRoute {
   completed_stops?: number;
   createdAt?: string | null;
   created_at?: string | null;
+  branchId?: string | null;
+  branch_id?: string | null;
 }
 
 function statusI18nKey(status: string): string {
@@ -122,6 +126,7 @@ export function DeliveryListScreen() {
   const tFocus = useTranslations('processing.focus');
   const tCommon = useTranslations('common');
   const locale = useLocale();
+  const { organization: deliveryOrgZone } = useOperationalZones('delivery', []);
   const router = useRouter();
   const { currentTenant } = useAuth();
   const { formatMoneyWithCode } = useTenantCurrency();
@@ -201,23 +206,22 @@ export function DeliveryListScreen() {
   );
 
   const startOfTodayIso = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString();
-  }, []);
+    const day = civilDateInZone(new Date(), deliveryOrgZone);
+    return civilRangeQuery(day, day, deliveryOrgZone)?.start ?? null;
+  }, [deliveryOrgZone]);
 
   const { data: deliveredTodayResp } = useQuery<{
     success: boolean;
     data?: { orders: unknown[]; pagination: { total: number } };
   }>({
     queryKey: ['delivery', 'delivered-today', startOfTodayIso],
-    enabled: !!currentTenant,
+    enabled: !!currentTenant && !!startOfTodayIso,
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set('status_filter', 'delivered');
       params.set('page', '1');
       params.set('limit', '1');
-      params.set('updated_after', startOfTodayIso);
+      params.set('updated_after', startOfTodayIso ?? '');
       const res = await fetch(`/api/v1/orders?${params.toString()}`);
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -260,6 +264,10 @@ export function DeliveryListScreen() {
   });
 
   const routes = routesResp?.data?.routes ?? [];
+  const { zoneFor } = useOperationalZones(
+    'delivery',
+    routes.map((route) => route.branchId ?? route.branch_id),
+  );
   const routesPagination = routesResp?.data?.pagination ?? {
     page: routesPage,
     limit: 10,
@@ -460,9 +468,7 @@ export function DeliveryListScreen() {
             const totalStops = r.totalStops ?? r.total_stops ?? 0;
             const completedStops = r.completedStops ?? r.completed_stops ?? 0;
             const createdAt = r.createdAt ?? r.created_at ?? null;
-            const formattedDate = createdAt
-              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(createdAt))
-              : '—';
+            const formattedDate = formatInstantOrEmpty(createdAt, zoneFor(r.branchId ?? r.branch_id), locale) || '—';
 
             return (
               <CmxCard key={r.id}>

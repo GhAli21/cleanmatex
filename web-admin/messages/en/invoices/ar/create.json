@@ -72,6 +72,8 @@
     "currencyInvalid": "Currency code must be a valid 3-letter code.",
     "orderIdsRequired": "Provide at least one order ID for order-based issuance.",
     "lineDescriptionRequired": "Each manual line must have a description.",
-    "quantityInvalid": "Each manual line must have a quantity greater than zero."
+    "quantityInvalid": "Each manual line must have a quantity greater than zero.",
+    "datesRequired": "Choose an invoice date and a due date.",
+    "timezoneNotConfigured": "No time zone is set for this organization, so a date cannot be chosen. Ask an administrator to set one."
   }
 }

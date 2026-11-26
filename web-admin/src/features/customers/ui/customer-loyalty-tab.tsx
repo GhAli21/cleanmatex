@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
+import { CmxDataTable } from '@ui/data-display';
 import { CmxSkeleton } from '@ui/primitives';
 
 import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
@@ -22,6 +23,8 @@ import {
   getCustomerLoyaltyDetail,
   type CustomerLoyaltyDetail,
 } from '@/app/actions/customers/loyalty-actions';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { formatInstantOrEmpty, formatStoredClockLabel } from '@/lib/utils/operational-time';
 
 interface Props {
   customerId: string;
@@ -43,6 +46,7 @@ const TXN_BADGE_VARIANT: Record<string, 'success' | 'warning' | 'danger' | 'neut
 export function CustomerLoyaltyTab({ customerId }: Props) {
   const t = useTranslations('customers.loyaltyPanel');
   const locale = useLocale();
+  const { organization } = useOperationalZones('invoice', []);
 
   const [detail, setDetail] = useState<CustomerLoyaltyDetail | null>(null);
   const [isLoading, setLoading] = useState(true);
@@ -60,21 +64,12 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
 
   useEffect(() => { void load(); }, [load]);
 
+  const clockLocale = locale === 'ar' ? 'ar' : 'en';
   const formatDate = (value: string | Date) =>
-    new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }).format(new Date(value));
+    formatStoredClockLabel(value, organization, clockLocale) || '—';
 
   const formatDateTime = (value: string | Date) =>
-    new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(value));
+    formatInstantOrEmpty(value, organization, clockLocale) || '—';
 
   const txnTypeLabel = (type: string) => {
     const tRaw = t as unknown as (key: string) => string;
@@ -173,42 +168,56 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
                   <p className="text-sm text-muted-foreground">{t('noTransactionsHint')}</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border">
-                    <thead>
-                      <tr>
-                        <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-start">{t('columns.date')}</th>
-                        <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-start">{t('columns.type')}</th>
-                        <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-end">{t('columns.points')}</th>
-                        <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-end">{t('columns.balanceAfter')}</th>
-                        <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-start">{t('columns.reference')}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {transactions.map((row) => (
-                        <tr key={row.id}>
-                          <td className="px-4 py-3 text-sm text-foreground text-start">
-                            {formatDateTime(row.createdAt)}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-start">
-                            <CmxStatusBadge size="sm" tone={TXN_BADGE_VARIANT[row.txnType] ?? 'neutral'}>
-                              {txnTypeLabel(row.txnType)}
-                            </CmxStatusBadge>
-                          </td>
-                          <td className={`px-4 py-3 text-sm font-medium tabular-nums ${row.points >= 0 ? 'text-success-text' : 'text-danger-text'} text-end`}>
-                            {row.points >= 0 ? '+' : ''}{row.points.toLocaleString()}
-                          </td>
-                          <td className="px-4 py-3 text-sm tabular-nums text-foreground text-end">
-                            {row.pointsAfter.toLocaleString()}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground text-start">
-                            {row.notes || row.orderId || '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <CmxDataTable
+                  columns={[
+                    {
+                      key: 'date',
+                      header: t('columns.date'),
+                      sortable: false,
+                      render: (row: CustomerLoyaltyDetail['transactions'][number]) => formatDateTime(row.createdAt),
+                    },
+                    {
+                      key: 'type',
+                      header: t('columns.type'),
+                      sortable: false,
+                      render: (row: CustomerLoyaltyDetail['transactions'][number]) => (
+                        <CmxStatusBadge size="sm" tone={TXN_BADGE_VARIANT[row.txnType] ?? 'neutral'}>
+                          {txnTypeLabel(row.txnType)}
+                        </CmxStatusBadge>
+                      ),
+                    },
+                    {
+                      key: 'points',
+                      header: t('columns.points'),
+                      sortable: false,
+                      align: 'end',
+                      render: (row: CustomerLoyaltyDetail['transactions'][number]) => (
+                        <span className={row.points >= 0 ? 'text-success-text' : 'text-danger-text'}>
+                          {row.points >= 0 ? '+' : ''}{row.points.toLocaleString()}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'balance',
+                      header: t('columns.balanceAfter'),
+                      sortable: false,
+                      align: 'end',
+                      render: (row: CustomerLoyaltyDetail['transactions'][number]) => row.pointsAfter.toLocaleString(),
+                    },
+                    {
+                      key: 'reference',
+                      header: t('columns.reference'),
+                      sortable: false,
+                      render: (row: CustomerLoyaltyDetail['transactions'][number]) => row.notes || row.orderId || '—',
+                    },
+                  ]}
+                  data={transactions}
+                  totalCount={transactions.length}
+                  currentPage={1}
+                  pageSize={transactions.length || 1}
+                  onPageChange={() => undefined}
+                  paginationFooter="never"
+                />
               )}
             </CmxCardContent>
           </CmxCard>

@@ -403,7 +403,7 @@ model org_branches_mst {
   name                                                                                         String?
   name2                                                                                        String?
   is_main                                                                                      Boolean?                          @default(false)
-  s_date                                                                                       DateTime?                         @default(now()) @db.Timestamp(6)
+  s_date                                                                                       DateTime?                         @default(now()) @db.Timestamptz(6)
   phone                                                                                        String?                           @db.VarChar(50)
   email                                                                                        String?                           @db.VarChar(255)
   type                                                                                         String?                           @default("walk_in") @db.VarChar(20)
@@ -420,10 +420,10 @@ model org_branches_mst {
   rec_status                                                                                   Int?                              @default(1) @db.SmallInt
   is_active                                                                                    Boolean                           @default(true)
   rec_notes                                                                                    String?                           @db.VarChar(200)
-  created_at                                                                                   DateTime?                         @default(now()) @db.Timestamp(6)
+  created_at                                                                                   DateTime?                         @default(now()) @db.Timestamptz(6)
   created_by                                                                                   String?                           @db.VarChar(120)
   created_info                                                                                 String?
-  updated_at                                                                                   DateTime?                         @db.Timestamp(6)
+  updated_at                                                                                   DateTime?                         @db.Timestamptz(6)
   updated_by                                                                                   String?                           @db.VarChar(120)
   updated_info                                                                                 String?
   tax_pricing_mode                                                                             String?
@@ -434,6 +434,7 @@ model org_branches_mst {
   ready_time                                                                                   DateTime?                         @db.Time(6)
   business_hours                                                                               Json?
   emirate_code                                                                                 String?
+  business_day_cutover                                                                         DateTime?                         @db.Time(6)
   org_ar_appr_policies_cf                                                                      org_ar_appr_policies_cf[]
   org_asm_exceptions_tr                                                                        org_asm_exceptions_tr[]
   org_asm_locations_mst                                                                        org_asm_locations_mst[]
@@ -518,9 +519,9 @@ model org_customer_addresses {
   longitude         Decimal?          @db.Decimal(11, 8)
   is_default        Boolean?          @default(false)
   delivery_notes    String?
-  created_at        DateTime?         @default(now()) @db.Timestamp(6)
+  created_at        DateTime?         @default(now()) @db.Timestamptz(6)
   created_by        String?           @db.VarChar(120)
-  updated_at        DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at        DateTime?         @default(now()) @db.Timestamptz(6)
   updated_by        String?           @db.VarChar(120)
   is_active         Boolean?          @default(true)
   created_info      String?
@@ -547,10 +548,10 @@ model org_customer_merge_log {
   merge_reason          String?
   orders_moved          Int?            @default(0)
   loyalty_points_merged Int?            @default(0)
-  created_at            DateTime?       @default(now()) @db.Timestamp(6)
+  created_at            DateTime?       @default(now()) @db.Timestamptz(6)
   created_by            String?
   created_info          String?
-  updated_at            DateTime?       @db.Timestamp(6)
+  updated_at            DateTime?       @db.Timestamptz(6)
   updated_by            String?
   updated_info          String?
   rec_status            Int?            @default(1) @db.SmallInt
@@ -585,16 +586,16 @@ model org_customers_mst {
   floor                      String?
   preferences                Json?                        @default("{}")
   customer_source_type       String                       @default("DIRECT")
-  s_date                     DateTime                     @default(now()) @db.Timestamp(6)
+  s_date                     DateTime                     @default(now()) @db.Timestamptz(6)
   loyalty_points             Int?                         @default(0)
   rec_order                  Int?
   rec_status                 Int?                         @default(1) @db.SmallInt
   is_active                  Boolean                      @default(true)
   rec_notes                  String?
-  created_at                 DateTime?                    @default(now()) @db.Timestamp(6)
+  created_at                 DateTime?                    @default(now()) @db.Timestamptz(6)
   created_by                 String?                      @db.Uuid
   created_info               String?
-  updated_at                 DateTime?                    @db.Timestamp(6)
+  updated_at                 DateTime?                    @db.Timestamptz(6)
   updated_by                 String?                      @db.Uuid
   updated_info               String?
   company_name               String?                      @db.VarChar(255)
@@ -660,10 +661,10 @@ model org_customer_category_cf {
   is_individual            Boolean                   @default(true)
   display_order            Int?                      @default(0)
   is_active                Boolean                   @default(true)
-  created_at               DateTime?                 @default(now()) @db.Timestamp(6)
+  created_at               DateTime?                 @default(now()) @db.Timestamptz(6)
   created_by               String?                   @db.VarChar(120)
   created_info             String?
-  updated_at               DateTime?                 @db.Timestamp(6)
+  updated_at               DateTime?                 @db.Timestamptz(6)
   updated_by               String?                   @db.VarChar(120)
   updated_info             String?
   rec_status               Int?                      @default(1) @db.SmallInt
@@ -718,14 +719,14 @@ model org_invoice_mst {
   due_date                       DateTime?                        @db.Date
   payment_method_code            String?                          @db.VarChar(50)
   paid_amount                    Decimal?                         @default(0) @db.Decimal(19, 4)
-  paid_at                        DateTime?                        @db.Timestamp(6)
+  paid_at                        DateTime?                        @db.Timestamptz(6)
   paid_by                        String?                          @db.VarChar(255)
   metadata                       Json?
   rec_notes                      String?                          @db.VarChar(1000)
-  created_at                     DateTime                         @default(now()) @db.Timestamp(6)
+  created_at                     DateTime                         @default(now()) @db.Timestamptz(6)
   created_by                     String?                          @db.VarChar(120)
   created_info                   String?
-  updated_at                     DateTime?                        @db.Timestamp(6)
+  updated_at                     DateTime?                        @db.Timestamptz(6)
   updated_by                     String?                          @db.VarChar(120)
   updated_info                   String?
   currency_code                  String                           @db.VarChar(3)
@@ -750,7 +751,7 @@ model org_invoice_mst {
   paid_by_name                   String?                          @db.VarChar(255)
   handed_to_name                 String?                          @db.VarChar(255)
   handed_to_mobile_no            String?                          @db.VarChar(50)
-  handed_to_date                 DateTime?                        @db.Timestamp(6)
+  handed_to_date                 DateTime?                        @db.Timestamptz(6)
   handed_to_by_user              String?                          @db.Uuid
   rec_status                     Int?                             @default(1) @db.SmallInt
   is_active                      Boolean?                         @default(true)
@@ -833,7 +834,7 @@ model org_order_items_dtl {
   has_stain                       Boolean?
   has_damage                      Boolean?
   metadata                        Json?                             @default("{}")
-  created_at                      DateTime?                         @default(now()) @db.Timestamp(6)
+  created_at                      DateTime?                         @default(now()) @db.Timestamptz(6)
   product_name                    String?                           @db.VarChar(250)
   product_name2                   String?                           @db.VarChar(250)
   stain_notes                     String?
@@ -850,7 +851,7 @@ model org_order_items_dtl {
   override_reason                 String?
   override_by                     String?                           @db.Uuid
   created_info                    String?
-  updated_at                      DateTime?                         @db.Timestamp(6)
+  updated_at                      DateTime?                         @db.Timestamptz(6)
   updated_by                      String?
   updated_info                    String?
   rec_status                      Int?                              @default(1) @db.SmallInt
@@ -1058,13 +1059,13 @@ model org_order_status_history {
   to_status       String          @db.VarChar(50)
   changed_by      String?         @db.Uuid
   changed_by_name String?         @db.VarChar(255)
-  changed_at      DateTime?       @default(now()) @db.Timestamp(6)
+  changed_at      DateTime?       @default(now()) @db.Timestamptz(6)
   notes           String?
   metadata        Json?           @default("{}")
-  created_at      DateTime?       @default(now()) @db.Timestamp(6)
+  created_at      DateTime?       @default(now()) @db.Timestamptz(6)
   created_by      String?
   created_info    String?
-  updated_at      DateTime?       @db.Timestamp(6)
+  updated_at      DateTime?       @db.Timestamptz(6)
   updated_by      String?
   updated_info    String?
   rec_status      Int?            @default(1) @db.SmallInt
@@ -1097,18 +1098,18 @@ model org_orders_mst {
   total_items                                                                     Int?                              @default(0)
   payment_status                                                                  String?                           @default("pending") @db.VarChar(20)
   payment_method_code                                                             String?                           @db.VarChar(50)
-  paid_at                                                                         DateTime?                         @db.Timestamp(6)
+  paid_at                                                                         DateTime?                         @db.Timestamptz(6)
   paid_by                                                                         String?                           @db.VarChar(255)
   payment_notes                                                                   String?
-  received_at                                                                     DateTime?                         @db.Timestamp(6)
+  received_at                                                                     DateTime?                         @db.Timestamptz(6)
   ready_at                                                                        DateTime?                         @db.Timestamptz(6)
-  delivered_at                                                                    DateTime?                         @db.Timestamp(6)
+  delivered_at                                                                    DateTime?                         @db.Timestamptz(6)
   customer_notes                                                                  String?
   internal_notes                                                                  String?
-  created_at                                                                      DateTime?                         @default(now()) @db.Timestamp(6)
-  updated_at                                                                      DateTime?                         @default(now()) @db.Timestamp(6)
+  created_at                                                                      DateTime?                         @default(now()) @db.Timestamptz(6)
+  updated_at                                                                      DateTime?                         @default(now()) @db.Timestamptz(6)
   preparation_status                                                              String?                           @default("pending") @db.VarChar(20)
-  prepared_at                                                                     DateTime?                         @db.Timestamp(6)
+  prepared_at                                                                     DateTime?                         @db.Timestamptz(6)
   prepared_by                                                                     String?                           @db.Uuid
   priority_multiplier                                                             Decimal?                          @default(1.0) @db.Decimal(4, 2)
   bag_count                                                                       Int?                              @default(1)
@@ -1165,7 +1166,7 @@ model org_orders_mst {
   cost_center_code                                                                String?                           @db.VarChar(50)
   po_number                                                                       String?                           @db.VarChar(100)
   credit_limit_override_by                                                        String?
-  credit_limit_override_at                                                        DateTime?                         @db.Timestamp(6)
+  credit_limit_override_at                                                        DateTime?                         @db.Timestamptz(6)
   order_source_code                                                               String                            @default("legacy_unknown") @db.VarChar(64)
   physical_intake_status                                                          String                            @default("received") @db.VarChar(30)
   physical_intake_at                                                              DateTime?                         @db.Timestamptz(6)
@@ -1366,10 +1367,10 @@ model org_order_edit_locks {
   session_id      String?
   ip_address      String?
   user_agent      String?
-  created_at      DateTime?       @default(now()) @db.Timestamp(6)
+  created_at      DateTime?       @default(now()) @db.Timestamptz(6)
   created_by      String?
   created_info    String?
-  updated_at      DateTime?       @db.Timestamp(6)
+  updated_at      DateTime?       @db.Timestamptz(6)
   updated_by      String?
   updated_info    String?
   rec_status      Int?            @default(1) @db.SmallInt
@@ -1538,10 +1539,10 @@ model org_product_data_mst {
   rec_order                 Int?
   rec_notes                 String?
   rec_status                Int?                        @default(1) @db.SmallInt
-  created_at                DateTime?                   @default(now()) @db.Timestamp(6)
+  created_at                DateTime?                   @default(now()) @db.Timestamptz(6)
   created_by                String?
   created_info              String?
-  updated_at                DateTime?                   @db.Timestamp(6)
+  updated_at                DateTime?                   @db.Timestamptz(6)
   updated_by                String?
   updated_info              String?
   item_type_code            String?                     @db.VarChar(50)
@@ -1596,10 +1597,10 @@ model org_service_category_cf {
   rec_order                               Int?                                     @default(1)
   rec_notes                               String?
   rec_status                              Int?                                     @default(1) @db.SmallInt
-  created_at                              DateTime                                 @default(now()) @db.Timestamp(6)
+  created_at                              DateTime                                 @default(now()) @db.Timestamptz(6)
   created_by                              String?
   created_info                            String?
-  updated_at                              DateTime?                                @db.Timestamp(6)
+  updated_at                              DateTime?                                @db.Timestamptz(6)
   updated_by                              String?
   updated_info                            String?
   org_order_item_pieces_dtl               org_order_item_pieces_dtl[]
@@ -1633,8 +1634,8 @@ model org_tenants_mst {
   language                         String?                            @default("en") @db.VarChar(5)
   is_active                        Boolean?                           @default(true)
   status                           String?                            @default("trial") @db.VarChar(20)
-  created_at                       DateTime?                          @default(now()) @db.Timestamp(6)
-  updated_at                       DateTime?                          @default(now()) @db.Timestamp(6)
+  created_at                       DateTime?                          @default(now()) @db.Timestamptz(6)
+  updated_at                       DateTime?                          @default(now()) @db.Timestamptz(6)
   logo_url                         String?                            @db.VarChar(500)
   business_hours                   Json?                              @default("{\"fri\": {\"open\": \"09:00\", \"close\": \"17:00\"}, \"mon\": {\"open\": \"09:00\", \"close\": \"17:00\"}, \"sat\": null, \"sun\": null, \"thu\": {\"open\": \"09:00\", \"close\": \"17:00\"}, \"tue\": {\"open\": \"09:00\", \"close\": \"17:00\"}, \"wed\": {\"open\": \"09:00\", \"close\": \"17:00\"}}")
   feature_flags                    Json?                              @default("{\"printing\": false, \"api_access\": false, \"driver_app\": false, \"white_label\": false, \"multi_branch\": false, \"pdf_invoices\": false, \"b2b_contracts\": false, \"in_app_receipts\": false, \"loyalty_programs\": false, \"whatsapp_receipts\": true, \"advanced_analytics\": false, \"marketplace_listings\": false}")
@@ -1673,6 +1674,7 @@ model org_tenants_mst {
   calendar_template_code           String?
   starter_pkg_code                 String?
   logo_dark_url                    String?
+  business_day_cutover             DateTime?                          @db.Time(6)
   cmx_effective_permissions        cmx_effective_permissions[] @ignore
   hq_tenant_status_history         hq_tenant_status_history[]
   org_advance_txn_dtl              org_advance_txn_dtl[]
@@ -1891,8 +1893,8 @@ model org_usage_tracking {
   branches_count  Int?            @default(0)
   storage_mb      Decimal?        @default(0) @db.Decimal(10, 2)
   api_calls       Int?            @default(0)
-  created_at      DateTime?       @default(now()) @db.Timestamp(6)
-  updated_at      DateTime?       @default(now()) @db.Timestamp(6)
+  created_at      DateTime?       @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?       @default(now()) @db.Timestamptz(6)
   created_by      String?
   created_info    String?
   updated_by      String?
@@ -1932,13 +1934,13 @@ model org_users_mst {
   building                     String?
   floor                        String?
   is_user                      Boolean                        @default(true)
-  last_login_at                DateTime?                      @db.Timestamp(6)
+  last_login_at                DateTime?                      @db.Timestamptz(6)
   login_count                  Int?                           @default(0)
   preferences                  Json?                          @default("{}")
-  created_at                   DateTime?                      @default(now()) @db.Timestamp(6)
+  created_at                   DateTime?                      @default(now()) @db.Timestamptz(6)
   created_by                   String?
   created_info                 String?
-  updated_at                   DateTime?                      @db.Timestamp(6)
+  updated_at                   DateTime?                      @db.Timestamptz(6)
   updated_by                   String?
   updated_info                 String?
   rec_status                   Int?                           @default(1) @db.SmallInt
@@ -1983,8 +1985,8 @@ model org_workflow_rules {
   is_allowed       Boolean?        @default(true)
   requires_role    String?         @db.VarChar(50)
   validation_rules Json?           @default("{}")
-  created_at       DateTime?       @default(now()) @db.Timestamp(6)
-  updated_at       DateTime?       @db.Timestamp(6)
+  created_at       DateTime?       @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?       @db.Timestamptz(6)
   created_by       String?
   created_info     String?
   updated_by       String?
@@ -2010,8 +2012,8 @@ model org_workflow_settings_cf {
   status_transitions      Json                     @default("{}")
   quality_gate_rules      Json?                    @default("{}")
   is_active               Boolean?                 @default(true)
-  created_at              DateTime?                @default(now()) @db.Timestamp(6)
-  updated_at              DateTime?                @db.Timestamp(6)
+  created_at              DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime?                @db.Timestamptz(6)
   created_by              String?                  @db.Uuid
   updated_by              String?                  @db.Uuid
   created_info            String?
@@ -2145,10 +2147,10 @@ model org_tenant_order_sources_cf {
   tenant_org_id        String               @db.Uuid
   order_source_code    String               @db.VarChar(64)
   is_allowed           Boolean              @default(true)
-  created_at           DateTime?            @default(now()) @db.Timestamp(6)
+  created_at           DateTime?            @default(now()) @db.Timestamptz(6)
   created_by           String?
   created_info         String?
-  updated_at           DateTime?            @db.Timestamp(6)
+  updated_at           DateTime?            @db.Timestamptz(6)
   updated_by           String?
   updated_info         String?
   rec_status           Int?                 @default(1) @db.SmallInt
@@ -2169,13 +2171,13 @@ model sys_otp_codes {
   phone        String    @db.VarChar(50)
   code         String
   purpose      String    @db.VarChar(20)
-  expires_at   DateTime  @db.Timestamp(6)
-  verified_at  DateTime? @db.Timestamp(6)
+  expires_at   DateTime  @db.Timestamptz(6)
+  verified_at  DateTime? @db.Timestamptz(6)
   attempts     Int?      @default(0)
-  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
   created_by   String?
   created_info String?
-  updated_at   DateTime? @db.Timestamp(6)
+  updated_at   DateTime? @db.Timestamptz(6)
   updated_by   String?
   updated_info String?
   rec_status   Int?      @default(1) @db.SmallInt
@@ -2278,7 +2280,7 @@ model org_order_history {
   created_at               DateTime?                 @default(now()) @db.Timestamptz(6)
   created_by               String?
   created_info             String?
-  updated_at               DateTime?                 @db.Timestamp(6)
+  updated_at               DateTime?                 @db.Timestamptz(6)
   updated_by               String?
   updated_info             String?
   rec_status               Int?                      @default(1) @db.SmallInt
@@ -2317,7 +2319,7 @@ model org_order_issues {
   solved_notes                             String?
   metadata                                 Json?                      @default("{}")
   created_info                             String?
-  updated_at                               DateTime?                  @db.Timestamp(6)
+  updated_at                               DateTime?                  @db.Timestamptz(6)
   updated_by                               String?
   updated_info                             String?
   rec_status                               Int?                       @default(1) @db.SmallInt
@@ -2361,10 +2363,10 @@ model org_order_item_processing_steps {
   done_at             DateTime?           @default(now()) @db.Timestamptz(6)
   notes               String?
   metadata            Json?               @default("{}")
-  created_at          DateTime?           @default(now()) @db.Timestamp(6)
+  created_at          DateTime?           @default(now()) @db.Timestamptz(6)
   created_by          String?
   created_info        String?
-  updated_at          DateTime?           @db.Timestamp(6)
+  updated_at          DateTime?           @db.Timestamptz(6)
   updated_by          String?
   updated_info        String?
   rec_status          Int?                @default(1) @db.SmallInt
@@ -2397,10 +2399,10 @@ model org_price_list_items_dtl {
   discount_percent     Decimal?             @default(0) @db.Decimal(5, 2)
   min_quantity         Decimal?             @default(1) @db.Decimal(21, 6)
   max_quantity         Decimal?             @db.Decimal(21, 6)
-  created_at           DateTime?            @default(now()) @db.Timestamp(6)
+  created_at           DateTime?            @default(now()) @db.Timestamptz(6)
   created_by           String?              @db.VarChar(120)
   created_info         String?
-  updated_at           DateTime?            @db.Timestamp(6)
+  updated_at           DateTime?            @db.Timestamptz(6)
   updated_by           String?              @db.VarChar(120)
   updated_info         String?
   rec_status           Int?                 @default(1) @db.SmallInt
@@ -2432,10 +2434,10 @@ model org_price_lists_mst {
   effective_to              DateTime?                   @db.Date
   is_default                Boolean?                    @default(false)
   priority                  Int?                        @default(0)
-  created_at                DateTime?                   @default(now()) @db.Timestamp(6)
+  created_at                DateTime?                   @default(now()) @db.Timestamptz(6)
   created_by                String?                     @db.VarChar(120)
   created_info              String?
-  updated_at                DateTime?                   @db.Timestamp(6)
+  updated_at                DateTime?                   @db.Timestamptz(6)
   updated_by                String?                     @db.VarChar(120)
   updated_info              String?
   rec_status                Int?                        @default(1) @db.SmallInt
@@ -2673,10 +2675,10 @@ model org_gift_card_txn_dtl {
   processed_by                  String?                        @db.VarChar(120)
   metadata                      Json?
   branch_id                     String?                        @db.Uuid
-  created_at                    DateTime?                      @default(now()) @db.Timestamp(6)
+  created_at                    DateTime?                      @default(now()) @db.Timestamptz(6)
   created_by                    String?
   created_info                  String?
-  updated_at                    DateTime?                      @db.Timestamp(6)
+  updated_at                    DateTime?                      @db.Timestamptz(6)
   updated_by                    String?
   updated_info                  String?
   rec_status                    Int?                           @default(1) @db.SmallInt
@@ -2843,10 +2845,10 @@ model org_promotion_usage_dtl {
   used_at            DateTime           @default(now()) @db.Timestamptz(6)
   used_by            String?            @db.VarChar(120)
   metadata           Json?
-  created_at         DateTime?          @default(now()) @db.Timestamp(6)
+  created_at         DateTime?          @default(now()) @db.Timestamptz(6)
   created_by         String?
   created_info       String?
-  updated_at         DateTime?          @db.Timestamp(6)
+  updated_at         DateTime?          @db.Timestamptz(6)
   updated_by         String?
   updated_info       String?
   rec_status         Int?               @default(1) @db.SmallInt
@@ -3522,10 +3524,10 @@ model org_pln_change_history_tr {
   proration_invoice_id                                                                                         String?                   @db.Uuid
   change_reason                                                                                                String?
   effective_date                                                                                               DateTime                  @db.Date
-  created_at                                                                                                   DateTime?                 @default(now()) @db.Timestamp(6)
+  created_at                                                                                                   DateTime?                 @default(now()) @db.Timestamptz(6)
   created_by                                                                                                   String?                   @db.VarChar(120)
   created_info                                                                                                 String?
-  updated_at                                                                                                   DateTime?                 @db.Timestamp(6)
+  updated_at                                                                                                   DateTime?                 @db.Timestamptz(6)
   updated_by                                                                                                   String?
   updated_info                                                                                                 String?
   rec_status                                                                                                   Int?                      @default(1) @db.SmallInt
@@ -3557,26 +3559,26 @@ model org_pln_subscriptions_mst {
   current_period_end                                                                                           DateTime                    @db.Date
   trial_start                                                                                                  DateTime?                   @db.Date
   trial_end                                                                                                    DateTime?                   @db.Date
-  activated_at                                                                                                 DateTime?                   @db.Timestamp(6)
-  suspended_at                                                                                                 DateTime?                   @db.Timestamp(6)
-  cancelled_at                                                                                                 DateTime?                   @db.Timestamp(6)
+  activated_at                                                                                                 DateTime?                   @db.Timestamptz(6)
+  suspended_at                                                                                                 DateTime?                   @db.Timestamptz(6)
+  cancelled_at                                                                                                 DateTime?                   @db.Timestamptz(6)
   cancellation_reason                                                                                          String?
   discount_code                                                                                                String?                     @db.VarChar(50)
   discount_value                                                                                               Decimal?                    @db.Decimal(19, 4)
   discount_type                                                                                                String?                     @db.VarChar(20)
   discount_duration_months                                                                                     Int?
-  discount_applied_at                                                                                          DateTime?                   @db.Timestamp(6)
+  discount_applied_at                                                                                          DateTime?                   @db.Timestamptz(6)
   scheduled_plan_code                                                                                          String?                     @db.VarChar(50)
   scheduled_plan_change_date                                                                                   DateTime?                   @db.Date
-  plan_change_scheduled_at                                                                                     DateTime?                   @db.Timestamp(6)
-  plan_changed_at                                                                                              DateTime?                   @db.Timestamp(6)
+  plan_change_scheduled_at                                                                                     DateTime?                   @db.Timestamptz(6)
+  plan_changed_at                                                                                              DateTime?                   @db.Timestamptz(6)
   previous_plan_code                                                                                           String?                     @db.VarChar(50)
   default_payment_method_id                                                                                    String?                     @db.Uuid
   subscription_notes                                                                                           String?
-  created_at                                                                                                   DateTime?                   @default(now()) @db.Timestamp(6)
+  created_at                                                                                                   DateTime?                   @default(now()) @db.Timestamptz(6)
   created_by                                                                                                   String?                     @db.VarChar(120)
   created_info                                                                                                 String?
-  updated_at                                                                                                   DateTime?                   @db.Timestamp(6)
+  updated_at                                                                                                   DateTime?                   @db.Timestamptz(6)
   updated_by                                                                                                   String?                     @db.VarChar(120)
   updated_info                                                                                                 String?
   rec_status                                                                                                   Int?                        @default(1) @db.SmallInt
@@ -4278,6 +4280,10 @@ model sys_country_cd {
   updated_at                 DateTime?                   @db.Timestamp(6)
   updated_by                 String?                     @db.Uuid
   rec_status                 Int?                        @default(1) @db.SmallInt
+  default_hour_cycle         String?                     @db.VarChar(3)
+  default_week_start         Int?                        @db.SmallInt
+  cldr_version               String?                     @db.VarChar(10)
+  clock_defaults_source      String?
   hq_general_config          hq_general_config[]
   org_customers_mst          org_customers_mst[]
   org_fin_supp_mst           org_fin_supp_mst[]
@@ -5064,33 +5070,43 @@ model sys_service_prod_templates_cd {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_timezone_cd {
-  code               String              @id @db.VarChar(50)
-  name               String              @db.VarChar(250)
-  name2              String?             @db.VarChar(250)
-  description        String?
-  description2       String?
-  display_order      Int?                @default(0)
-  icon               String?             @db.VarChar(100)
-  color              String?             @db.VarChar(60)
-  utc_offset_hours   Int
-  utc_offset_minutes Int?                @default(0)
-  utc_offset_string  String?             @db.VarChar(10)
-  uses_dst           Boolean?            @default(false)
-  dst_start_rule     String?
-  dst_end_rule       String?
-  region             String?             @db.VarChar(50)
-  country_code       String?             @db.VarChar(2)
-  is_default         Boolean?            @default(false)
-  is_system          Boolean?            @default(true)
-  is_active          Boolean?            @default(true)
-  metadata           Json?
-  created_at         DateTime?           @default(now()) @db.Timestamp(6)
-  created_by         String?             @db.Uuid
-  updated_at         DateTime?           @db.Timestamp(6)
-  updated_by         String?             @db.Uuid
-  rec_status         Int?                @default(1) @db.SmallInt
-  hq_general_config  hq_general_config[]
-  org_branches_mst   org_branches_mst[]
+  code                  String              @id @db.VarChar(50)
+  name                  String              @db.VarChar(250)
+  name2                 String?             @db.VarChar(250)
+  description           String?
+  description2          String?
+  display_order         Int?                @default(0)
+  icon                  String?             @db.VarChar(100)
+  color                 String?             @db.VarChar(60)
+  utc_offset_hours      Int
+  utc_offset_minutes    Int?                @default(0)
+  utc_offset_string     String?             @db.VarChar(10)
+  uses_dst              Boolean?            @default(false)
+  dst_start_rule        String?
+  dst_end_rule          String?
+  region                String?             @db.VarChar(50)
+  country_code          String?             @db.VarChar(2)
+  is_default            Boolean?            @default(false)
+  is_system             Boolean?            @default(true)
+  is_active             Boolean?            @default(true)
+  metadata              Json?
+  created_at            DateTime?           @default(now()) @db.Timestamp(6)
+  created_by            String?             @db.Uuid
+  updated_at            DateTime?           @db.Timestamp(6)
+  updated_by            String?             @db.Uuid
+  rec_status            Int?                @default(1) @db.SmallInt
+  iana_name             String              @db.VarChar(50)
+  is_canonical          Boolean             @default(true)
+  link_target           String?             @db.VarChar(50)
+  std_offset_minutes    Int
+  dst_offset_minutes    Int
+  country_codes         String[]
+  tzdb_version          String
+  cldr_version          String?
+  hq_general_config     hq_general_config[]
+  org_branches_mst      org_branches_mst[]
+  sys_timezone_cd       sys_timezone_cd?    @relation("sys_timezone_cdTosys_timezone_cd", fields: [link_target], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_sys_tz_link_target")
+  other_sys_timezone_cd sys_timezone_cd[]   @relation("sys_timezone_cdTosys_timezone_cd")
 
   @@index([is_active, display_order], map: "idx_timezone_active")
   @@index([region, is_active], map: "idx_timezone_region")
@@ -5306,7 +5322,7 @@ model org_asm_exceptions_tr {
   description2        String?
   notes               String?
   exception_status    String?           @default("OPEN") @db.VarChar(50)
-  resolved_at         DateTime?         @db.Timestamp(6)
+  resolved_at         DateTime?         @db.Timestamptz(6)
   resolved_by         String?           @db.Uuid
   resolution          String?
   refund_amount       Decimal?          @db.Decimal(19, 4)
@@ -5314,10 +5330,10 @@ model org_asm_exceptions_tr {
   rec_status          Int?              @default(1) @db.SmallInt
   rec_order           Int?
   rec_notes           String?           @db.VarChar(200)
-  created_at          DateTime?         @default(now()) @db.Timestamp(6)
+  created_at          DateTime?         @default(now()) @db.Timestamptz(6)
   created_by          String?           @db.VarChar(120)
   created_info        String?
-  updated_at          DateTime?         @db.Timestamp(6)
+  updated_at          DateTime?         @db.Timestamptz(6)
   updated_by          String?           @db.VarChar(120)
   updated_info        String?
   branch_id           String?           @db.Uuid
@@ -5341,7 +5357,7 @@ model org_asm_items_dtl {
   item_name2          String?             @db.VarChar(250)
   barcode             String?
   item_status         String?             @default("PENDING") @db.VarChar(50)
-  scanned_at          DateTime?           @db.Timestamp(6)
+  scanned_at          DateTime?           @db.Timestamptz(6)
   scanned_by          String?             @db.Uuid
   has_exception       Boolean?            @default(false)
   exception_id        String?             @db.Uuid
@@ -5349,10 +5365,10 @@ model org_asm_items_dtl {
   rec_status          Int?                @default(1) @db.SmallInt
   rec_order           Int?
   rec_notes           String?             @db.VarChar(200)
-  created_at          DateTime?           @default(now()) @db.Timestamp(6)
+  created_at          DateTime?           @default(now()) @db.Timestamptz(6)
   created_by          String?             @db.VarChar(120)
   created_info        String?
-  updated_at          DateTime?           @db.Timestamp(6)
+  updated_at          DateTime?           @db.Timestamptz(6)
   updated_by          String?             @db.VarChar(120)
   updated_info        String?
   org_order_items_dtl org_order_items_dtl @relation(fields: [order_item_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_asm_item_order_item")
@@ -5381,10 +5397,10 @@ model org_asm_locations_mst {
   rec_status         Int?                @default(1) @db.SmallInt
   rec_order          Int?
   rec_notes          String?             @db.VarChar(200)
-  created_at         DateTime?           @default(now()) @db.Timestamp(6)
+  created_at         DateTime?           @default(now()) @db.Timestamptz(6)
   created_by         String?             @db.VarChar(120)
   created_info       String?
-  updated_at         DateTime?           @db.Timestamp(6)
+  updated_at         DateTime?           @db.Timestamptz(6)
   updated_by         String?             @db.VarChar(120)
   updated_info       String?
   org_branches_mst   org_branches_mst?   @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_asm_location_branch")
@@ -5413,24 +5429,24 @@ model org_asm_tasks_mst {
   total_items               Int?                        @default(0)
   scanned_items             Int?                        @default(0)
   exception_items           Int?                        @default(0)
-  started_at                DateTime?                   @db.Timestamp(6)
-  completed_at              DateTime?                   @db.Timestamp(6)
+  started_at                DateTime?                   @db.Timestamptz(6)
+  completed_at              DateTime?                   @db.Timestamptz(6)
   qa_status                 String?                     @db.VarChar(50)
   qa_by                     String?                     @db.Uuid
-  qa_at                     DateTime?                   @db.Timestamp(6)
+  qa_at                     DateTime?                   @db.Timestamptz(6)
   qa_note                   String?
   packaging_type_code       String?                     @db.VarChar(50)
   packing_note              String?
-  packed_at                 DateTime?                   @db.Timestamp(6)
+  packed_at                 DateTime?                   @db.Timestamptz(6)
   packed_by                 String?                     @db.Uuid
   is_active                 Boolean                     @default(true)
   rec_status                Int?                        @default(1) @db.SmallInt
   rec_order                 Int?
   rec_notes                 String?                     @db.VarChar(200)
-  created_at                DateTime?                   @default(now()) @db.Timestamp(6)
+  created_at                DateTime?                   @default(now()) @db.Timestamptz(6)
   created_by                String?                     @db.VarChar(120)
   created_info              String?
-  updated_at                DateTime?                   @db.Timestamp(6)
+  updated_at                DateTime?                   @db.Timestamptz(6)
   updated_by                String?                     @db.VarChar(120)
   updated_info              String?
   org_asm_exceptions_tr     org_asm_exceptions_tr[]
@@ -5462,17 +5478,17 @@ model org_dlv_pod_tr {
   pod_method_code   String            @db.VarChar(50)
   otp_code          String?           @db.VarChar(10)
   otp_verified      Boolean?          @default(false)
-  verified_at       DateTime?         @db.Timestamp(6)
+  verified_at       DateTime?         @db.Timestamptz(6)
   verified_by       String?           @db.Uuid
   metadata          Json?             @default("{}")
   is_active         Boolean           @default(true)
   rec_status        Int?              @default(1) @db.SmallInt
   rec_order         Int?
   rec_notes         String?           @db.VarChar(200)
-  created_at        DateTime?         @default(now()) @db.Timestamp(6)
+  created_at        DateTime?         @default(now()) @db.Timestamptz(6)
   created_by        String?           @db.VarChar(120)
   created_info      String?
-  updated_at        DateTime?         @db.Timestamp(6)
+  updated_at        DateTime?         @db.Timestamptz(6)
   updated_by        String?           @db.VarChar(120)
   updated_info      String?
   branch_id         String?           @db.Uuid
@@ -5504,10 +5520,10 @@ model org_drivers_mst {
   rec_status         Int?                 @default(1) @db.SmallInt
   rec_order          Int?
   rec_notes          String?
-  created_at         DateTime?            @default(now()) @db.Timestamp(6)
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
   created_by         String?
   created_info       String?
-  updated_at         DateTime?            @db.Timestamp(6)
+  updated_at         DateTime?            @db.Timestamptz(6)
   updated_by         String?
   updated_info       String?
   org_dlv_routes_mst org_dlv_routes_mst[]
@@ -5526,7 +5542,7 @@ model org_dlv_route_seq_cf {
   tenant_org_id   String          @db.Uuid
   year_code       String
   last_seq        Int             @default(0)
-  updated_at      DateTime?       @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?       @default(now()) @db.Timestamptz(6)
   org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_route_seq_tenant")
 
   @@id([tenant_org_id, year_code], map: "pk_dlv_route_seq_cf")
@@ -5542,18 +5558,18 @@ model org_dlv_routes_mst {
   route_status_code          String?             @default("planned") @db.VarChar(50)
   total_stops                Int?                @default(0)
   completed_stops            Int?                @default(0)
-  started_at                 DateTime?           @db.Timestamp(6)
-  completed_at               DateTime?           @db.Timestamp(6)
+  started_at                 DateTime?           @db.Timestamptz(6)
+  completed_at               DateTime?           @db.Timestamptz(6)
   estimated_duration_minutes Int?
   total_distance_km          Decimal?            @db.Decimal(10, 2)
   is_active                  Boolean             @default(true)
   rec_status                 Int?                @default(1) @db.SmallInt
   rec_order                  Int?
   rec_notes                  String?             @db.VarChar(200)
-  created_at                 DateTime?           @default(now()) @db.Timestamp(6)
+  created_at                 DateTime?           @default(now()) @db.Timestamptz(6)
   created_by                 String?             @db.VarChar(120)
   created_info               String?
-  updated_at                 DateTime?           @db.Timestamp(6)
+  updated_at                 DateTime?           @db.Timestamptz(6)
   updated_by                 String?             @db.VarChar(120)
   updated_info               String?
   doc_type_code              String              @default("DELIVERY_ROUTE")
@@ -5589,10 +5605,10 @@ model org_dlv_slots_mst {
   rec_status       Int?              @default(1) @db.SmallInt
   rec_order        Int?
   rec_notes        String?           @db.VarChar(200)
-  created_at       DateTime?         @default(now()) @db.Timestamp(6)
+  created_at       DateTime?         @default(now()) @db.Timestamptz(6)
   created_by       String?           @db.VarChar(120)
   created_info     String?
-  updated_at       DateTime?         @db.Timestamp(6)
+  updated_at       DateTime?         @db.Timestamptz(6)
   updated_by       String?           @db.VarChar(120)
   updated_info     String?
   org_branches_mst org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_slot_branch")
@@ -5617,9 +5633,9 @@ model org_dlv_stops_dtl {
   address_lat        Decimal?           @db.Decimal(10, 8)
   address_lng        Decimal?           @db.Decimal(11, 8)
   stop_status_code   String?            @default("pending") @db.VarChar(50)
-  scheduled_time     DateTime?          @db.Timestamp(6)
-  estimated_arrival  DateTime?          @db.Timestamp(6)
-  actual_time        DateTime?          @db.Timestamp(6)
+  scheduled_time     DateTime?          @db.Timestamptz(6)
+  estimated_arrival  DateTime?          @db.Timestamptz(6)
+  actual_time        DateTime?          @db.Timestamptz(6)
   contact_name       String?            @db.VarChar(255)
   contact_phone      String?            @db.VarChar(50)
   notes              String?
@@ -5627,10 +5643,10 @@ model org_dlv_stops_dtl {
   rec_status         Int?               @default(1) @db.SmallInt
   rec_order          Int?
   rec_notes          String?            @db.VarChar(200)
-  created_at         DateTime?          @default(now()) @db.Timestamp(6)
+  created_at         DateTime?          @default(now()) @db.Timestamptz(6)
   created_by         String?            @db.VarChar(120)
   created_info       String?
-  updated_at         DateTime?          @db.Timestamp(6)
+  updated_at         DateTime?          @db.Timestamptz(6)
   updated_by         String?            @db.VarChar(120)
   updated_info       String?
   branch_id          String?            @db.Uuid
@@ -5663,15 +5679,15 @@ model org_ff_overrides_cf {
   override_type    String?         @default("manual") @db.VarChar(30)
   approval_status  String?         @default("approved") @db.VarChar(20)
   approved_by      String?         @db.VarChar(120)
-  approved_at      DateTime?       @db.Timestamp(6)
+  approved_at      DateTime?       @db.Timestamptz(6)
   rejection_reason String?
-  effective_from   DateTime?       @db.Timestamp(6)
-  effective_until  DateTime?       @db.Timestamp(6)
+  effective_from   DateTime?       @db.Timestamptz(6)
+  effective_until  DateTime?       @db.Timestamptz(6)
   is_active        Boolean?        @default(true)
-  created_at       DateTime?       @default(now()) @db.Timestamp(6)
+  created_at       DateTime?       @default(now()) @db.Timestamptz(6)
   created_by       String?
   created_info     String?
-  updated_at       DateTime?       @db.Timestamp(6)
+  updated_at       DateTime?       @db.Timestamptz(6)
   updated_by       String?
   updated_info     String?
   rec_status       Int?            @default(1) @db.SmallInt
@@ -5698,18 +5714,18 @@ model org_pck_packing_lists_mst {
   packaging_type_code String            @db.VarChar(50)
   item_count          Int?              @default(0)
   qr_code             String?
-  generated_at        DateTime?         @default(now()) @db.Timestamp(6)
+  generated_at        DateTime?         @default(now()) @db.Timestamptz(6)
   generated_by        String            @db.Uuid
-  printed_at          DateTime?         @db.Timestamp(6)
+  printed_at          DateTime?         @db.Timestamptz(6)
   print_count         Int?              @default(0)
   is_active           Boolean           @default(true)
   rec_status          Int?              @default(1) @db.SmallInt
   rec_order           Int?
   rec_notes           String?           @db.VarChar(200)
-  created_at          DateTime?         @default(now()) @db.Timestamp(6)
+  created_at          DateTime?         @default(now()) @db.Timestamptz(6)
   created_by          String?           @db.VarChar(120)
   created_info        String?
-  updated_at          DateTime?         @db.Timestamp(6)
+  updated_at          DateTime?         @db.Timestamptz(6)
   updated_by          String?           @db.VarChar(120)
   updated_info        String?
   branch_id           String?           @db.Uuid
@@ -5735,16 +5751,16 @@ model org_qa_decisions_tr {
   order_id           String            @db.Uuid
   decision_type_code String            @db.VarChar(50)
   qa_by              String            @db.Uuid
-  qa_at              DateTime?         @default(now()) @db.Timestamp(6)
+  qa_at              DateTime?         @default(now()) @db.Timestamptz(6)
   qa_note            String?
   is_active          Boolean           @default(true)
   rec_status         Int?              @default(1) @db.SmallInt
   rec_order          Int?
   rec_notes          String?           @db.VarChar(200)
-  created_at         DateTime?         @default(now()) @db.Timestamp(6)
+  created_at         DateTime?         @default(now()) @db.Timestamptz(6)
   created_by         String?           @db.VarChar(120)
   created_info       String?
-  updated_at         DateTime?         @db.Timestamp(6)
+  updated_at         DateTime?         @db.Timestamptz(6)
   updated_by         String?           @db.VarChar(120)
   updated_info       String?
   branch_id          String?           @db.Uuid
@@ -5773,8 +5789,8 @@ model org_rcpt_receipts_mst {
   qr_code               String?
   recipient_phone       String?               @db.VarChar(50)
   recipient_email       String?               @db.VarChar(255)
-  sent_at               DateTime?             @db.Timestamp(6)
-  delivered_at          DateTime?             @db.Timestamp(6)
+  sent_at               DateTime?             @db.Timestamptz(6)
+  delivered_at          DateTime?             @db.Timestamptz(6)
   retry_count           Int?                  @default(0)
   max_retries           Int?                  @default(3)
   metadata              Json?                 @default("{}")
@@ -5782,10 +5798,10 @@ model org_rcpt_receipts_mst {
   rec_status            Int?                  @default(1) @db.SmallInt
   rec_order             Int?
   rec_notes             String?               @db.VarChar(200)
-  created_at            DateTime?             @default(now()) @db.Timestamp(6)
+  created_at            DateTime?             @default(now()) @db.Timestamptz(6)
   created_by            String?               @db.VarChar(120)
   created_info          String?
-  updated_at            DateTime?             @db.Timestamp(6)
+  updated_at            DateTime?             @db.Timestamptz(6)
   updated_by            String?               @db.VarChar(120)
   updated_info          String?
   voucher_id            String?               @db.Uuid
@@ -5815,10 +5831,10 @@ model org_rcpt_templates_cf {
   rec_status       Int?            @default(1) @db.SmallInt
   rec_order        Int?
   rec_notes        String?         @db.VarChar(200)
-  created_at       DateTime?       @default(now()) @db.Timestamp(6)
+  created_at       DateTime?       @default(now()) @db.Timestamptz(6)
   created_by       String?         @db.VarChar(120)
   created_info     String?
-  updated_at       DateTime?       @db.Timestamp(6)
+  updated_at       DateTime?       @db.Timestamptz(6)
   updated_by       String?         @db.VarChar(120)
   updated_info     String?
   org_tenants_mst  org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rcpt_template_tenant")
@@ -6080,7 +6096,7 @@ model org_stng_audit_log_tr {
   changed_at              DateTime?         @default(now()) @db.Timestamptz(6)
   changed_by              String?           @db.Uuid
   changed_by_name         String?           @db.VarChar(120)
-  created_at              DateTime?         @default(now()) @db.Timestamp(6)
+  created_at              DateTime?         @default(now()) @db.Timestamptz(6)
   created_info            String?
   rec_status              Int?              @default(1) @db.SmallInt
   is_active               Boolean           @default(true)
@@ -6106,9 +6122,9 @@ model org_stng_effective_cache_cf {
   stng_cache_jsonb  Json
   stng_computed_at  DateTime?         @default(now()) @db.Timestamptz(6)
   stng_compute_hash String
-  created_at        DateTime?         @default(now()) @db.Timestamp(6)
+  created_at        DateTime?         @default(now()) @db.Timestamptz(6)
   created_by        String?           @db.VarChar(120)
-  updated_at        DateTime?         @db.Timestamp(6)
+  updated_at        DateTime?         @db.Timestamptz(6)
   updated_by        String?           @db.VarChar(120)
   rec_status        Int?              @default(1) @db.SmallInt
   is_active         Boolean           @default(true)
@@ -6235,7 +6251,7 @@ model org_order_item_pieces_dtl {
   is_rejected                                                                                                               Boolean?                    @default(false)
   issue_id                                                                                                                  String?                     @db.Uuid
   rack_location                                                                                                             String?
-  last_step_at                                                                                                              DateTime?                   @db.Timestamp(6)
+  last_step_at                                                                                                              DateTime?                   @db.Timestamptz(6)
   last_step_by                                                                                                              String?
   last_step                                                                                                                 String?
   notes                                                                                                                     String?
@@ -6243,13 +6259,13 @@ model org_order_item_pieces_dtl {
   has_stain                                                                                                                 Boolean?
   has_damage                                                                                                                Boolean?
   metadata                                                                                                                  Json?                       @default("{}")
-  created_at                                                                                                                DateTime?                   @default(now()) @db.Timestamp(6)
+  created_at                                                                                                                DateTime?                   @default(now()) @db.Timestamptz(6)
   rec_order                                                                                                                 Int?
   rec_notes                                                                                                                 String?
   rec_status                                                                                                                Int?                        @default(1) @db.SmallInt
   created_by                                                                                                                String?
   created_info                                                                                                              String?
-  updated_at                                                                                                                DateTime?                   @db.Timestamp(6)
+  updated_at                                                                                                                DateTime?                   @db.Timestamptz(6)
   updated_by                                                                                                                String?
   updated_info                                                                                                              String?
   is_ready                                                                                                                  Boolean                     @default(false)
@@ -6456,7 +6472,7 @@ model org_price_history_audit {
   change_reason        String?
   effective_from       DateTime?             @db.Date
   effective_to         DateTime?             @db.Date
-  created_at           DateTime?             @default(now()) @db.Timestamp(6)
+  created_at           DateTime?             @default(now()) @db.Timestamptz(6)
   created_by           String?               @db.Uuid
   created_info         String?
   org_price_lists_mst  org_price_lists_mst?  @relation(fields: [price_list_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -9501,31 +9517,33 @@ model org_order_change_ops_dtl {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model custom_oauth_providers {
-  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  provider_type           String
-  identifier              String    @unique
-  name                    String
-  client_id               String
-  client_secret           String
-  acceptable_client_ids   String[]  @default([])
-  scopes                  String[]  @default([])
-  pkce_enabled            Boolean   @default(true)
-  attribute_mapping       Json      @default("{}")
-  authorization_params    Json      @default("{}")
-  enabled                 Boolean   @default(true)
-  email_optional          Boolean   @default(false)
-  issuer                  String?
-  discovery_url           String?
-  skip_nonce_check        Boolean   @default(false)
-  cached_discovery        Json?
-  discovery_cached_at     DateTime? @db.Timestamptz(6)
-  authorization_url       String?
-  token_url               String?
-  userinfo_url            String?
-  jwks_uri                String?
-  created_at              DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at              DateTime  @default(now()) @db.Timestamptz(6)
-  custom_claims_allowlist String[]  @default([])
+  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_type             String
+  identifier                String    @unique
+  name                      String
+  client_id                 String
+  client_secret             String
+  acceptable_client_ids     String[]  @default([])
+  scopes                    String[]  @default([])
+  pkce_enabled              Boolean   @default(true)
+  attribute_mapping         Json      @default("{}")
+  authorization_params      Json      @default("{}")
+  enabled                   Boolean   @default(true)
+  email_optional            Boolean   @default(false)
+  issuer                    String?
+  discovery_url             String?
+  skip_nonce_check          Boolean   @default(false)
+  cached_discovery          Json?
+  discovery_cached_at       DateTime? @db.Timestamptz(6)
+  authorization_url         String?
+  token_url                 String?
+  userinfo_url              String?
+  jwks_uri                  String?
+  created_at                DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime  @default(now()) @db.Timestamptz(6)
+  custom_claims_allowlist   String[]  @default([])
+  client_auth_method        String    @default("client_secret")
+  client_assertion_audience String?
 
   @@index([created_at])
   @@index([enabled])
@@ -10248,10 +10266,10 @@ model org_b2b_contacts_dtl {
   is_active         Boolean?          @default(true)
   rec_notes         String?
   rec_order         Int?
-  created_at        DateTime?         @default(now()) @db.Timestamp(6)
+  created_at        DateTime?         @default(now()) @db.Timestamptz(6)
   created_by        String?           @db.VarChar(120)
   created_info      String?
-  updated_at        DateTime?         @db.Timestamp(6)
+  updated_at        DateTime?         @db.Timestamptz(6)
   updated_by        String?           @db.VarChar(120)
   updated_info      String?
   org_customers_mst org_customers_mst @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -10275,10 +10293,10 @@ model org_b2b_contracts_mst {
   is_active              Boolean?                 @default(true)
   rec_notes              String?
   rec_order              Int?
-  created_at             DateTime?                @default(now()) @db.Timestamp(6)
+  created_at             DateTime?                @default(now()) @db.Timestamptz(6)
   created_by             String?                  @db.VarChar(120)
   created_info           String?
-  updated_at             DateTime?                @db.Timestamp(6)
+  updated_at             DateTime?                @db.Timestamptz(6)
   updated_by             String?                  @db.VarChar(120)
   updated_info           String?
   org_customers_mst      org_customers_mst        @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -10346,10 +10364,10 @@ model org_b2b_statements_mst {
   status_cd                      String?                          @default("DRAFT") @db.VarChar(20)
   rec_status                     Int?                             @default(1) @db.SmallInt
   is_active                      Boolean?                         @default(true)
-  created_at                     DateTime?                        @default(now()) @db.Timestamp(6)
+  created_at                     DateTime?                        @default(now()) @db.Timestamptz(6)
   created_by                     String?                          @db.VarChar(120)
   created_info                   String?
-  updated_at                     DateTime?                        @db.Timestamp(6)
+  updated_at                     DateTime?                        @db.Timestamptz(6)
   updated_by                     String?                          @db.VarChar(120)
   updated_info                   String?
   doc_type_code                  String                           @default("B2B_STATEMENT")
@@ -10433,10 +10451,10 @@ model org_fin_acct_mst {
   manual_post_allowed    Boolean                 @default(true)
   effective_from         DateTime?               @db.Date
   effective_to           DateTime?               @db.Date
-  created_at             DateTime                @default(now()) @db.Timestamp(6)
+  created_at             DateTime                @default(now()) @db.Timestamptz(6)
   created_by             String?                 @db.VarChar(120)
   created_info           String?
-  updated_at             DateTime?               @db.Timestamp(6)
+  updated_at             DateTime?               @db.Timestamptz(6)
   updated_by             String?                 @db.VarChar(120)
   updated_info           String?
   rec_status             Int                     @default(1) @db.SmallInt
@@ -10491,10 +10509,10 @@ model org_fin_alloc_rule_mst {
   status_code           String                  @default("DRAFT") @db.VarChar(20)
   effective_from        DateTime?               @db.Date
   effective_to          DateTime?               @db.Date
-  created_at            DateTime                @default(now()) @db.Timestamp(6)
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
   created_by            String?                 @db.VarChar(120)
   created_info          String?
-  updated_at            DateTime?               @db.Timestamp(6)
+  updated_at            DateTime?               @db.Timestamptz(6)
   updated_by            String?                 @db.VarChar(120)
   updated_info          String?
   rec_status            Int                     @default(1) @db.SmallInt
@@ -10526,10 +10544,10 @@ model org_fin_alloc_run_dtl {
   alloc_amount                                                                            Decimal                 @default(0) @db.Decimal(19, 4)
   basis_value                                                                             Decimal?                @db.Decimal(19, 8)
   source_ref_json                                                                         Json?
-  created_at                                                                              DateTime                @default(now()) @db.Timestamp(6)
+  created_at                                                                              DateTime                @default(now()) @db.Timestamptz(6)
   created_by                                                                              String?                 @db.VarChar(120)
   created_info                                                                            String?
-  updated_at                                                                              DateTime?               @db.Timestamp(6)
+  updated_at                                                                              DateTime?               @db.Timestamptz(6)
   updated_by                                                                              String?                 @db.VarChar(120)
   updated_info                                                                            String?
   rec_status                                                                              Int                     @default(1) @db.SmallInt
@@ -10561,10 +10579,10 @@ model org_fin_alloc_run_mst {
   period_id             String?                 @db.Uuid
   status_code           String                  @default("DRAFT") @db.VarChar(20)
   basis_snapshot_json   Json?
-  created_at            DateTime                @default(now()) @db.Timestamp(6)
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
   created_by            String?                 @db.VarChar(120)
   created_info          String?
-  updated_at            DateTime?               @db.Timestamp(6)
+  updated_at            DateTime?               @db.Timestamptz(6)
   updated_by            String?                 @db.VarChar(120)
   updated_info          String?
   rec_status            Int                     @default(1) @db.SmallInt
@@ -10594,10 +10612,10 @@ model org_fin_ap_alloc_tr {
   ap_invoice_id      String             @db.Uuid
   alloc_no           Int
   alloc_amount       Decimal            @default(0) @db.Decimal(19, 4)
-  created_at         DateTime           @default(now()) @db.Timestamp(6)
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
   created_by         String?            @db.VarChar(120)
   created_info       String?
-  updated_at         DateTime?          @db.Timestamp(6)
+  updated_at         DateTime?          @db.Timestamptz(6)
   updated_by         String?            @db.VarChar(120)
   updated_info       String?
   rec_status         Int                @default(1) @db.SmallInt
@@ -10632,10 +10650,10 @@ model org_fin_ap_inv_dtl {
   net_amount              Decimal                  @default(0) @db.Decimal(19, 4)
   tax_amount              Decimal                  @default(0) @db.Decimal(19, 4)
   gross_amount            Decimal                  @default(0) @db.Decimal(19, 4)
-  created_at              DateTime                 @default(now()) @db.Timestamp(6)
+  created_at              DateTime                 @default(now()) @db.Timestamptz(6)
   created_by              String?                  @db.VarChar(120)
   created_info            String?
-  updated_at              DateTime?                @db.Timestamp(6)
+  updated_at              DateTime?                @db.Timestamptz(6)
   updated_by              String?                  @db.VarChar(120)
   updated_info            String?
   rec_status              Int                      @default(1) @db.SmallInt
@@ -10677,10 +10695,10 @@ model org_fin_ap_inv_mst {
   total_amount        Decimal               @default(0) @db.Decimal(19, 4)
   open_amount         Decimal               @default(0) @db.Decimal(19, 4)
   status_code         String                @default("DRAFT") @db.VarChar(12)
-  created_at          DateTime              @default(now()) @db.Timestamp(6)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
   created_by          String?               @db.VarChar(120)
   created_info        String?
-  updated_at          DateTime?             @db.Timestamp(6)
+  updated_at          DateTime?             @db.Timestamptz(6)
   updated_by          String?               @db.VarChar(120)
   updated_info        String?
   rec_status          Int                   @default(1) @db.SmallInt
@@ -10726,10 +10744,10 @@ model org_fin_ap_pmt_mst {
   payment_method_code   String?                @db.VarChar(40)
   ext_ref_no            String?                @db.VarChar(120)
   status_code           String                 @default("DRAFT") @db.VarChar(12)
-  created_at            DateTime               @default(now()) @db.Timestamp(6)
+  created_at            DateTime               @default(now()) @db.Timestamptz(6)
   created_by            String?                @db.VarChar(120)
   created_info          String?
-  updated_at            DateTime?              @db.Timestamp(6)
+  updated_at            DateTime?              @db.Timestamptz(6)
   updated_by            String?                @db.VarChar(120)
   updated_info          String?
   rec_status            Int                    @default(1) @db.SmallInt
@@ -10778,10 +10796,10 @@ model org_fin_bank_acct_mst {
   allow_auto_match       Boolean                  @default(false)
   status_code            String                   @default("ACTIVE") @db.VarChar(12)
   last_stmt_date         DateTime?                @db.Date
-  created_at             DateTime                 @default(now()) @db.Timestamp(6)
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
   created_by             String?                  @db.VarChar(120)
   created_info           String?
-  updated_at             DateTime?                @db.Timestamp(6)
+  updated_at             DateTime?                @db.Timestamptz(6)
   updated_by             String?                  @db.VarChar(120)
   updated_info           String?
   rec_status             Int                      @default(1) @db.SmallInt
@@ -10816,10 +10834,10 @@ model org_fin_bank_match_tr {
   source_doc_id          String                  @db.Uuid
   match_amount           Decimal                 @default(0) @db.Decimal(19, 4)
   status_code            String                  @default("DRAFT") @db.VarChar(12)
-  created_at             DateTime                @default(now()) @db.Timestamp(6)
+  created_at             DateTime                @default(now()) @db.Timestamptz(6)
   created_by             String?                 @db.VarChar(120)
   created_info           String?
-  updated_at             DateTime?               @db.Timestamp(6)
+  updated_at             DateTime?               @db.Timestamptz(6)
   updated_by             String?                 @db.VarChar(120)
   updated_info           String?
   rec_status             Int                     @default(1) @db.SmallInt
@@ -10853,12 +10871,12 @@ model org_fin_bank_recon_mst {
   stmt_balance          Decimal?                @db.Decimal(19, 4)
   unmatched_amount      Decimal?                @db.Decimal(19, 4)
   status_code           String                  @default("OPEN") @db.VarChar(12)
-  closed_at             DateTime?               @db.Timestamp(6)
+  closed_at             DateTime?               @db.Timestamptz(6)
   closed_by             String?                 @db.VarChar(120)
-  created_at            DateTime                @default(now()) @db.Timestamp(6)
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
   created_by            String?                 @db.VarChar(120)
   created_info          String?
-  updated_at            DateTime?               @db.Timestamp(6)
+  updated_at            DateTime?               @db.Timestamptz(6)
   updated_by            String?                 @db.VarChar(120)
   updated_info          String?
   rec_status            Int                     @default(1) @db.SmallInt
@@ -10899,10 +10917,10 @@ model org_fin_bank_stmt_dtl {
   balance_amount        Decimal?                @db.Decimal(19, 4)
   source_hash           String                  @db.VarChar(128)
   match_status          String                  @default("UNMATCHED") @db.VarChar(12)
-  created_at            DateTime                @default(now()) @db.Timestamp(6)
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
   created_by            String?                 @db.VarChar(120)
   created_info          String?
-  updated_at            DateTime?               @db.Timestamp(6)
+  updated_at            DateTime?               @db.Timestamptz(6)
   updated_by            String?                 @db.VarChar(120)
   updated_info          String?
   rec_status            Int                     @default(1) @db.SmallInt
@@ -10938,11 +10956,11 @@ model org_fin_bank_stmt_mst {
   closing_balance       Decimal?                @db.Decimal(19, 4)
   line_count            Int                     @default(0)
   status_code           String                  @default("IMPORTED") @db.VarChar(12)
-  imported_at           DateTime                @default(now()) @db.Timestamp(6)
-  created_at            DateTime                @default(now()) @db.Timestamp(6)
+  imported_at           DateTime                @default(now()) @db.Timestamptz(6)
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
   created_by            String?                 @db.VarChar(120)
   created_info          String?
-  updated_at            DateTime?               @db.Timestamp(6)
+  updated_at            DateTime?               @db.Timestamptz(6)
   updated_by            String?                 @db.VarChar(120)
   updated_info          String?
   rec_status            Int                     @default(1) @db.SmallInt
@@ -10975,10 +10993,10 @@ model org_fin_cash_exc_tr {
   amount               Decimal              @default(0) @db.Decimal(19, 4)
   note                 String?
   note2                String?
-  created_at           DateTime             @default(now()) @db.Timestamp(6)
+  created_at           DateTime             @default(now()) @db.Timestamptz(6)
   created_by           String?              @db.VarChar(120)
   created_info         String?
-  updated_at           DateTime?            @db.Timestamp(6)
+  updated_at           DateTime?            @db.Timestamptz(6)
   updated_by           String?              @db.VarChar(120)
   updated_info         String?
   rec_status           Int                  @default(1) @db.SmallInt
@@ -11010,12 +11028,12 @@ model org_fin_cash_rec_mst {
   counted_balance     Decimal               @default(0) @db.Decimal(19, 4)
   variance_amount     Decimal               @default(0) @db.Decimal(19, 4)
   status_code         String                @default("OPEN") @db.VarChar(20)
-  closed_at           DateTime?             @db.Timestamp(6)
+  closed_at           DateTime?             @db.Timestamptz(6)
   closed_by           String?               @db.VarChar(120)
-  created_at          DateTime              @default(now()) @db.Timestamp(6)
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
   created_by          String?               @db.VarChar(120)
   created_info        String?
-  updated_at          DateTime?             @db.Timestamp(6)
+  updated_at          DateTime?             @db.Timestamptz(6)
   updated_by          String?               @db.VarChar(120)
   updated_info        String?
   rec_status          Int                   @default(1) @db.SmallInt
@@ -11060,10 +11078,10 @@ model org_fin_cash_txn_tr {
   party_name2                                                                            String?                @db.VarChar(250)
   description                                                                            String?
   description2                                                                           String?
-  created_at                                                                             DateTime               @default(now()) @db.Timestamp(6)
+  created_at                                                                             DateTime               @default(now()) @db.Timestamptz(6)
   created_by                                                                             String?                @db.VarChar(120)
   created_info                                                                           String?
-  updated_at                                                                             DateTime?              @db.Timestamp(6)
+  updated_at                                                                             DateTime?              @db.Timestamptz(6)
   updated_by                                                                             String?                @db.VarChar(120)
   updated_info                                                                           String?
   rec_status                                                                             Int                    @default(1) @db.SmallInt
@@ -11103,10 +11121,10 @@ model org_fin_cashbox_mst {
   opening_date         DateTime?              @db.Date
   opening_balance      Decimal                @default(0) @db.Decimal(19, 4)
   is_default           Boolean                @default(false)
-  created_at           DateTime               @default(now()) @db.Timestamp(6)
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
   created_by           String?                @db.VarChar(120)
   created_info         String?
-  updated_at           DateTime?              @db.Timestamp(6)
+  updated_at           DateTime?              @db.Timestamptz(6)
   updated_by           String?                @db.VarChar(120)
   updated_info         String?
   rec_status           Int                    @default(1) @db.SmallInt
@@ -11139,10 +11157,10 @@ model org_fin_cost_cmp_cd {
   cost_class_code      String                 @db.VarChar(20)
   basis_code           String                 @db.VarChar(20)
   status_code          String                 @default("ACTIVE") @db.VarChar(20)
-  created_at           DateTime               @default(now()) @db.Timestamp(6)
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
   created_by           String?                @db.VarChar(120)
   created_info         String?
-  updated_at           DateTime?              @db.Timestamp(6)
+  updated_at           DateTime?              @db.Timestamptz(6)
   updated_by           String?                @db.VarChar(120)
   updated_info         String?
   rec_status           Int                    @default(1) @db.SmallInt
@@ -11176,10 +11194,10 @@ model org_fin_cost_run_dtl {
   unit_cost            Decimal?             @db.Decimal(19, 8)
   total_cost           Decimal              @default(0) @db.Decimal(19, 4)
   source_ref_json      Json?
-  created_at           DateTime             @default(now()) @db.Timestamp(6)
+  created_at           DateTime             @default(now()) @db.Timestamptz(6)
   created_by           String?              @db.VarChar(120)
   created_info         String?
-  updated_at           DateTime?            @db.Timestamp(6)
+  updated_at           DateTime?            @db.Timestamptz(6)
   updated_by           String?              @db.VarChar(120)
   updated_info         String?
   rec_status           Int                  @default(1) @db.SmallInt
@@ -11209,10 +11227,10 @@ model org_fin_cost_run_mst {
   period_id            String?                @db.Uuid
   status_code          String                 @default("DRAFT") @db.VarChar(20)
   basis_snapshot_json  Json?
-  created_at           DateTime               @default(now()) @db.Timestamp(6)
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
   created_by           String?                @db.VarChar(120)
   created_info         String?
-  updated_at           DateTime?              @db.Timestamp(6)
+  updated_at           DateTime?              @db.Timestamptz(6)
   updated_by           String?                @db.VarChar(120)
   updated_info         String?
   rec_status           Int                    @default(1) @db.SmallInt
@@ -11243,13 +11261,13 @@ model org_fin_doc_appr_tr {
   step_no          Int
   approver_user_id String?         @db.Uuid
   status_code      String          @default("PENDING") @db.VarChar(20)
-  action_at        DateTime?       @db.Timestamp(6)
+  action_at        DateTime?       @db.Timestamptz(6)
   action_note      String?
   action_note2     String?
-  created_at       DateTime        @default(now()) @db.Timestamp(6)
+  created_at       DateTime        @default(now()) @db.Timestamptz(6)
   created_by       String?         @db.VarChar(120)
   created_info     String?
-  updated_at       DateTime?       @db.Timestamp(6)
+  updated_at       DateTime?       @db.Timestamptz(6)
   updated_by       String?         @db.VarChar(120)
   updated_info     String?
   rec_status       Int             @default(1) @db.SmallInt
@@ -11276,10 +11294,10 @@ model org_fin_doc_seq_mst {
   prefix          String?         @db.VarChar(20)
   last_no         BigInt          @default(0)
   padding_len     Int             @default(6) @db.SmallInt
-  created_at      DateTime        @default(now()) @db.Timestamp(6)
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
   created_by      String?         @db.VarChar(120)
   created_info    String?
-  updated_at      DateTime?       @db.Timestamp(6)
+  updated_at      DateTime?       @db.Timestamptz(6)
   updated_by      String?         @db.VarChar(120)
   updated_info    String?
   rec_status      Int             @default(1) @db.SmallInt
@@ -11308,10 +11326,10 @@ model org_fin_exp_dtl {
   net_amount              Decimal                  @default(0) @db.Decimal(19, 4)
   tax_amount              Decimal                  @default(0) @db.Decimal(19, 4)
   gross_amount            Decimal                  @default(0) @db.Decimal(19, 4)
-  created_at              DateTime                 @default(now()) @db.Timestamp(6)
+  created_at              DateTime                 @default(now()) @db.Timestamptz(6)
   created_by              String?                  @db.VarChar(120)
   created_info            String?
-  updated_at              DateTime?                @db.Timestamp(6)
+  updated_at              DateTime?                @db.Timestamptz(6)
   updated_by              String?                  @db.VarChar(120)
   updated_info            String?
   rec_status              Int                      @default(1) @db.SmallInt
@@ -11354,10 +11372,10 @@ model org_fin_exp_mst {
   payee_name2         String?             @db.VarChar(250)
   description         String?
   description2        String?
-  created_at          DateTime            @default(now()) @db.Timestamp(6)
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
   created_by          String?             @db.VarChar(120)
   created_info        String?
-  updated_at          DateTime?           @db.Timestamp(6)
+  updated_at          DateTime?           @db.Timestamptz(6)
   updated_by          String?             @db.VarChar(120)
   updated_info        String?
   rec_status          Int                 @default(1) @db.SmallInt
@@ -11395,12 +11413,12 @@ model org_fin_gov_assign_mst {
   effective_from      DateTime?           @db.Date
   effective_to        DateTime?           @db.Date
   is_current          Boolean             @default(false)
-  approved_at         DateTime?           @db.Timestamp(6)
+  approved_at         DateTime?           @db.Timestamptz(6)
   approved_by         String?             @db.VarChar(120)
-  created_at          DateTime            @default(now()) @db.Timestamp(6)
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
   created_by          String?             @db.VarChar(120)
   created_info        String?
-  updated_at          DateTime?           @db.Timestamp(6)
+  updated_at          DateTime?           @db.Timestamptz(6)
   updated_by          String?             @db.VarChar(120)
   updated_info        String?
   rec_status          Int                 @default(1) @db.SmallInt
@@ -11436,10 +11454,10 @@ model org_fin_journal_dtl {
   party_id             String?             @db.Uuid
   tax_code             String?             @db.VarChar(40)
   tax_rate             Decimal?            @db.Decimal(19, 4)
-  created_at           DateTime            @default(now()) @db.Timestamp(6)
+  created_at           DateTime            @default(now()) @db.Timestamptz(6)
   created_by           String?             @db.VarChar(120)
   created_info         String?
-  updated_at           DateTime?           @db.Timestamp(6)
+  updated_at           DateTime?           @db.Timestamptz(6)
   updated_by           String?             @db.VarChar(120)
   updated_info         String?
   rec_status           Int                 @default(1) @db.SmallInt
@@ -11484,12 +11502,12 @@ model org_fin_journal_mst {
   narration                 String?
   narration2                String?
   reversal_of_journal_id    String?                    @db.Uuid
-  posted_at                 DateTime?                  @db.Timestamp(6)
+  posted_at                 DateTime?                  @db.Timestamptz(6)
   posted_by                 String?                    @db.VarChar(120)
-  created_at                DateTime                   @default(now()) @db.Timestamp(6)
+  created_at                DateTime                   @default(now()) @db.Timestamptz(6)
   created_by                String?                    @db.VarChar(120)
   created_info              String?
-  updated_at                DateTime?                  @db.Timestamp(6)
+  updated_at                DateTime?                  @db.Timestamptz(6)
   updated_by                String?                    @db.VarChar(120)
   updated_info              String?
   rec_status                Int                        @default(1) @db.SmallInt
@@ -11568,12 +11586,12 @@ model org_fin_period_mst {
   end_date               DateTime                 @db.Date
   status_code            String                   @default("OPEN") @db.VarChar(12)
   lock_reason            String?
-  closed_at              DateTime?                @db.Timestamp(6)
+  closed_at              DateTime?                @db.Timestamptz(6)
   closed_by              String?                  @db.VarChar(120)
-  created_at             DateTime                 @default(now()) @db.Timestamp(6)
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
   created_by             String?                  @db.VarChar(120)
   created_info           String?
-  updated_at             DateTime?                @db.Timestamp(6)
+  updated_at             DateTime?                @db.Timestamptz(6)
   updated_by             String?                  @db.VarChar(120)
   updated_info           String?
   rec_status             Int                      @default(1) @db.SmallInt
@@ -11611,10 +11629,10 @@ model org_fin_po_dtl {
   net_amount              Decimal                  @default(0) @db.Decimal(19, 4)
   tax_amount              Decimal                  @default(0) @db.Decimal(19, 4)
   gross_amount            Decimal                  @default(0) @db.Decimal(19, 4)
-  created_at              DateTime                 @default(now()) @db.Timestamp(6)
+  created_at              DateTime                 @default(now()) @db.Timestamptz(6)
   created_by              String?                  @db.VarChar(120)
   created_info            String?
-  updated_at              DateTime?                @db.Timestamp(6)
+  updated_at              DateTime?                @db.Timestamptz(6)
   updated_by              String?                  @db.VarChar(120)
   updated_info            String?
   rec_status              Int                      @default(1) @db.SmallInt
@@ -11653,10 +11671,10 @@ model org_fin_po_mst {
   tax_amount          Decimal              @default(0) @db.Decimal(19, 4)
   total_amount        Decimal              @default(0) @db.Decimal(19, 4)
   status_code         String               @default("DRAFT") @db.VarChar(12)
-  created_at          DateTime             @default(now()) @db.Timestamp(6)
+  created_at          DateTime             @default(now()) @db.Timestamptz(6)
   created_by          String?              @db.VarChar(120)
   created_info        String?
-  updated_at          DateTime?            @db.Timestamp(6)
+  updated_at          DateTime?            @db.Timestamptz(6)
   updated_by          String?              @db.VarChar(120)
   updated_info        String?
   rec_status          Int                  @default(1) @db.SmallInt
@@ -11702,7 +11720,7 @@ model org_fin_post_action_tr {
   actor_user_id       String               @db.VarChar(120)
   actor_ip            String?              @db.VarChar(45)
   actor_user_agent    String?
-  created_at          DateTime             @default(now()) @db.Timestamp(6)
+  created_at          DateTime             @default(now()) @db.Timestamptz(6)
   created_by          String?              @db.VarChar(120)
   created_info        String?
   rec_status          Int                  @default(1) @db.SmallInt
@@ -11733,12 +11751,12 @@ model org_fin_post_exc_tr {
   status_code            String                   @default("NEW") @db.VarChar(20)
   error_message          String
   resolution_notes       String?
-  resolved_at            DateTime?                @db.Timestamp(6)
+  resolved_at            DateTime?                @db.Timestamptz(6)
   resolved_by            String?                  @db.VarChar(120)
-  created_at             DateTime                 @default(now()) @db.Timestamp(6)
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
   created_by             String?                  @db.VarChar(120)
   created_info           String?
-  updated_at             DateTime?                @db.Timestamp(6)
+  updated_at             DateTime?                @db.Timestamptz(6)
   updated_by             String?                  @db.VarChar(120)
   updated_info           String?
   rec_status             Int                      @default(1) @db.SmallInt
@@ -11786,10 +11804,10 @@ model org_fin_post_log_tr {
   execute_result_json                                                                               Json?
   error_code                                                                                        String?                   @db.VarChar(60)
   error_message                                                                                     String?
-  created_at                                                                                        DateTime                  @default(now()) @db.Timestamp(6)
+  created_at                                                                                        DateTime                  @default(now()) @db.Timestamptz(6)
   created_by                                                                                        String?                   @db.VarChar(120)
   created_info                                                                                      String?
-  updated_at                                                                                        DateTime?                 @db.Timestamp(6)
+  updated_at                                                                                        DateTime?                 @db.Timestamptz(6)
   updated_by                                                                                        String?                   @db.VarChar(120)
   updated_info                                                                                      String?
   rec_status                                                                                        Int                       @default(1) @db.SmallInt
@@ -11849,7 +11867,7 @@ model org_fin_post_snapshot_tr {
   journal_lines_json      Json                  @default("[]")
   actor_type              String?               @db.VarChar(20)
   actor_user_id           String?               @db.VarChar(120)
-  created_at              DateTime              @default(now()) @db.Timestamp(6)
+  created_at              DateTime              @default(now()) @db.Timestamptz(6)
   created_by              String?               @db.VarChar(120)
   created_info            String?
   is_active               Boolean               @default(true)
@@ -11962,10 +11980,10 @@ model org_fin_supp_ctc_dtl {
   phone            String?          @db.VarChar(40)
   role_name        String?          @db.VarChar(120)
   is_primary       Boolean          @default(false)
-  created_at       DateTime         @default(now()) @db.Timestamp(6)
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
   created_by       String?          @db.VarChar(120)
   created_info     String?
-  updated_at       DateTime?        @db.Timestamp(6)
+  updated_at       DateTime?        @db.Timestamptz(6)
   updated_by       String?          @db.VarChar(120)
   updated_info     String?
   rec_status       Int              @default(1) @db.SmallInt
@@ -12003,10 +12021,10 @@ model org_fin_supp_mst {
   currency_code          String                  @db.VarChar(10)
   status_code            String                  @default("ACTIVE") @db.VarChar(12)
   posting_hold           Boolean                 @default(false)
-  created_at             DateTime                @default(now()) @db.Timestamp(6)
+  created_at             DateTime                @default(now()) @db.Timestamptz(6)
   created_by             String?                 @db.VarChar(120)
   created_info           String?
-  updated_at             DateTime?               @db.Timestamp(6)
+  updated_at             DateTime?               @db.Timestamptz(6)
   updated_by             String?                 @db.VarChar(120)
   updated_info           String?
   rec_status             Int                     @default(1) @db.SmallInt
@@ -12043,15 +12061,15 @@ model org_fin_tpl_apply_log {
   tpl_pkg_code        String?              @db.VarChar(80)
   tpl_pkg_version     Int?
   apply_mode_code     String               @db.VarChar(20)
-  applied_at          DateTime             @default(now()) @db.Timestamp(6)
+  applied_at          DateTime             @default(now()) @db.Timestamptz(6)
   applied_by          String?              @db.VarChar(120)
   apply_result_code   String               @db.VarChar(20)
   notes               String?
   notes2              String?
-  created_at          DateTime             @default(now()) @db.Timestamp(6)
+  created_at          DateTime             @default(now()) @db.Timestamptz(6)
   created_by          String?              @db.VarChar(120)
   created_info        String?
-  updated_at          DateTime?            @db.Timestamp(6)
+  updated_at          DateTime?            @db.Timestamptz(6)
   updated_by          String?              @db.VarChar(120)
   updated_info        String?
   rec_status          Int                  @default(1) @db.SmallInt
@@ -12081,7 +12099,7 @@ model org_fin_tpl_mat_tr {
   change_summary        String?
   error_message         String?
   object_snapshot_json  Json?
-  created_at            DateTime              @default(now()) @db.Timestamp(6)
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
   created_by            String?               @db.VarChar(120)
   created_info          String?
   rec_status            Int                   @default(1) @db.SmallInt
@@ -12110,10 +12128,10 @@ model org_fin_usage_map_mst {
   status_code           String                @default("DRAFT") @db.VarChar(12)
   effective_from        DateTime?             @db.Date
   effective_to          DateTime?             @db.Date
-  created_at            DateTime              @default(now()) @db.Timestamp(6)
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
   created_by            String?               @db.VarChar(120)
   created_info          String?
-  updated_at            DateTime?             @db.Timestamp(6)
+  updated_at            DateTime?             @db.Timestamptz(6)
   updated_by            String?               @db.VarChar(120)
   updated_info          String?
   rec_status            Int                   @default(1) @db.SmallInt
@@ -12144,7 +12162,7 @@ model org_ntf_audit_dtl {
   new_value       Json?
   change_reason   String?
   performed_by    String
-  performed_at    DateTime        @default(now()) @db.Timestamp(6)
+  performed_at    DateTime        @default(now()) @db.Timestamptz(6)
   ip_address      String?
   user_agent      String?
   metadata        Json?
@@ -12171,11 +12189,11 @@ model org_ntf_camp_targets_dtl {
   status                String                @default("PENDING")
   skip_reason           String?
   outbox_id             String?               @db.Uuid
-  processed_at          DateTime?             @db.Timestamp(6)
-  created_at            DateTime              @default(now()) @db.Timestamp(6)
+  processed_at          DateTime?             @db.Timestamptz(6)
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
   created_by            String?
   created_info          String?
-  updated_at            DateTime?             @db.Timestamp(6)
+  updated_at            DateTime?             @db.Timestamptz(6)
   updated_by            String?
   updated_info          String?
   rec_status            Int                   @default(1) @db.SmallInt
@@ -12211,21 +12229,21 @@ model org_ntf_campaigns_mst {
   template_code            String?
   target_segment           Json?
   scheduled_at             DateTime?                  @db.Timestamptz(6)
-  started_at               DateTime?                  @db.Timestamp(6)
-  completed_at             DateTime?                  @db.Timestamp(6)
-  paused_at                DateTime?                  @db.Timestamp(6)
-  cancelled_at             DateTime?                  @db.Timestamp(6)
+  started_at               DateTime?                  @db.Timestamptz(6)
+  completed_at             DateTime?                  @db.Timestamptz(6)
+  paused_at                DateTime?                  @db.Timestamptz(6)
+  cancelled_at             DateTime?                  @db.Timestamptz(6)
   total_targets            Int                        @default(0)
   sent_count               Int                        @default(0)
   failed_count             Int                        @default(0)
   skip_count               Int                        @default(0)
   approved_by              String?
-  approved_at              DateTime?                  @db.Timestamp(6)
+  approved_at              DateTime?                  @db.Timestamptz(6)
   approval_notes           String?
-  created_at               DateTime                   @default(now()) @db.Timestamp(6)
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
   created_by               String?
   created_info             String?
-  updated_at               DateTime?                  @db.Timestamp(6)
+  updated_at               DateTime?                  @db.Timestamptz(6)
   updated_by               String?
   updated_info             String?
   rec_status               Int                        @default(1) @db.SmallInt
@@ -12257,10 +12275,10 @@ model org_ntf_channel_provider_cf {
   display_name       String?
   config             Json?
   is_active          Boolean            @default(false)
-  created_at         DateTime?          @default(now()) @db.Timestamp(6)
+  created_at         DateTime?          @default(now()) @db.Timestamptz(6)
   created_by         String?
   created_info       String?
-  updated_at         DateTime?          @db.Timestamp(6)
+  updated_at         DateTime?          @db.Timestamptz(6)
   updated_by         String?
   updated_info       String?
   rec_status         Int?               @default(1) @db.SmallInt
@@ -12292,7 +12310,7 @@ model org_ntf_delivery_log_dtl {
   error_code          String?
   error_message       String?
   duration_ms         Int?
-  logged_at           DateTime              @default(now()) @db.Timestamp(6)
+  logged_at           DateTime              @default(now()) @db.Timestamptz(6)
   rec_status          Int?                  @default(1) @db.SmallInt
   rec_notes           String?
   attempt_id          String                @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -12329,19 +12347,19 @@ model org_ntf_inbox_mst {
   channel_code             String                     @default("IN_APP")
   priority                 String                     @default("NORMAL")
   is_read                  Boolean                    @default(false)
-  read_at                  DateTime?                  @db.Timestamp(6)
+  read_at                  DateTime?                  @db.Timestamptz(6)
   action_url               String?
   action_label             String?
   action_label2            String?
   source_entity_type       String?
   source_entity_id         String?
   metadata                 Json?
-  expires_at               DateTime?                  @db.Timestamp(6)
+  expires_at               DateTime?                  @db.Timestamptz(6)
   idempotency_key          String                     @unique
-  created_at               DateTime?                  @default(now()) @db.Timestamp(6)
+  created_at               DateTime?                  @default(now()) @db.Timestamptz(6)
   created_by               String?
   created_info             String?
-  updated_at               DateTime?                  @db.Timestamp(6)
+  updated_at               DateTime?                  @db.Timestamptz(6)
   updated_by               String?
   updated_info             String?
   rec_status               Int?                       @default(1) @db.SmallInt
@@ -12389,14 +12407,14 @@ model org_ntf_outbox_dtl {
   retry_count              Int                        @default(0)
   max_retries              Int                        @default(5)
   provider_message_id      String?
-  sent_at                  DateTime?                  @db.Timestamp(6)
-  delivered_at             DateTime?                  @db.Timestamp(6)
-  read_at                  DateTime?                  @db.Timestamp(6)
+  sent_at                  DateTime?                  @db.Timestamptz(6)
+  delivered_at             DateTime?                  @db.Timestamptz(6)
+  read_at                  DateTime?                  @db.Timestamptz(6)
   idempotency_key          String                     @unique
-  created_at               DateTime?                  @default(now()) @db.Timestamp(6)
+  created_at               DateTime?                  @default(now()) @db.Timestamptz(6)
   created_by               String?
   created_info             String?
-  updated_at               DateTime?                  @db.Timestamp(6)
+  updated_at               DateTime?                  @db.Timestamptz(6)
   updated_by               String?
   updated_info             String?
   rec_status               Int?                       @default(1) @db.SmallInt
@@ -12435,13 +12453,13 @@ model org_ntf_push_subs_dtl {
   platform          String
   subscription_data Json
   app_version       String?
-  last_verified_at  DateTime? @db.Timestamp(6)
+  last_verified_at  DateTime? @db.Timestamptz(6)
   failure_count     Int       @default(0)
   is_active         Boolean   @default(true)
-  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
   created_by        String?
   created_info      String?
-  updated_at        DateTime? @db.Timestamp(6)
+  updated_at        DateTime? @db.Timestamptz(6)
   updated_by        String?
   updated_info      String?
   rec_status        Int?      @default(1) @db.SmallInt
@@ -12466,10 +12484,10 @@ model org_ntf_quota_override_cf {
   hard_cap        Int?
   overage_allowed Boolean?
   reason          String?
-  created_at      DateTime  @default(now()) @db.Timestamp(6)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
   created_by      String?   @db.VarChar(120)
   created_info    String?
-  updated_at      DateTime? @db.Timestamp(6)
+  updated_at      DateTime? @db.Timestamptz(6)
   updated_by      String?   @db.VarChar(120)
   updated_info    String?
   rec_status      Int       @default(1) @db.SmallInt
@@ -12495,10 +12513,10 @@ model org_ntf_settings_cf {
   quiet_hours_tz      String?
   daily_limit         Int?
   metadata            Json?
-  created_at          DateTime?          @default(now()) @db.Timestamp(6)
+  created_at          DateTime?          @default(now()) @db.Timestamptz(6)
   created_by          String?
   created_info        String?
-  updated_at          DateTime?          @db.Timestamp(6)
+  updated_at          DateTime?          @db.Timestamptz(6)
   updated_by          String?
   updated_info        String?
   rec_status          Int?               @default(1) @db.SmallInt
@@ -12525,10 +12543,10 @@ model org_ntf_usage_daily {
   failed_count       Int                @default(0)
   skip_count         Int                @default(0)
   cost_amount        Decimal            @default(0) @db.Decimal(19, 4)
-  created_at         DateTime           @default(now()) @db.Timestamp(6)
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
   created_by         String?
   created_info       String?
-  updated_at         DateTime?          @db.Timestamp(6)
+  updated_at         DateTime?          @db.Timestamptz(6)
   updated_by         String?
   updated_info       String?
   rec_status         Int                @default(1) @db.SmallInt
@@ -12556,13 +12574,13 @@ model org_ntf_user_prefs_dtl {
   event_code           String?
   is_enabled           Boolean            @default(true)
   marketing_consent    Boolean            @default(false)
-  consent_given_at     DateTime?          @db.Timestamp(6)
-  consent_withdrawn_at DateTime?          @db.Timestamp(6)
+  consent_given_at     DateTime?          @db.Timestamptz(6)
+  consent_withdrawn_at DateTime?          @db.Timestamptz(6)
   consent_ip           String?
-  created_at           DateTime?          @default(now()) @db.Timestamp(6)
+  created_at           DateTime?          @default(now()) @db.Timestamptz(6)
   created_by           String?
   created_info         String?
-  updated_at           DateTime?          @db.Timestamp(6)
+  updated_at           DateTime?          @db.Timestamptz(6)
   updated_by           String?
   updated_info         String?
   rec_status           Int?               @default(1) @db.SmallInt
@@ -12804,10 +12822,10 @@ model org_preference_kind_cf {
   kind_bg_color          String?                @db.VarChar(20)
   is_show_in_quick_bar   Boolean                @default(true)
   is_show_for_customer   Boolean                @default(true)
-  created_at             DateTime?              @default(now()) @db.Timestamp(6)
+  created_at             DateTime?              @default(now()) @db.Timestamptz(6)
   created_by             String?                @db.VarChar(120)
   created_info           String?
-  updated_at             DateTime?              @db.Timestamp(6)
+  updated_at             DateTime?              @db.Timestamptz(6)
   updated_by             String?                @db.VarChar(120)
   updated_info           String?
   rec_status             Int?                   @default(1) @db.SmallInt
@@ -16137,10 +16155,10 @@ model org_ntf_usage_apply_evt {
   sent_delta          Int                 @default(0)
   failed_delta        Int                 @default(0)
   cost_delta          Decimal             @default(0) @db.Decimal(19, 4)
-  created_at          DateTime            @default(now()) @db.Timestamp(6)
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
   created_by          String?
   created_info        String?
-  updated_at          DateTime?           @db.Timestamp(6)
+  updated_at          DateTime?           @db.Timestamptz(6)
   updated_by          String?
   updated_info        String?
   rec_status          Int                 @default(1) @db.SmallInt
@@ -17099,6 +17117,7 @@ model hq_general_config {
   rec_order               Int?
   rec_notes               String?
   is_active               Boolean         @default(true)
+  business_day_cutover    DateTime        @default(dbgenerated("'00:00:00'::time without time zone")) @db.Time(6)
   sys_country_cd          sys_country_cd  @relation(fields: [default_country_code], references: [code], onUpdate: NoAction, map: "fk_hq_gen_cfg_country")
   sys_currency_cd         sys_currency_cd @relation(fields: [default_currency_code], references: [code], onUpdate: NoAction, map: "fk_hq_gen_cfg_currency")
   sys_language_cd         sys_language_cd @relation(fields: [default_language_code], references: [code], onUpdate: NoAction, map: "fk_hq_gen_cfg_language")
@@ -19658,6 +19677,23 @@ model scim_users {
   @@index([sso_provider_id])
   @@index([user_id])
   @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model cmx_dt_env_cf {
+  config_id    Boolean   @id(map: "pk_cmx_dt_env_cf") @default(true)
+  env          String    @default("prod")
+  rec_notes    String?
+  created_at   DateTime  @default(dbgenerated("fn_cmx_dt_now()")) @db.Timestamptz(6)
+  created_by   String?
+  created_info String?
+  updated_at   DateTime? @db.Timestamptz(6)
+  updated_by   String?
+  updated_info String?
+
+  @@schema("public")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.

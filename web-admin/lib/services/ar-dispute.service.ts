@@ -7,6 +7,7 @@ import {
   deriveArInvoiceStatus,
 } from '@/lib/constants/ar-invoice';
 import type { ArDisputeCase } from '@/lib/types/ar-invoice';
+import { operationalCivilToday } from '@/lib/utils/operational-zone.server';
 import type {
   ArDisputesQuery,
   CreateArDisputeInput,
@@ -414,6 +415,7 @@ export async function resolveArDispute(
           paid_amount: true,
           due_date: true,
           status: true,
+          branch_id: true,
         },
       });
       if (!invoice) {
@@ -425,6 +427,7 @@ export async function resolveArDispute(
         totalAmount: Number(invoice.total ?? 0),
         paidAmount: Number(invoice.paid_amount ?? 0),
         dueDate: invoice.due_date,
+        todayCivil: await operationalCivilToday(tenantId, 'invoice', invoice.branch_id),
       });
 
       const updated = await tx.$queryRaw<DisputeRow[]>(Prisma.sql`

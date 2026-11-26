@@ -6,6 +6,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { pricingBulkService } from '@/lib/services/pricing-bulk.service';
+import { civilDateInZone } from '@/lib/utils/operational-time';
+import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
+
+async function exportCivilDay(tenantId: string): Promise<string> {
+  const zone = await resolveOperationalTimeZone(tenantId, 'invoice', null);
+  return civilDateInZone(new Date(), zone) || 'export';
+}
 
 /**
  *
@@ -36,7 +43,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(csv, {
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="price-list-export-${new Date().toISOString().split('T')[0]}.csv"`,
+        'Content-Disposition': `attachment; filename="price-list-export-${await exportCivilDay(tenantId)}.csv"`,
       },
     });
   } catch (error: any) {
