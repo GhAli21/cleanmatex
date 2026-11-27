@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { zInstant } from '@/lib/clock/api-input';
 import { ORDER_CHANGE_LIMITS, ORDER_CHANGE_OPERATION_CODES, ORDER_CHANGE_UNAVAILABLE_OPERATION_CODES } from '@/lib/constants/order-change';
 import { DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
 import { serviceSpeedCodeSchema } from '@/lib/validations/new-order-payment-schemas';
@@ -81,7 +82,7 @@ export const orderChangeOperationSchema = z.discriminatedUnion('code', [
   // Measured Pricing P5: what was measured on a stored measured line; the server resolves the billed quantity.
   operationBaseSchema.extend({ code: z.literal('CHANGE_ITEM_MEASURE'), target: persistedItemTargetSchema, payload: z.object({ measure: measureChangeSchema }).strict() }),
   operationBaseSchema.extend({ code: z.literal('CHANGE_DISCOUNT'), target: z.union([persistedItemTargetSchema, persistedPieceTargetSchema]), payload: z.object({ lineDiscount: lineDiscountChangeSchema.nullable() }).strict() }),
-  operationBaseSchema.extend({ code: z.literal('CHANGE_READY_BY'), target: orderTargetSchema, payload: z.object({ readyBy: z.string().datetime({ offset: true }).nullable() }).strict() }),
+  operationBaseSchema.extend({ code: z.literal('CHANGE_READY_BY'), target: orderTargetSchema, payload: z.object({ readyBy: zInstant.nullable() }).strict() }),
   operationBaseSchema.extend({ code: z.literal('CHANGE_ORDER_NOTES'), target: orderTargetSchema, payload: z.object({ notes: z.string().max(ORDER_CHANGE_LIMITS.MAX_ORDER_NOTE_LENGTH).optional(), customerNotes: z.string().max(ORDER_CHANGE_LIMITS.MAX_ORDER_NOTE_LENGTH).optional() }).strict().refine((value) => value.notes !== undefined || value.customerNotes !== undefined, 'At least one note field is required') }),
   operationBaseSchema.extend({ code: z.literal('CHANGE_CUSTOMER_SNAPSHOT'), target: orderTargetSchema, payload: z.object({ customerName: z.string().max(255).optional(), customerMobile: z.string().max(50).optional(), customerEmail: z.string().email().max(255).optional() }).strict().refine((value) => Object.keys(value).length > 0, 'At least one customer snapshot field is required') }),
   // Catalog-only codes are accepted so both endpoints return OPERATION_NOT_AVAILABLE before any write.

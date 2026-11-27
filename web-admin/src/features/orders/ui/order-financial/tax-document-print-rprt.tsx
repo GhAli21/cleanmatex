@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import type { TaxDocumentPrintDetail } from '@/lib/services/tax-document-read.service';
+import { useInstantFormatter } from '@ui/clock';
 
 interface TaxDocumentPrintRprtProps {
   detail: TaxDocumentPrintDetail;
@@ -30,17 +31,6 @@ function formatCurrency(
   }).format(amount);
 }
 
-function formatDateTime(value: string | null, locale: string) {
-  if (!value) return '—';
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
-}
-
 /**
  * Bilingual, printable fiscal tax document — B14 follow-up. Mirrors the
  * established `ar-invoice-print-rprt.tsx` layout/structure (the identified
@@ -52,6 +42,7 @@ function formatDateTime(value: string | null, locale: string) {
  */
 export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
   const t = useTranslations('taxDocuments');
+  const fmtInstant = useInstantFormatter();
   const locale = useLocale();
   const subtotal = detail.totalAmount - detail.taxAmount;
 
@@ -97,7 +88,7 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
               <span className="min-w-28 font-medium text-foreground">
                 {t('print.fields.issuedAt')}
               </span>
-              <span>{formatDateTime(detail.issuedAt, locale)}</span>
+              <span>{fmtInstant(detail.issuedAt) ?? '—'}</span>
             </div>
             <div className="flex gap-3">
               <span className="min-w-28 font-medium text-foreground">

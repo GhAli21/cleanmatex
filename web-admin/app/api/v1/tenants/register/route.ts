@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerTenant } from '@/lib/services/tenants.service';
 import type { TenantRegistrationRequest } from '@/lib/types/tenant';
+import { canonicalActiveZone } from '@/lib/services/timezone-catalog.service';
 
 /**
  *
@@ -36,6 +37,16 @@ export async function POST(request: NextRequest) {
         );
       }
     }
+
+    // G2: the zone must be an active catalog zone; an alias is stored as its canonical name.
+    const zone = await canonicalActiveZone(body.timezone);
+    if (!zone) {
+      return NextResponse.json(
+        { error: 'Choose a time zone from the list.', code: 'INVALID_TIME_ZONE' },
+        { status: 400 }
+      );
+    }
+    body.timezone = zone;
 
     // Validate admin user fields
     if (!body.adminUser.email || !body.adminUser.password || !body.adminUser.displayName) {

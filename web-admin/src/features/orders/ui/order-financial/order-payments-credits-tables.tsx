@@ -1,5 +1,6 @@
 'use client';
 
+import { CmxInstant } from '@ui/clock';
 import { useOrderMoneyRefresh } from '@features/orders/order-fin-view/hooks/use-order-money-refresh';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -213,7 +214,7 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                           '—'
                         )}
                       </TableCell>
-                      <TableCell className={td}>{new Date(c.applied_at).toLocaleString()}</TableCell>
+                      <TableCell className={td}><CmxInstant value={c.applied_at} /></TableCell>
                     </TableRow>
                   );
                 })
@@ -275,7 +276,7 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                       )}
                     </TableCell>
                     <TableCell className={td}>{r.refund_status ?? '—'}</TableCell>
-                    <TableCell className={td}>{new Date(r.created_at).toLocaleString()}</TableCell>
+                    <TableCell className={td}><CmxInstant value={r.created_at} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -427,7 +428,7 @@ function PaymentRow({
         )}
       </td>
       <td className={td}>{payment.gateway_reference ?? '—'}</td>
-      <td className={td}>{new Date(payment.created_at).toLocaleString()}</td>
+      <td className={td}><CmxInstant value={payment.created_at} /></td>
       <td className={td}>
         <div className="flex flex-wrap items-center gap-1.5">
             {payment.payment_status === 'COMPLETED' ? <CmxStatusBadge size="sm" tone="success">{t('verify.verified')}</CmxStatusBadge> : null}

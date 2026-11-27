@@ -438,3 +438,5 @@ Owner approved v5. P1 and P2 are done and applied; P3 is mostly done. Details, d
 - 2026-11-25: P4 fix "free-garment check on measured lines" done (see STATUS, QA steps 31-34). P6/P8 now also own `lib/orders/line-qualifier.ts` for Order Cart Line Grouping.
 
 - 2026-11-25: P6 web surfaces done (line qualifier helper, money view, tracking, receipts, prints, order detail, state API live-lines fix, booking hides measured products). Left: P7 HQ, P8 mobile (qualifier + booking unit), P9 Migration B, P10 docs.
+
+- 2026-11-27: P7a (HQ uom-config API), P7b (product setup on base_uom_code, product_unit mirrored until P9) and P7c (HQ screens) done in code; migration 0848 (HQ menu) awaits the owner. Next P7d (Sync units + setup-health checks). P9 note: drop the mirror in the HQ registry, bulk parse and tenant-product update together with `product_unit`.

@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
+import { useDateValueFormatter } from '@ui/clock';
 
 type StatusFieldKey =
   | 'order_source_code'
@@ -232,6 +233,7 @@ function resolveStatusVariant(key: StatusFieldKey, value: unknown): CmxBadgeTone
  */
 export function OrderStatusLifecycleTab({ order, locale }: OrderStatusLifecycleTabProps) {
   const t = useTranslations('orders.detail.financial.statusLifecycle');
+  const fmtDateValue = useDateValueFormatter();
 
   const renderValue = (field: StatusFieldDefinition) => {
     const value = field.key === 'workflow_profile_name'
@@ -252,10 +254,7 @@ export function OrderStatusLifecycleTab({ order, locale }: OrderStatusLifecycleT
     }
 
     if (field.kind === 'date') {
-      const date = new Date(String(value));
-      return Number.isNaN(date.getTime())
-        ? <span className="text-sm font-medium">{String(value)}</span>
-        : <span className="text-sm font-medium">{date.toLocaleString(locale)}</span>;
+      return <span className="text-sm font-medium">{fmtDateValue(String(value)) ?? '—'}</span>;
     }
 
     if (field.kind === 'status') {

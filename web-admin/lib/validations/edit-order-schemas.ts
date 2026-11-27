@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { zCivilOrInstantDate, zInstantDate } from '@/lib/clock/api-input';
 import { zUuidIfEnabled } from '@/lib/validations/cmx-temp-utils-para/validators/is-uuid-if-enabled';
 
 const updateOrderPieceServicePrefSchema = z.object({
@@ -83,7 +84,7 @@ export const updateOrderInputSchema = z.object({
   customerNotes: z.string().max(1000).optional(),
   /** Payment-related notes */
   paymentNotes: z.string().max(1000).optional(),
-  readyByAt: z.coerce.date().optional(),
+  readyByAt: zInstantDate.optional(),
   express: z.boolean().optional(),
   isQuickDrop: z.boolean().optional(),
   quickDropQuantity: z.number().int().min(0).optional(),
@@ -105,7 +106,7 @@ export const updateOrderInputSchema = z.object({
   recalculate: z.boolean().optional(),
 
   // Optimistic locking (for concurrent edit detection)
-  expectedUpdatedAt: z.coerce.date().optional(),
+  expectedUpdatedAt: zInstantDate.optional(),
 
   // B12 — required only when this edit is financially governed (item change
   // on an order with prior payments, order_fin_governed_amendments ON).
@@ -181,7 +182,7 @@ export const paymentAdjustmentSchema = z.object({
   // Payment details (for charges)
   checkNumber: z.string().optional(),
   checkBank: z.string().optional(),
-  checkDate: z.coerce.date().optional(),
+  checkDate: zCivilOrInstantDate.optional(),
 });
 
 /**

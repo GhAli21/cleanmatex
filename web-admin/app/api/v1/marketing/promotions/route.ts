@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { zInstant } from '@/lib/clock/api-input';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { listPromotions, createPromotion } from '@/lib/services/promotion-engine.service';
@@ -33,8 +34,8 @@ const createSchema = z.object({
   discountValue:         z.number().min(0),
   maxDiscountAmount:     z.number().min(0).optional(),
   minOrderAmount:        z.number().min(0).optional(),
-  startsAt:              z.string().datetime().optional(),
-  expiresAt:             z.string().datetime().optional(),
+  startsAt:              zInstant.optional(),
+  expiresAt:             zInstant.optional(),
   maxUses:               z.number().int().positive().optional(),
   maxUsesPerCustomer:    z.number().int().positive().optional(),
 });

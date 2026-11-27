@@ -22,6 +22,11 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
+// The zone and the screen clock are read elsewhere; this suite is about the totals.
+jest.mock('@/lib/utils/operational-zone.server', () => ({ resolveOperationalTimeZone: jest.fn(async () => 'Asia/Muscat') }));
+const mockScreenClock = jest.fn(async () => ({ zone: 'Asia/Muscat' }));
+jest.mock('@/lib/clock/api-clock.server', () => ({ screenClock: (...a: unknown[]) => mockScreenClock(...(a as [])) }));
+
 import { GET } from '@/app/api/v1/finance/reports/tax-report/route';
 
 const req = () => new NextRequest(new URL('http://localhost/api/v1/finance/reports/tax-report?from=2026-01-01&to=2026-01-31'));
@@ -48,6 +53,9 @@ describe('GET /api/v1/finance/reports/tax-report', () => {
       { taxCategoryCode: 'OUT_OF_SCOPE', amount: 2 },
     ]);
     expect(body.data.grandTotal).toBe(5);
+    // S6: the report carries the invoice-zone clock block (api-clock-inventory.md).
+    expect(body.clock).toEqual({ zone: 'Asia/Muscat' });
+    expect(mockScreenClock).toHaveBeenCalledWith('tenant-1', { operation: 'invoice', branchId: null });
     // An Edit retires old tax rows; counting them would overstate the tax.
     expect((queryRaw.mock.calls[0][0] as string[]).join('')).toContain('rec_status = 1');
     for (const where of [findMany.mock.calls[0][0].where, aggregate.mock.calls[0][0].where]) {

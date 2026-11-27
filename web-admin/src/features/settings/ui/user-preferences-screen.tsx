@@ -409,15 +409,7 @@ export function UserPreferencesScreen() {
               { value: 'ar', label: t('langArabic') },
             ])}
 
-            {renderSelectField('user.timezone', tSettings('timezone'), t('timezoneDescription'), [
-              { value: 'UTC', label: t('tzUtc') },
-              { value: 'Asia/Muscat', label: t('tzMuscat') },
-              { value: 'Asia/Riyadh', label: t('tzRiyadh') },
-              { value: 'Asia/Dubai', label: t('tzDubai') },
-              { value: 'Asia/Kuwait', label: t('tzKuwait') },
-              { value: 'Asia/Bahrain', label: t('tzBahrain') },
-              { value: 'Asia/Qatar', label: t('tzQatar') },
-            ])}
+            {/* G7 (D14): no per-user time zone; screens use the branch or organization zone. */}
 
             {renderSelectField(
               'user.date_format',

@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { Decimal } from '@prisma/client/runtime/library';
 import { civilInstantRange } from '@/lib/utils/operational-time';
+import { leadingCivilDate } from '@/lib/clock/api-input';
+import { screenClock } from '@/lib/clock/api-clock.server';
 import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 
 function toNumber(d: Decimal | null | undefined): number {
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest) {
   const page     = Number(searchParams.get('page') ?? '1');
   const limit    = Number(searchParams.get('limit') ?? '50');
 
-  if ((from && !/^\d{4}-\d{2}-\d{2}/.test(from)) || (to && !/^\d{4}-\d{2}-\d{2}/.test(to))) {
+  if ((from && !leadingCivilDate(from)) || (to && !leadingCivilDate(to))) {
     return NextResponse.json({ success: false, error: 'from and to must be YYYY-MM-DD' }, { status: 400 });
   }
   const zone = from || to
@@ -75,7 +77,8 @@ export async function GET(request: NextRequest) {
       totalDiscounts: toNumber(aggregates._sum.total_discount_amount),
     };
 
-    return NextResponse.json({ success: true, data: { orders, total, page, limit, kpis } });
+    const clock = await screenClock(tenantId, { operation: 'accept_order', branchId: branchId ?? null });
+    return NextResponse.json({ success: true, data: { orders, total, page, limit, kpis }, clock });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to generate orders summary';
     return NextResponse.json({ success: false, error: message }, { status: 500 });

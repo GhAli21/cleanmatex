@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { useLocale } from '@/lib/hooks/useLocale';
+import { useInstantFormatter } from '@ui/clock';
 
 /**
  *
@@ -34,18 +34,6 @@ interface OrderHistoryPrintRprtProps {
   data: OrderHistoryPrintRprtData;
 }
 
-function formatDate(dateStr: string | undefined | null, locale: string): string {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString(locale === 'ar' ? 'ar' : 'en', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 /**
  *
  * @param root0
@@ -54,8 +42,8 @@ function formatDate(dateStr: string | undefined | null, locale: string): string 
 export function OrderHistoryPrintRprt({ data }: OrderHistoryPrintRprtProps) {
   const tOrders = useTranslations('orders');
   const tCommon = useTranslations('common');
+  const fmtInstant = useInstantFormatter();
   const isRTL = useRTL();
-  const locale = useLocale();
 
   return (
     <div
@@ -101,7 +89,7 @@ export function OrderHistoryPrintRprt({ data }: OrderHistoryPrintRprtProps) {
               >
                 <div className="flex justify-between print-row">
                   <span className="font-medium">{entry.action_type}</span>
-                  <span className="text-muted-foreground">{formatDate(entry.done_at ?? entry.created_at ?? undefined, locale)}</span>
+                  <span className="text-muted-foreground">{fmtInstant(entry.done_at ?? entry.created_at ?? undefined) ?? '—'}</span>
                 </div>
                 {(entry.from_value != null || entry.to_value != null) && (
                   <div className="mt-0.5 text-xs text-muted-foreground">

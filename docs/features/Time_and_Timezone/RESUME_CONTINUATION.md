@@ -1,10 +1,10 @@
 # Resume continuation — clock program
 
-Last refreshed: 2026-11-27, at pack `0.1.43` (slice S1 done; slice S2 files written, not applied; D32–D35 accepted t137u). Refresh this file at the end of every slice. A slice is not done while this file still names the old version, the old next step, or a route that the slice just finished. Read **Risks while implementing** before editing.
+Last refreshed: 2026-11-27, at pack `0.1.47` (S1 done; S2 done, `0842`–`0844` applied; S3, S4 done in code; S5 done, `0846` applied by the user; S6 done in code, no migration; slots moved +1 at `0.1.45` and +2 at `0.1.47` because the user's `0845`, `0847`, `0848` took those numbers; next slice takes the next free number when its file is written). Refresh this file at the end of every slice. A slice is not done while this file still names the old version, the old next step, or a route that the slice just finished. Read **Risks while implementing** before editing.
 
-Read this file first. It wins over `technical_docs/work-packages.md` when they disagree. Then read `progress_summary.md` and `current_status.md`. Use `work-packages.md` only for the close-out test of the package you are in. The rule text is `docs/dev/rules/time-and-timezone.md`. Pack version is `0.1.43` (`version.txt`). S2 files are written: `0842_cmx_dt_clock_api.sql`, `0843_cmx_dt_settings.sql` (not applied). **Next: the user runs §10 Q1/Q3/Q4/Q7/Q8/Q15, applies `0842` then `0843`, re-runs the Q-queries and `supabase/tests/clock_sql_api.test.sql` + `clock_vectors.test.sql`, then `npm run prisma:pull` and type regeneration; then S3 (`0.1.44`).** `0844` only if Q1 shows a non-UTC role. Do not edit changelog headings `0.1.32` through `0.1.43`.
+Read this file first. It wins over `technical_docs/work-packages.md` when they disagree. Then read `progress_summary.md` and `current_status.md`. Use `work-packages.md` only for the close-out test of the package you are in. The rule text is `docs/dev/rules/time-and-timezone.md`. Pack version is `0.1.47` (`version.txt`). S2 is applied and green. S3 is in code: use `@ui/clock` (`ClockProvider`, `CmxInstant`, `useInstantFormatter`) and `lib/clock/clock-block.server.ts`; never format an instant without a server-resolved zone. S4 is in code: zone pickers use `CmxTimeZoneSelect` + `canonicalActiveZone`; client "today" uses `useClockCivilToday()`; server "today" uses `operationalCivilToday` and fails closed; D20 toggle `ViewZoneProvider`/`CmxViewZoneToggle`. **Next: S5 (`0.1.46`, migration `0846`)**. *(Previous: S4 (`0.1.45`))*, including the G1 leftovers listed in `MASTER_PLAN_v2.md` (S3 row). Do not edit changelog headings `0.1.32` through `0.1.44`.
 
-**Master plan v2, final (2026-11-26, amended t135u, reviewed t136u).** [`MASTER_PLAN_v2.md`](./MASTER_PLAN_v2.md) (`0.1.41b-plan`) is the queue for the remaining work: slices S1–S15 replace the "Continue in this order" list below, which stays as history and as the file list for S4 and S6. The rules and risks in this file still apply. Decisions D1–D29 and D32–D35 are **accepted** (D32–D35 on 2026-11-27, t137u); D30/D31 are **superseded by D33**. S1 is **done** (`0.1.42`); S2 files are **written, not applied** (`0.1.43`); see `IMPLEMENTATION_REPORT.md`. **Only the user applies migrations (D17):** the agent writes the file, says its slot, and stops; the agent never runs `db push` and never runs Prisma commands. The old "applying a new migration is allowed" wording is removed. Names: SQL `fn_cmx_dt_*`, TypeScript `dt*` (the deployed `fn_ops_zone` stays; `fn_cmx_dt_zone` wraps it). Temporal comes from `temporal-polyfill`, imported only in `packages/clock/src/temporal.ts`.
+**Master plan v2, final (2026-11-26, amended t135u, reviewed t136u).** [`MASTER_PLAN_v2.md`](./MASTER_PLAN_v2.md) (`0.1.41b-plan`) is the queue for the remaining work: slices S1–S15 replace the "Continue in this order" list below, which stays as history and as the file list for S4 and S6. The rules and risks in this file still apply. Decisions D1–D29 and D32–D35 are **accepted** (D32–D35 on 2026-11-27, t137u); D30/D31 are **superseded by D33**. S1 is **done** (`0.1.42`); S2 is **done** (`0842`–`0844` applied by the user); S3 is **done in code** (`0.1.44`); see `IMPLEMENTATION_REPORT.md`. **Only the user applies migrations (D17):** the agent writes the file, says its slot, and stops; the agent never runs `db push` and never runs Prisma commands. The old "applying a new migration is allowed" wording is removed. Names: SQL `fn_cmx_dt_*`, TypeScript `dt*` (the deployed `fn_ops_zone` stays; `fn_cmx_dt_zone` wraps it). Temporal comes from `temporal-polyfill`, imported only in `packages/clock/src/temporal.ts`.
 
 ## Final plan summary (2026-11-26)
 
@@ -18,25 +18,25 @@ Decisions D1–D29 and D32–D35 are accepted (D30/D31 superseded by D33); detai
 - **Zones:** IANA only. Runtime validation reads **`sys_timezone_cd`** (extended in `0842` from official IANA tzdb + CLDR names; aliases normalize to the canonical name). `pg_timezone_names` is a health sync check only. Database role zone is a read-only check in S2 with a migration only if a role differs; permanent health checks `CLOCK_*` (`fn_cmx_dt_health`).
 - **Viewing:** display-only toggle "Branch zone / My device zone" on chosen reports and lists; writes with a different client zone get `409 ZONE_MISMATCH`.
 - **API:** every screen endpoint returns `clock: { zone, businessDate, serverNow, hourCycle, weekStart, tzdbVersion }`.
-- **Quiet hours:** `quiet_hours_tz` is no longer read (S8) and is dropped later (`0851`); the zone is the **`notify`** zone (D27).
+- **Quiet hours:** `quiet_hours_tz` is no longer read (S8) and is dropped later (`0854`); the zone is the **`notify`** zone (D27).
 
 | Slice | Pack version | Migration slot | Manual cases |
 |---|---|---|---|
 | S1 `packages/clock`, guard v2, Temporal adapter — **done 2026-11-27** | 0.1.42 | none | T60 |
-| S2 SQL clock API, timezone catalog extend, `notify`, zone validators, health, **settings foundation**, role-zone check — **files written 2026-11-27, not applied** | 0.1.43 | `0842`, `0843` (+ `0844` only if a role is not UTC); D32–D35 accepted | T54, T59, T61–T66 |
-| S3 display components, order screens | 0.1.44-plan | none | T43 |
-| S4 "today" cluster, zone catalog, viewer-zone toggle | 0.1.45-plan | none | T44, T56 |
-| S5 `CURRENT_DATE` replacement | 0.1.46-plan | `0845` | T45 |
-| S6 Zod primitives, `clock` block, 409 on writes | 0.1.47-plan | none | T46, T57 |
+| S2 SQL clock API, timezone catalog extend, `notify`, zone validators, health, **settings foundation**, role-zone check — **DONE, applied by the user 2026-11-27** | 0.1.43 | `0842`, `0843`, `0844` (DEFINER catalog readers); D32–D35 accepted | T54, T59, T61–T66 |
+| S3 display components, order screens — **DONE in code 2026-11-27** | 0.1.44 | none | T43 |
+| S4 "today" cluster, zone catalog, viewer-zone toggle — **DONE in code 2026-11-27** | 0.1.45 | none | T44, T56 |
+| S5 `CURRENT_DATE` replacement — **DONE, applied by the user 2026-11-27** | 0.1.46 | `0846` | T45, T67 |
+| S6 Zod primitives, `clock` block, 409 on writes — **DONE in code 2026-11-27** | 0.1.47 | none | T46, T57 |
 | S7 exports, audit, `/health/clock` | 0.1.48-plan | none | T14, T15, T55, T56 |
-| S8 jobs, quiet hours (`notify` zone) | 0.1.49-plan | `0846` | T47, T58 |
-| S9 cut-over UI, Date & Time settings fields, `business_date` on orders/payments | 0.1.50-plan | `0847` | T48, T52, T53 |
-| S10 zone-change policy | 0.1.51-plan | `0848` | T49 |
+| S8 jobs, quiet hours (`notify` zone) | 0.1.49-plan | `0849` | T47, T58 |
+| S9 cut-over UI, Date & Time settings fields, `business_date` on orders/payments | 0.1.50-plan | `0850` | T48, T52, T53 |
+| S10 zone-change policy | 0.1.51-plan | `0851` | T49 |
 | S11 cmx-api | 0.1.52-plan | none | vectors, e2e |
 | S12 mobile | 0.1.53-plan | none | T50 |
-| S13 HQ + `sys_*`/`hq_*` stamps + tzdb/CLDR catalog refresh | 0.1.54-plan | `0849`, `0850` | T51 |
+| S13 HQ + `sys_*`/`hq_*` stamps + tzdb/CLDR catalog refresh | 0.1.54-plan | `0852`, `0853` | T51 |
 | S14 page inventory, CI matrix | 0.1.55-plan | none | |
-| S15 drop `quiet_hours_tz` after soak | later | `0851` | |
+| S15 drop `quiet_hours_tz` after soak | later | `0854` | |
 
 Latest existing migration when this was written: `0841_otp_stamps_timestamptz.sql`. Re-check before creating a file.
 
@@ -103,7 +103,7 @@ Before a slice is called done, update all six:
 - Authenticated browser checks T21–T42 were written and not run in a signed-in browser. A full `web-admin` `npm run build` was not run for these slices. Say so when you finish a slice.
 - Do not commit or push unless the user asks.
 - Do not `supabase db reset`. Do not edit an applied migration. Applied clock files that must stay unchanged: `0826`, `0828` through `0841`.
-- **The agent does not apply migrations (D17).** Write the new file, state its slot (`0842`–`0851`, see the master plan §7.1), and stop. The user applies it: from the repo root `npx supabase db push --local --include-all --yes`, then `npx supabase db push --include-all --yes` for the linked remote (`--include-all` is required; never print remote credentials). After the user applies, the user runs `npm run prisma:pull` once; the agent does not run Prisma commands. Do not turn Prisma `?` relations into `[]`. Do not make `tenant_org_id` optional. Do not "fix" local versus remote varchar widths. The post-pull patch restores `cmx_effective_permissions` `@ignore`.
+- **The agent does not apply migrations (D17).** Write the new file, state its slot (`0842`–`0854`, see the master plan §7.1), and stop. The user applies it: from the repo root `npx supabase db push --local --include-all --yes`, then `npx supabase db push --include-all --yes` for the linked remote (`--include-all` is required; never print remote credentials). After the user applies, the user runs `npm run prisma:pull` once; the agent does not run Prisma commands. Do not turn Prisma `?` relations into `[]`. Do not make `tenant_org_id` optional. Do not "fix" local versus remote varchar widths. The post-pull patch restores `cmx_effective_permissions` `@ignore`.
 - `npm run check:clock-contract` fails on the existing comment inside `0832_lockout_timestamptz.sql`. Do not edit `0832`. Do not add a `CIVIL:` marker to hide that comment.
 
 ## Clock rules that keep getting broken
@@ -163,6 +163,10 @@ Recent slices, so they are not repeated:
 | 0.1.41b-plan | Adversarial gap review (t136u): G19–G26, D32–D35 proposed, settings foundation re-slotted to S2 (`0843`), slots `0842`–`0851` re-set, rollback table, coverage matrix, T61–T68. Documentation only |
 | 0.1.42 | S1: `packages/clock` (`@cmx/clock`), shared vectors, `notify` in TS only, guard v2 + baseline (both repos), restored Ready By test, contract docs; D32–D35 accepted. T60 |
 | 0.1.43 | S2 files (not applied): `0842` clock API + catalog + `notify` + validators + health, `0843` settings foundation; SQL tests + vector generator; `notify` in `SQL_DOOR_OPERATIONS`; guard regex fix. T54, T59, T61–T66 (SQL) |
+| 0.1.47 | S5 applied (`0846`). S6: `api-input` Zod/parse helpers on routes, actions and schemas; `clock` block on 10 screen endpoints + inventory contract test; `clockErrorResponse`, `resolveZonedInput`, `CmxDstChoice`, `useClockErrorMessage`; promotions day in the organization zone; slots +2 (S8 = `0849`). T46, T57 |
+| 0.1.46 | S5: `0846` (27 SQL definitions → `fn_cmx_dt_*`, drift check, G21, G22, speed default, unknown-zone deactivation), preimage rollback script, S5 SQL test; guard 226 → 224. T45, T67 |
+| 0.1.45 | S4: G12 today cluster, G2 zone picker + catalog validation (settings, registration), G7 per-user zone removed, G8 root `ClockProvider` + notice, D20 toggle on orders list, S3 leftovers; guard 276 → 226. Slots S5–S15 +1 (S5 = `0846`). T44, T56 |
+| 0.1.44 | S2 applied (`0842`–`0844`). S3: `@ui/clock` components + `ClockProvider`, server `clock` block, G1 Ready By / public tracking / order tabs, registration writes via service role. T43 |
 
 ## Continue in this order
 

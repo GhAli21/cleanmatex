@@ -7,6 +7,7 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import type { OrderTaxDocumentView } from '@features/orders/model/order-financial-summary-view';
 
 import { CmxStatusBadge } from '@ui/feedback';
+import { useInstantFormatter } from '@ui/clock';
 interface TaxDocumentLifecycleTimelineProps {
   taxDocument: OrderTaxDocumentView;
   currencyCode?: string;
@@ -55,6 +56,7 @@ export function TaxDocumentLifecycleTimeline({
   orderId,
 }: TaxDocumentLifecycleTimelineProps) {
   const t = useTranslations('taxDocuments');
+  const fmtInstant = useInstantFormatter();
   const isRTL = useRTL();
   const doc = taxDocument;
 
@@ -69,10 +71,10 @@ export function TaxDocumentLifecycleTimeline({
       : doc.status ?? '—';
 
   const issuedAtFormatted = doc.issuedAt
-    ? new Date(doc.issuedAt).toLocaleString()
+    ? fmtInstant(doc.issuedAt)
     : null;
   const cancelledAtFormatted = doc.cancelledAt
-    ? new Date(doc.cancelledAt).toLocaleString()
+    ? fmtInstant(doc.cancelledAt)
     : null;
 
   return (

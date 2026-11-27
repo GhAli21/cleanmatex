@@ -11,6 +11,7 @@ import { useNewOrderStateWithDispatch } from '@/src/features/orders/hooks/use-ne
 import { useOrderWorkspaceSessionOptional } from '@/src/features/orders/order-change/order-workspace-session';
 import type { PackingPreference, PreferenceKind, ServicePreference } from '@/lib/types/service-preferences';
 import type { OrderItem } from '@/src/features/orders/model/new-order-types';
+import { productLineNumber } from '@/src/features/orders/model/cart-line-grouping';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 import { useNewOrderPiecePreferences } from '@/src/features/orders/hooks/use-new-order-piece-preferences';
 import { useBilingual } from '@/lib/utils/bilingual';
@@ -72,6 +73,7 @@ export function OrderPiecePreferencesSection({
   onFocusItemHandled,
 }: OrderPiecePreferencesSectionProps) {
   const t = useTranslations('newOrder.piecePreferences');
+  const tLines = useTranslations('newOrder.lines');
   const { state, updateItemPieces } = useNewOrderStateWithDispatch();
   const editSession = useOrderWorkspaceSessionOptional();
   const {
@@ -155,7 +157,8 @@ export function OrderPiecePreferencesSection({
 
       <div className={`space-y-3 ${preferenceCapability.interactive ? '' : 'pointer-events-none opacity-60'}`}>
         {itemGroups.map(({ item, pieces, categoryLabel }) => {
-          const title = getBilingual(item.productName, item.productName2) || '—';
+          const lineNo = productLineNumber(state.items, item.lineKey);
+          const title = `${getBilingual(item.productName, item.productName2) || '—'}${lineNo ? ` · ${tLines('lineNumber', { number: lineNo })}` : ''}`;
           const siblingIds = pieces.map((p) => p.id);
           return (
             <div

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { zInstant } from '@/lib/clock/api-input';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { togglePromotionActive } from '@/lib/services/promotion-engine.service';
@@ -40,7 +41,7 @@ const patchSchema = z.object({
   isActive:              z.boolean().optional(),
   name:                  z.string().min(1).optional(),
   name2:                 z.string().optional(),
-  expiresAt:             z.string().datetime().optional(),
+  expiresAt:             zInstant.optional(),
   usageLimit:            z.number().int().positive().optional(),
   usageLimitPerCustomer: z.number().int().positive().optional(),
 });

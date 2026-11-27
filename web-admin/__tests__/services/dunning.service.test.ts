@@ -3,6 +3,16 @@
  * Pure function evaluateDunningLevels
  */
 
+// G12 (S4): "today" comes from the organization zone; tests pin it.
+const mockCivilToday = jest.fn(async (..._a: unknown[]): Promise<string> => '2026-11-27');
+jest.mock('@/lib/utils/operational-zone.server', () => {
+  class OperationalZoneMissingError extends Error {
+    readonly code = 'TIMEZONE_NOT_CONFIGURED';
+    constructor() { super('TIMEZONE_NOT_CONFIGURED'); }
+  }
+  return { operationalCivilToday: (...a: unknown[]) => mockCivilToday(...a), OperationalZoneMissingError };
+});
+
 import {
   evaluateDunningLevels,
   type DunningLevel,

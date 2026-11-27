@@ -20,6 +20,7 @@ import type { SpeedOptionPreviewSource } from '../hooks/use-speed-option-preview
 import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import { CmxButton, CmxInput, CmxSwitch, CmxTextarea } from '@ui/primitives';
 import { CmxSummaryMessage } from '@ui/feedback';
+import { CmxInstant } from '@ui/clock';
 import { CartQuoteTotals, type CartQuoteTotalsProps } from './cart-quote-totals';
 import { EditControlNotice } from '../order-change/edit-control-notice';
 import { useEditControlGroup } from '../order-change/use-edit-control-capability';
@@ -83,6 +84,11 @@ interface OrderSummaryPanelProps {
   notes: string;
   onNotesChange: (value: string) => void;
   readyByAt: string;
+  /**
+   * Fulfilment-branch zone of the Ready By (`ready_by` operation, server-resolved). The date and
+   * time are shown in this zone, never the device zone; null or missing shows no time (G1).
+   */
+  readyByZone?: string | null;
   /**
    * New Order only: the server quote of the cart (P5-03). Order Edit passes
    * nothing; its only total is the live edit card (D33).
@@ -164,6 +170,7 @@ function OrderSummaryPanelComponent({
   notes,
   onNotesChange,
   readyByAt,
+  readyByZone = null,
   cartQuote,
   currencyCode = '',
   onSubmit,
@@ -413,23 +420,11 @@ function OrderSummaryPanelComponent({
               {readyByAt ? (
                 <>
                   <span className="flex-1 text-foreground min-w-0 text-start">
-                    <bdi className="tabular-nums">
-                      {(() => {
-                        const d = new Date(readyByAt);
-                        const day = String(d.getDate()).padStart(2, '0');
-                        const month = String(d.getMonth() + 1).padStart(2, '0');
-                        const year = d.getFullYear();
-                        return `${day}/${month}/${year}`;
-                      })()}
-                    </bdi>
+                    <CmxInstant value={readyByAt} zone={readyByZone} style="date" />
                   </span>
                   <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
                   <span className="text-foreground min-w-0 text-start">
-                    <bdi className="tabular-nums">
-                      {new Date(readyByAt).toLocaleTimeString(isRTL ? 'ar' : 'en-US', {
-                        hour: '2-digit', minute: '2-digit', hour12: true,
-                      })}
-                    </bdi>
+                    <CmxInstant value={readyByAt} zone={readyByZone} style="time" />
                   </span>
                 </>
               ) : (

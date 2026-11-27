@@ -11,7 +11,7 @@ Page: **Dashboard → Orders → New Order** (`/dashboard/orders/new`), and **Ed
 2b. Edit Order: open the price override from a cart line (pencil). Expected: the dialog shows that line's current price and saving changes it (before P1 the dialog could not find the line in Edit).
 2c. Edit Order: change nothing, then change one thing and undo it. Expected: Save/Review is enabled only while something really differs.
 
-## P2 — add rule
+## P2 — add rule — ✅ ready to test
 3. Tap Turtleneck twice. Expected: one line, quantity 2 (as today).
 4. Set a price override on that line, tap Turtleneck again. Expected: a **new** line at catalog price; the override line stays at 2.
 5. Same as 4 with a line discount, then with a line speed. Expected: a new line each time.
@@ -28,6 +28,9 @@ Page: **Dashboard → Orders → New Order** (`/dashboard/orders/new`), and **Ed
 6j. Order Edit on a saved order with a measured line (setup: **HQ → Order Edit policy** has rules for Change Item Quantity, Add Piece and Change Item Measure at this stage). Add the same product with the same per-piece measure. Expected: the choice shows **Add to line 1 (agreed price …)** and **Add as a new line (today's price …)**. Choose add to line 1 → Review lists quantity, piece and measure changes → Apply succeeds. Remove one of the three HQ rules → the choice step no longer appears; the article becomes a new line.
 6k. *(Label built by Measured Pricing P6/P8, DESIGN §0; check here once both are live.)* Customer-facing: create an order with Turtleneck ×1 at Express and Turtleneck ×1 at the order speed, and two identical 2.5 m measured lines. Check the WhatsApp/email receipt text, the printed receipt, the order details print, the tracking page and the customer app order screen. Expected: "Turtleneck Sweater · Express", "Turtleneck Sweater", "… · 2.5 m (1)", "… · 2.5 m (2)", in EN and AR.
 7. Card `−` on a product with two lines. Expected: the most recently added line loses one piece (or is removed if it had one). On a measured product, a confirm appears first.
+
+2d. (P2) Line labels: when a product has 2+ lines, the cart and steps 2–4 show "Turtleneck Sweater · Line 1 / Line 2"; with one line, no label.
+2e. (P2) Grid badge = all pieces of the product across its lines; − takes a piece off the most recently added line.
 
 ## P3 — move piece
 8. Turtleneck quantity 2 → piece 2 menu → **Move to a new line**. Expected: two lines "Turtleneck Sweater · Line 1 / Line 2", piece keeps its notes and preferences, both lines re-priced by the server.

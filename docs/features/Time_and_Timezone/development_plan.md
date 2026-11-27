@@ -1,6 +1,6 @@
 # Development plan
 
-> Remaining work is planned in [`MASTER_PLAN_v2.md`](./MASTER_PLAN_v2.md) (pack `0.1.43`; decisions D1–D29 and D32–D35 accepted, D30/D31 superseded by D33). Phases 0, 2, 4, and 5 below are done for organization tables; Phases 1, 3, 6, and 7 continue as slices S1–S15 there (S1 done 2026-11-27: `packages/clock`, guard v2; S2 files `0842`/`0843` written 2026-11-27, not applied). New SQL uses the `fn_cmx_dt_*` family (the deployed `fn_ops_zone` stays under it); TypeScript uses `dt*`. Closed operations include `notify`.
+> Remaining work is planned in [`MASTER_PLAN_v2.md`](./MASTER_PLAN_v2.md) (pack `0.1.47`; decisions D1–D29 and D32–D35 accepted, D30/D31 superseded by D33). Phases 0, 2, 4, and 5 below are done for organization tables; Phases 1, 3, 6, and 7 continue as slices S1–S15 there (S1–S5 done; `0842`–`0846` applied; S6 done in code 2026-11-27; next S7). New SQL uses the `fn_cmx_dt_*` family (the deployed `fn_ops_zone` stays under it); TypeScript uses `dt*`. Closed operations include `notify`.
 
 Contract: [`docs/dev/rules/time-and-timezone.md`](../../dev/rules/time-and-timezone.md).
 Work packages: [`technical_docs/work-packages.md`](./technical_docs/work-packages.md).

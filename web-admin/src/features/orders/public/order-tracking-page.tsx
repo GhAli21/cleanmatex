@@ -9,6 +9,8 @@ import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
 import type { LineQualifier } from '@/lib/orders/line-qualifier';
 import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
+import type { PublicClockBlock } from '@cmx/clock';
+import { ClockProvider, CmxInstant } from '@ui/clock';
 
 interface PublicOrderTotals {
     subtotal: number | null;
@@ -82,6 +84,8 @@ interface ApiResponse {
         order: PublicOrderData;
         timeline: PublicOrderTimelineEntry[];
         moneyConfig?: PublicOrderMoneyConfig;
+        /** Shop zone and display preferences from the server (G1). Null: times are not shown. */
+        clock?: PublicClockBlock | null;
     };
     error?: string;
 }
@@ -126,6 +130,7 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
     const [actionError, setActionError] = useState<string | null>(null);
     const [order, setOrder] = useState<PublicOrderData | null>(null);
     const [timeline, setTimeline] = useState<PublicOrderTimelineEntry[]>([]);
+    const [clockBlock, setClockBlock] = useState<PublicClockBlock | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
     const [confirmSuccess, setConfirmSuccess] = useState<string | null>(null);
     // The customer-safe statement (P6-11): projected on the server, never computed here.
@@ -172,6 +177,7 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
                     setOrder(json.data.order);
                     setTimeline(json.data.timeline || []);
                     setMoneyConfigFromApi(json.data.moneyConfig ?? null);
+                    setClockBlock(json.data.clock ?? null);
                     setConfirmSuccess(null);
                 }
             } catch (err) {
@@ -260,13 +266,11 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
         !isPaymentSettled &&
         remainingCollectionAmount > 0;
 
-    const formattedReceivedAt = order.receivedAt
-        ? new Date(order.receivedAt).toLocaleString()
-        : null;
+    // Times are painted in the shop zone from the server `clock` block, never the device zone.
+    const shopZone = clockBlock?.zone ?? null;
+    const formattedReceivedAt = order.receivedAt ? <CmxInstant value={order.receivedAt} zone={shopZone} /> : null;
 
-    const formattedReadyBy = order.readyBy
-        ? new Date(order.readyBy).toLocaleString()
-        : null;
+    const formattedReadyBy = order.readyBy ? <CmxInstant value={order.readyBy} zone={shopZone} /> : null;
 
     const canConfirmReceived =
         (isAvailableForPickup && !showPayOnCollectionNotice) ||
@@ -326,6 +330,8 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
     }
 
     return (
+        // The shop clock block: zone, hour cycle and date format from the server (S4).
+        <ClockProvider block={clockBlock}>
         <div className="min-h-screen bg-muted px-4 py-6">
             <div className="max-w-2xl mx-auto space-y-4">
                 {/* Header */}
@@ -546,7 +552,7 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
                                             {entry.type}
                                         </p>
                                         <p className="text-muted-foreground">
-                                            {new Date(entry.doneAt).toLocaleString()}
+                                            <CmxInstant value={entry.doneAt} zone={shopZone} />
                                         </p>
                                     </div>
                                 </li>
@@ -578,6 +584,7 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
                 </footer>
             </div>
         </div>
+        </ClockProvider>
     );
 }
 

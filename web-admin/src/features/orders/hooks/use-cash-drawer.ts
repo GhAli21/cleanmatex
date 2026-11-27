@@ -45,6 +45,7 @@ import {
   getPreferredCashDrawerStorageKey,
   resolvePreferredCashDrawerSessionId,
 } from '@features/orders/ui/payment-modal-v4.utils';
+import { useInstantFormatter } from '@ui/clock';
 
 /**
  * Minimal translate signature compatible with next-intl's `useTranslations`.
@@ -195,20 +196,16 @@ export function useCashDrawer({
     [isRTL]
   );
 
+  // The drawer opened in the branch clock (screen zone), not the device clock.
+  const fmtInstant = useInstantFormatter();
   const formatCashDrawerOpenedAt = useCallback(
     (openedAt: string | null) => {
       if (!openedAt) {
         return '—';
       }
-      return new Intl.DateTimeFormat(isRTL ? 'ar' : 'en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }).format(new Date(openedAt));
+      return fmtInstant(openedAt) ?? '—';
     },
-    [isRTL]
+    [fmtInstant]
   );
 
   const posSessionQuery = useQuery({

@@ -15,6 +15,7 @@ import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxInput } from '@ui/primitives';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
 import type { LineKey, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
+import { productLineNumber } from '../model/cart-line-grouping';
 
 interface OrderPiecesNotesSectionProps {
   onCopyPieceToAll: (itemId: LineKey, pieceId: string) => void;
@@ -41,6 +42,7 @@ export function OrderPiecesNotesSection({
 }: OrderPiecesNotesSectionProps) {
   const t = useTranslations('newOrder');
   const tPieces = useTranslations('newOrder.pieces');
+  const tLines = useTranslations('newOrder.lines');
   const isRTL = useRTL();
   const { state, updateItemPieces } = useNewOrderStateWithDispatch();
 
@@ -155,6 +157,7 @@ export function OrderPiecesNotesSection({
                 </span>
                 <span className="flex-1 text-base font-semibold text-foreground text-start">
                   {item.productName || '—'}
+                  {productLineNumber(state.items, item.lineKey) ? ` · ${tLines('lineNumber', { number: productLineNumber(state.items, item.lineKey) })}` : ''}
                 </span>
                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-info-bg px-2.5 py-1 text-xs font-medium text-info-text">
                   ×{pieces.length} {tPieces('pieces') || 'pcs'}

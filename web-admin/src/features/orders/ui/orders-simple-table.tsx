@@ -30,6 +30,7 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmount } from '@/lib/money/format-money';
 import type { OrderListItem } from '@/types/order';
 import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
+import { useViewZone } from '@ui/clock';
 
 interface OrdersSimpleTableProps {
   orders: OrderListItem[];
@@ -73,6 +74,8 @@ export function OrdersSimpleTable({
   const tCommon = useTranslations('common');
   const uiLocale = useLocale();
   const { formatMoney, formatNumber, isReady: currencyReady, moneyLocale } = useTenantCurrency();
+  // D20: display only; the list filters and day buckets stay in the operations zone.
+  const viewZone = useViewZone();
   const formatOrderTotal = (amount: number) => {
     if (currencyReady || !initialCurrency) {
       return formatMoney(amount);
@@ -249,7 +252,7 @@ export function OrdersSimpleTable({
       header: t('readyBy'),
       sortable: true,
       render: (order) => {
-        const label = formatInstantOrEmpty(order.ready_by, order.ops_zone, uiLocale);
+        const label = formatInstantOrEmpty(order.ready_by, viewZone.displayZone(order.ops_zone), uiLocale);
         return label ? (
           <span className="text-xs text-foreground">{label}</span>
         ) : (

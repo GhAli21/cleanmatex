@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../../hooks/use-new-order-state';
+import { productLineNumber } from '../../model/cart-line-grouping';
 import { usePreferenceCatalog } from '../../hooks/use-preference-catalog';
 import { LevelPreferenceCard } from './LevelPreferenceCard';
 import { CarePackageBundles } from './CarePackageBundles';
@@ -51,6 +52,7 @@ export function PreferencesTabsSection({
   const t = useTranslations('newOrder.preferences');
   const tPieces = useTranslations('newOrder.pieces');
   const tItems = useTranslations('newOrder.itemsGrid');
+  const tLines = useTranslations('newOrder.lines');
   const getBilingual = useBilingual();
   const {
     state,
@@ -167,6 +169,7 @@ export function PreferencesTabsSection({
                     {getBilingual(item.productName, item.productName2) ||
                       tItems('unknownProduct') ||
                       'Item'}
+                    {productLineNumber(state.items, item.lineKey) ? ` · ${tLines('lineNumber', { number: productLineNumber(state.items, item.lineKey) })}` : ''}
                     {trackByPiece && (item.pieces?.length ?? 0) > 0 && (
                       <span className="text-muted-foreground font-normal ms-1">
                         ({item.pieces?.length} {tPieces('pieces')})

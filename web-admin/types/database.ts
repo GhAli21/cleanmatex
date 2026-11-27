@@ -26813,7 +26813,7 @@ export type Database = {
           created_info?: string | null
           cutoff_time_speed?: string | null
           default_speed_sell_price?: number | null
-          effective_from?: string
+          effective_from: string
           effective_to?: string | null
           id?: string
           is_active?: boolean
@@ -53200,6 +53200,16 @@ export type Database = {
       }
       fn_expire_credit_notes: { Args: never; Returns: number }
       fn_expire_gift_cards: { Args: never; Returns: number }
+      fn_file_purge_due: {
+        Args: { p_limit?: number }
+        Returns: {
+          bucket_code: string
+          file_id: string
+          object_key: string
+          tenant_org_id: string
+          thumb_object_key: string
+        }[]
+      }
       fn_file_util_expire_pending: { Args: never; Returns: number }
       fn_fin_code_lvl: { Args: { p_code: string }; Returns: number }
       fn_fin_credit_note_expire_one: {
@@ -54638,6 +54648,7 @@ export type Database = {
         Returns: boolean
       }
       is_operator: { Args: never; Returns: boolean }
+      is_tenant_admin: { Args: { p_user_id?: string }; Returns: boolean }
       list_retryable_posting_exceptions: {
         Args: { p_max_age_hours?: number }
         Returns: {

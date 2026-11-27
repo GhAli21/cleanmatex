@@ -61,6 +61,11 @@ export const QUEUE_PAYLOADS = {
    * Sent by the ERP-Lite posting engine when the posting fails; job id = exception id.
    */
   'fin.erp_post.retry': z.strictObject({ tenantOrgId: zId, exceptionId: zId, postingLogId: zId }),
+  /**
+   * One File Util purge batch (step 6e, migration 0847). The weekly schedule sends `{}`; a full batch of
+   * 200 re-sends the sweep with `page` + 1, up to FILE_PURGE_MAX_PAGES.
+   */
+  'file.purge.sweep': z.strictObject({ page: z.number().int().min(0).max(50).optional() }),
 } as const;
 
 export type QueueName = keyof typeof QUEUE_PAYLOADS;

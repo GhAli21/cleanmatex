@@ -9,6 +9,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { zInstant } from '@/lib/clock/api-input';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
@@ -179,7 +180,7 @@ const promoFormObjectSchema = z.object({
   applicable_customer_grps: z.array(z.string()).optional().nullable(),
   max_uses: optionalPositiveInt,
   max_uses_per_customer: optionalPositiveInt,
-  valid_from: z.string().datetime(),
+  valid_from: zInstant,
   valid_to: z
     .string()
     .datetime()

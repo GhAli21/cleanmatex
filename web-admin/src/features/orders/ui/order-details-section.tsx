@@ -25,6 +25,7 @@ import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { PackingPreferenceSelector } from './preferences/PackingPreferenceSelector';
 import { PreferencesTabsSection } from './preferences/PreferencesTabsSection';
 import type { LineKey, PreSubmissionPiece } from '../model/new-order-types';
+import { productLineNumber } from '../model/cart-line-grouping';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
 import { orderItemLinePackingCharge, packingPreferencePriceMap } from '@/lib/utils/order-packing-charges';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -92,6 +93,7 @@ export function OrderDetailsSection({
   const totals = useOrderTotals();
   const tNewOrder = useTranslations('newOrder');
   const tItems = useTranslations('newOrder.itemsGrid');
+  const tLines = useTranslations('newOrder.lines');
   const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
   const getBilingual = useBilingual();
@@ -301,6 +303,7 @@ export function OrderDetailsSection({
                   <TableCell className="px-3 py-2 align-top">
                     <div className="text-sm font-medium text-foreground text-start">
                       {item.productName || tItems('unknownProduct') || 'Item'}
+                      {productLineNumber(state.items, item.lineKey) ? ` · ${tLines('lineNumber', { number: productLineNumber(state.items, item.lineKey) })}` : ''}
                     </div>
                     {item.productName2 && (
                       <div className="text-xs text-muted-foreground text-start">

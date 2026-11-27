@@ -1,5 +1,63 @@
 # Changelog
 
+## 0.1.47 — 2026-11-27
+
+- **S5 closed:** the user applied `0846` (local and remote) and regenerated types and the Prisma schema; `clock_s5_current_date.test.sql` PASS 1–7 (the two `CLOCK_ZONE_MISSING` warnings in section 6 are expected).
+- **Slots +2:** the user's `0847_bg_jobs_file_purge.sql` (applied) and `0848_hq_nav_uom_config.sql` took `0847`/`0848`. S8 → `0849`, S9 `0850`, S10 `0851`, S13 `0852`/`0853`, S15 `0854`; a slice takes the next free number when its file is written. Both files use `updated_at = now()` (instants only) and are allowlisted by name in the guard; new migrations write `fn_cmx_dt_now()` or `-- CLOCK-OK: <reason>`.
+- **S6 (no migration).** New `web-admin/lib/clock/api-input.ts` (`zInstant`, `zCivilDate`, `zInstantDate`, `zCivilOrInstantDate`, `zCivilStorageDate`, `isCivilDateText`, `isInstantText`, `leadingCivilDate`) used by 22 routes/actions and 8 validation schemas instead of `z.string().datetime()`, `z.coerce.date()` and date regexes (43 → 1 hits; `iso-date.ts` stays, year-bounded).
+- `lib/clock/api-clock.server.ts`: `screenClock` / `publicScreenClock` (block or null, never fails the response), `clockErrorResponse` (409 `ZONE_MISMATCH`, 422 `LOCAL_TIME_*`, 400 parse codes, `messageKey`), `assertZoneEcho` (D9), `resolveZonedInput` (typed date + time, `reject` default).
+- `clock` block on `GET` orders, order detail (`ready_by`, order branch), cash-drawer trx and variance report, finance orders-summary / payments-breakdown / tax-report, pricing history, public customer orders (public subset). Inventory: `technical_docs/api-clock-inventory.md` (contract test reads it).
+- UI: `CmxDstChoice` (earlier/later with offsets, EN/AR, `<bdi>`), `useClockErrorMessage` (API code → `clock.errors.*`).
+- Fix: promotion start/end dates from the form were read in the server's zone (`new Date('YYYY-MM-DDT00:00')`); now the organization `accept_order` day (`TIMEZONE_NOT_CONFIGURED` without a zone); an instant needs an offset.
+- Tests: new `api-clock.test.ts`, `api-clock-inventory.test.ts`, `clock-ui-s6.test.tsx`; `finance-tax-report.route.test.ts` mocks the zone (2 failures that predated S6) and asserts the block.
+
+## 0.1.46 — 2026-11-27
+
+- **S5 `0846_cmx_dt_replace_current_date.sql` (written, not applied).** Re-reads 27 live definitions, checks every rule's match count (stops on drift, nothing changed), rewrites `CURRENT_DATE`/`now()::date`/`now()` to `fn_cmx_dt_*`, re-executes; owner, grants, security, volatility, config kept. Needs PG 15+.
+- G3: strict tenant day for seeds, templates, tax kit apply/update, price lookup (`p_effective_date DEFAULT NULL`); `COALESCE(today_or_null, col)` for six health checks and two finance views; HQ zone for tax-kit catalog and `sys_bill_*`; cash-drawer numbers via `fn_cmx_dt_period_key`; `get_order_number_prefix` explicit UTC.
+- G21: `fn_tenant_general_value` `timezone` is tenant-only. G22: credit-note expiry returns `ZONE_MISSING` / reports `zone_missing` instead of silently skipping (and no longer expires a note when `is_due` is null).
+- `org_speed_price_rules_cf.effective_from` default dropped. Unknown, unused catalog zones (America/Coyhaique) `is_active=false`; reactivation rule in the file header.
+- New: `supabase/tests/clock_s5_current_date.test.sql`, `technical_docs/s5/0846_preimage.sql` (exact rollback).
+- TS: speed-rules date text via `prismaDateToCivil`; loyalty-expiry idempotency key via `dtTodayIn('UTC', at)`; stored-value tests mock `operationalCivilToday` (3 stale failures fixed), +`ZONE_MISSING`, +missing-zone case. Guard 226 → 224.
+
+## 0.1.45 — 2026-11-27
+
+- **Slots +1 (user, t145u):** `0845` is the user's `0845_fix_get_user_tenants_last_login_timestamptz.sql`. S5 → `0846` (includes America/Coyhaique), S8 `0847`, S9 `0848`, S10 `0849`, S13 `0850`/`0851`, S15 `0852`. Older entries keep their old numbers.
+- **S4 (no migration).** G2: `CmxTimeZoneSelect` (catalog list, search, live offset) in Settings → General and tenant registration; new public `GET /api/v1/public/timezones`; `timezone-catalog.service.ts` `canonicalActiveZone` (via `fn_cmx_dt_canonical_zone` + `fn_cmx_dt_is_valid_zone`) in the settings and register routes → 400 `INVALID_TIME_ZONE`, canonical name stored; the six-zone allowlists are gone.
+- G7: per-user zone removed from user preferences (and its strings).
+- G8: root layout wraps the app in `ClockProvider` from `getTenantClockBlock` (cached); `CmxZoneNotice` when no zone; nested providers inherit settings.
+- G12: `dunning` (no zone → warn, no statements), FX import/resolver (`OperationalZoneMissingError`; same currency needs no zone), product import express rules (`TIMEZONE_NOT_CONFIGURED`), usage tracking explicit UTC; tax dialogs and review use `useClockCivilToday()`.
+- D20: `useDeviceZone` (one allowlisted read), `ViewZoneProvider` (URL `tz=` + localStorage), `CmxViewZoneToggle` on the orders list (Ready By column). The second list moves to S7.
+- S3 leftovers: tax lifecycle timeline, order timeline, status lifecycle tab, change history, preferences, prints, workspace, financial statement, cash drawer, issue tables, edit history, ready-date picker; public tracking page wrapped in `ClockProvider`.
+- Guard 276 → 226 (−50); baseline lowered. Bare `toLocaleString()` not added (also number formatting; needs a seed mode) → S14.
+- Tests: new `clock-ui-s4.test.tsx`, `timezone-catalog.service.test.ts`; zone mocks in dunning, FX, catalog tests.
+
+## 0.1.44 — 2026-11-27
+
+- **S2 closed:** the user applied `0842`, `0843`, `0844` (local and remote); `clock_sql_api.test.sql` PASS 1–7, vectors 159.
+- **S3 (no migration):** `src/ui/clock` (`ClockProvider`, `useClock`, `useInstantFormatter`, `CmxInstant`, `CmxCivilDate`, `CmxLocalTime`, `CmxZoneBadge`); fail closed (no zone → `—`, never the device zone); Latin digits, Gregorian calendar, `<bdi>` for RTL.
+- `lib/clock/clock-block.server.ts`: screen/public `clock` block from `fn_cmx_dt_zone` + `fn_cmx_dt_settings` (server only).
+- G1: new-order Ready By in the fulfilment-branch zone (`useReadyByZone` → `readyByZone` prop); public tracking API returns `clock` and the page paints received / ready-by / timeline in the shop zone; order detail pages wrap in `ClockProvider` (`ready_by` zone); invoices, receipts, stock, payments, payments/credits tables, edit-history row times use it.
+- Anon finding fixed: `registerTenant` (public `POST /api/v1/tenants/register`) wrote `org_tenants_mst` (with `timezone`) and the subscription through the anon cookie client; since `0842` the zone trigger refuses anon. Writes now use the service-role client; `auth.signUp` stays on the session client.
+- Guard: `order-summary-panel.tsx` −4 (instant getters 3, `toLocaleTimeString` 1); baseline lowered.
+- Tests: new `__tests__/lib/clock/clock-ui.test.tsx`, `clock-block.server.test.ts`; G1 cases in `order-summary-panel.ergonomics.test.tsx` (also fixed a pre-existing suite failure from the `@ui/forms` server-action import); register test asserts admin writes.
+- Remaining G1 screens moved to S4: `tax-document-lifecycle-timeline.tsx`, `order-timeline.tsx`, `order-status-lifecycle-tab`, `orders-change-history`, `orders-preferences`, print `*-rprt` files, `order-workspace-screen`, `order-fin-statement`, `use-cash-drawer`, `issue-table-types`, `ready-date-picker-modal` getters, `formatVal` in the edit-history tab.
+
+## 0.1.43.2 — 2026-11-27
+
+- Re-run of `clock_sql_api.test.sql` (with the 0.1.43.1 session row) found a **real bug**: `permission denied for table sys_timezone_cd` (42501) for a signed-in user, from `fn_cmx_dt_zone` → `fn_ops_zone`.
+- Cause: `fn_ops_zone` (0830, kept in 0842) and the 0842 catalog readers `fn_cmx_dt_is_valid_zone`, `fn_cmx_dt_canonical_zone`, `fn_cmx_dt__accept_zone` were `SECURITY INVOKER`, but `0745` closed every `sys_*` table to `anon`/`authenticated` (no grant, forced RLS, no policy). Same gap for the zone triggers on `org_tenants_mst`/`org_branches_mst` when a user JWT writes. `fn_ops_zone` had this gap since `0830`.
+- Fix: new migration `0844_cmx_dt_catalog_reader_definer.sql`: the four readers become `SECURITY DEFINER` (owner `postgres`, search_path already pinned, tenant guard unchanged, grants unchanged: no anon). `0745` stays intact (no SELECT grant on `sys_timezone_cd`). Rollback notes in the header.
+- Test: section 6 adds 6j (catalog readers as `authenticated`). Scratch DB now mirrors `0745` grants and RLS: before `0844` it reproduces the 42501, after it PASS 1–7; vectors 159 PASS.
+- Slot `0844` (reserved for the role-zone fix, not needed) now holds this fix; no other slot moves.
+
+## 0.1.43.1 — 2026-11-27
+
+- User applied `0842`/`0843` (local and remote), regenerated types and Prisma, recorded §10 results. `clock_vectors.test.sql`: 159 PASS. `clock_sql_api.test.sql` stopped at section 6 with `CLOCK_TENANT_MISMATCH`.
+- Cause: a **test bug**. Section 6 set a JWT `tenant_org_id` claim, but the live `current_tenant_id()` (0734/0748) ignores JWT tenant claims and reads the caller's ACTIVE row in `sys_auth_user_sessions_mst`. The functions behaved correctly (fail closed). The scratch stub had copied the old claim-based helper, so the box run missed it.
+- Fix (test file only, no migration): section 6 opens a session row for an unlocked member of tenant A inside the rolled-back test, checks `current_tenant_id()` = A, then runs 6f–6i; 6i is skipped with `NOTE 6` if tenant A has no unlocked member. Scratch stub now mirrors the real helper. Whole file: PASS 1–7.
+- §10 verdict: no role or database time zone setting (Q1/Q7) → `0844` role-zone migration **not needed**; Q8 no rows; Q6 wrapper = door; Q10 only `CLOCK_CATALOG_UNKNOWN` (America/Coyhaique, server tzdata older than the catalog); Q5 lists 22 legacy functions with banned clock calls (S4/S14 backlog, guard baseline); Q11 `prod`.
+
 ## 0.1.43 — 2026-11-27
 
 - Slice S2 of `MASTER_PLAN_v2.md`: **migration files written, not applied** (D17). No database of the user was contacted, nothing committed or pushed. Files were run on a throw-away Postgres 17.12 (tzdata 2026f) on the agent's own machine with stubs of the needed tables.

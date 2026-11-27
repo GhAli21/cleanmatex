@@ -17,6 +17,17 @@
     "later": "The later {time} ({offset})"
   },
   "zone": {
-    "timesShownIn": "Times shown in {zone} ({offset})"
+    "timesShownIn": "Times shown in {zone} ({offset})",
+    "notConfigured": "No time zone is set for this organization, so times are not shown. Ask an administrator to set one in Settings → General."
+  },
+  "viewZone": {
+    "label": "Show times in:",
+    "branch": "Branch zone",
+    "device": "My device zone ({zone})"
+  },
+  "zonePicker": {
+    "search": "Search time zones",
+    "loading": "Loading time zones…",
+    "loadFailed": "The time zone list could not be loaded. Reload the page."
   }
 }

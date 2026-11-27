@@ -14,7 +14,7 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push }), usePathname: 
 jest.mock('@/lib/hooks/useRTL', () => ({ useRTL: () => false, useLocale: () => 'en' }));
 jest.mock('@/lib/auth/auth-context', () => ({ useAuth: () => ({ currentTenant: { tenant_id: 't1' } }) }));
 jest.mock('@/lib/hooks/useTenantSettings', () => ({ useTenantSettingsWithDefaults: () => ({ trackByPiece: false }) }));
-jest.mock('@/lib/context/tenant-currency-context', () => ({ useTenantCurrency: () => ({ currencyCode: 'OMR', decimalPlaces: 3 }) }));
+jest.mock('@/lib/context/tenant-currency-context', () => ({ useTenantCurrency: () => ({ currencyCode: 'OMR', decimalPlaces: 3, formatNumber: (n: number) => String(n), formatMoney: (v: number | string) => `OMR ${Number(v).toFixed(3)}`, isReady: true }) }));
 jest.mock('@ui/data-display/cmx-code-chip', () => ({ CmxCodeChip: ({ code }: { code: string }) => <span>{code}</span> }));
 
 import { OrdersSimpleTable } from '@features/orders/ui/orders-simple-table';

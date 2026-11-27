@@ -7,6 +7,7 @@
 import { lineMeasureSchema } from '@/lib/validations/uom-schemas';
 import { DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
 import { z } from 'zod';
+import { zInstant } from '@/lib/clock/api-input';
 import {
   PAYMENT_METHODS,
   ORDER_TYPE_IDS,
@@ -639,7 +640,7 @@ export const createWithPaymentRequestSchema = z.object({
   serviceSpeed: serviceSpeedCodeSchema.optional(),
   customerNotes: z.string().optional(),
   paymentNotes: z.string().optional(),
-  readyByAt: z.string().datetime().optional(),
+  readyByAt: zInstant.optional(),
   paymentMethod: paymentMethodCodeSchema,
   percentDiscount: z.number().min(0).max(100).optional(),
   amountDiscount: z.number().min(0).optional(),

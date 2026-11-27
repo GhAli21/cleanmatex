@@ -3,6 +3,7 @@ import { getDefaultSalesVatRate } from '@/lib/services/tax/tax-explain.service';
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { z } from 'zod';
+import { zInstant } from '@/lib/clock/api-input';
 import { catalogReadClient } from '@/lib/supabase/catalog-read';
 
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
@@ -58,7 +59,7 @@ const submitBookingSchema = z.object({
   pickupPreferenceIds: z.array(z.string().min(1).max(120)).optional().default([]),
   isPickupFromAddress: z.boolean().optional().default(false),
   isAsap: z.boolean().optional().default(true),
-  scheduledAt: z.string().datetime().optional().nullable(),
+  scheduledAt: zInstant.optional().nullable(),
   notes: z.string().max(500).optional().default(''),
   /** A `sys_service_speed_cd` code; absent means STANDARD. Priced by the tenant's speed rules. */
   serviceSpeed: z.string().trim().min(1).max(40).optional(),

@@ -104,3 +104,8 @@ declare module '@/lib/services/erp-posting-auto-retry.service' {
   export interface ErpRetryItemOutcome { outcome: 'RETRIED' | 'FAILED_AGAIN' | 'SKIPPED_ORPHAN'; reason?: string }
   export function runErpPostRetryItem(tenantOrgId: string, exceptionId: string, postingLogId: string): Promise<ErpRetryItemOutcome>;
 }
+
+declare module '@/lib/services/file-util/file-util.service' {
+  export interface FilePurgeOutcome { purged: number; failed: number; nextPage: number | null }
+  export function purgeDeletedFiles(page?: number): Promise<FilePurgeOutcome>;
+}

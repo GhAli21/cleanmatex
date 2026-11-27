@@ -8,14 +8,15 @@ import 'server-only';
  * sha256 → READY). Reads return URLs built on demand; keys are stored, URLs never are.
  *
  * Every `org_*` query carries the caller's `tenant_org_id` (tenant resolved server-side from the
- * authenticated session by the route). Purging bytes of DELETED files is the HQ platform-workers
- * job `file-util-purge`; expiring abandoned uploads is the DB function `fn_file_util_expire_pending`.
+ * authenticated session by the route). Purging bytes of DELETED files is `purgeDeletedFiles`, run by
+ * the cmx-workers job `file.purge.sweep`; expiring abandoned uploads is the DB function `fn_file_util_expire_pending`.
  */
 
 import { createHash, randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { jobs } from '@/lib/jobs/producer';
 import { logger } from '@/lib/utils/logger';
 import { canStoreBytes } from '@/lib/services/usage-tracking.service';
 import {
@@ -346,6 +347,77 @@ async function bucketIdOf(bucketCode: string): Promise<{ storageBucketId: string
     select: { storage_bucket_id: true, is_public: true },
   });
   return { storageBucketId: bucket.storage_bucket_id, isPublic: bucket.is_public };
+}
+
+// ─── Byte purge (Background Jobs step 6e) ───────────────────────────────────
+
+/** Files per purge batch (`fn_file_purge_due` caps at 200): one Storage remove call per bucket. */
+export const FILE_PURGE_BATCH = 200;
+/** A run stops after this many batches (10,000 files); the next weekly run continues. */
+export const FILE_PURGE_MAX_PAGES = 50;
+
+export interface FilePurgeOutcome {
+  purged: number;
+  failed: number;
+  /** Page number of the follow-up sweep, when one was sent. */
+  nextPage: number | null;
+}
+
+interface PurgeDueRow {
+  tenant_org_id: string;
+  file_id: string;
+  bucket_code: string;
+  object_key: string;
+  thumb_object_key: string | null;
+}
+
+function groupBy<T>(items: T[], key: (item: T) => string): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const item of items) map.set(key(item), [...(map.get(key(item)) ?? []), item]);
+  return map;
+}
+
+/**
+ * The `file.purge.sweep` job: removes the stored bytes of up to 200 DELETED files and sets
+ * `purged_at`. Removing an already-removed object is not an error and `purged_at` is only set where
+ * still NULL, so a retried job changes nothing twice. A full clean batch queues page + 1. Throws
+ * when any file was not purged (those rows stay for the retry or next week).
+ */
+export async function purgeDeletedFiles(page = 0): Promise<FilePurgeOutcome> {
+  const due = await prisma.$queryRaw<PurgeDueRow[]>`
+    SELECT tenant_org_id, file_id, bucket_code, object_key, thumb_object_key
+    FROM public.fn_file_purge_due(${FILE_PURGE_BATCH}::int)
+  `;
+  let purged = 0;
+  let failed = 0;
+  for (const [bucketCode, rows] of groupBy(due, (r) => r.bucket_code)) {
+    const keys = rows.flatMap((r) => (r.thumb_object_key ? [r.object_key, r.thumb_object_key] : [r.object_key]));
+    const bucket = await bucketIdOf(bucketCode).catch(() => null);
+    if (!bucket || !(await removeObjects(bucket.storageBucketId, keys, { action: 'purge', bucketCode }))) {
+      failed += rows.length;
+      continue;
+    }
+    for (const [tenantId, tenantRows] of groupBy(rows, (r) => r.tenant_org_id)) {
+      const marked = await prisma.org_file_mst.updateMany({
+        where: {
+          tenant_org_id: tenantId,
+          id: { in: tenantRows.map((r) => r.file_id) },
+          status_code: FILE_STATUSES.DELETED,
+          purged_at: null,
+        },
+        data: { purged_at: new Date(), updated_at: new Date(), updated_by: 'system', updated_info: 'cmx-workers:file.purge' },
+      });
+      purged += marked.count;
+    }
+  }
+  if (failed > 0) throw new Error(`file purge: ${failed} file(s) not purged; retried later`);
+
+  let nextPage: number | null = null;
+  if (due.length === FILE_PURGE_BATCH && page + 1 < FILE_PURGE_MAX_PAGES) {
+    await jobs.enqueue(prisma, 'file.purge.sweep', { page: page + 1 });
+    nextPage = page + 1;
+  }
+  return { purged, failed, nextPage };
 }
 
 // ─── Published URLs ─────────────────────────────────────────────────────────

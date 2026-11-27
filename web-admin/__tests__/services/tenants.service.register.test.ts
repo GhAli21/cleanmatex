@@ -3,13 +3,13 @@
  * insert as 'creating', finish as 'trial', roll back only a 'creating' tenant.
  */
 
-type Call = { table: string; op: string; payload?: unknown; filters: Array<[string, unknown]> };
+type Call = { client: 'session' | 'admin'; table: string; op: string; payload?: unknown; filters: Array<[string, unknown]> };
 
 let calls: Call[];
 let results: Record<string, { data: unknown; error: unknown }>;
 
-function chain(table: string, op: string, payload?: unknown) {
-  const call: Call = { table, op, payload, filters: [] };
+function chain(client: Call['client'], table: string, op: string, payload?: unknown) {
+  const call: Call = { client, table, op, payload, filters: [] };
   calls.push(call);
   const key = `${table}.${op}`;
   const result = () => Promise.resolve(results[key] ?? { data: null, error: null });
@@ -28,16 +28,21 @@ function chain(table: string, op: string, payload?: unknown) {
 
 const signUp = jest.fn();
 
-jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(async () => ({
+function fakeClient(client: Call['client']) {
+  return {
     from: (table: string) => ({
-      select: () => chain(table, 'select'),
-      insert: (payload: unknown) => chain(table, 'insert', payload),
-      update: (payload: unknown) => chain(table, 'update', payload),
-      delete: () => chain(table, 'delete'),
+      select: () => chain(client, table, 'select'),
+      insert: (payload: unknown) => chain(client, table, 'insert', payload),
+      update: (payload: unknown) => chain(client, table, 'update', payload),
+      delete: () => chain(client, table, 'delete'),
     }),
-    auth: { signUp: (...args: unknown[]) => signUp(...args) },
-  })),
+    auth: { signUp: (...args: unknown[]) => signUp(client, ...args) },
+  };
+}
+
+jest.mock('@/lib/supabase/server', () => ({
+  createClient: jest.fn(async () => fakeClient('session')),
+  createAdminSupabaseClient: jest.fn(() => fakeClient('admin')),
 }));
 jest.mock('@/lib/db/tenant-context', () => ({ getTenantIdFromSession: jest.fn() }));
 
@@ -130,5 +135,15 @@ describe('registerTenant signup lifecycle (A-31)', () => {
 
     expect(res.tenant.status).toBe('creating');
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining("still 'creating'"), 'no row updated');
+  });
+
+  it('writes tenant and subscription rows with the service role; signs up with the anon session client', async () => {
+    await registerTenant(request);
+
+    const writes = calls.filter((c) => c.op !== 'select');
+    expect(writes.length).toBeGreaterThan(0);
+    expect(writes.every((c) => c.client === 'admin')).toBe(true);
+    expect(find('org_tenants_mst', 'insert')[0].payload).toMatchObject({ timezone: 'Asia/Muscat' });
+    expect(signUp).toHaveBeenCalledWith('session', expect.objectContaining({ email: 'admin@test.com' }));
   });
 });

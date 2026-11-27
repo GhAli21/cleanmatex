@@ -1,5 +1,6 @@
 /** Boundary validation for the /api/v1/tax routes. Enum values come from the DB-mirror constants. */
 import { z } from 'zod'
+import { zCivilDate } from '@/lib/clock/api-input'
 import {
   TAX_AMOUNT_KINDS,
   TAX_CALC_LEVELS,
@@ -11,7 +12,7 @@ import {
 } from '@/lib/constants/tax'
 import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults'
 
-const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+const isoDay = zCivilDate
 const code = z.string().trim().toUpperCase().regex(/^[A-Z0-9_]{2,30}$/)
 const optionalText = z.string().trim().max(250).nullable()
 const criterion = z.string().trim().min(1).nullable()

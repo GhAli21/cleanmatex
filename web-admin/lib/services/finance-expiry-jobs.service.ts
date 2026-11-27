@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createHash } from 'node:crypto';
+import { dtTodayIn } from '@cmx/clock';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { jobs } from '@/lib/jobs/producer';
@@ -62,7 +63,7 @@ async function readDue(kind: ExpiryKind): Promise<DueRow[]> {
  * later day, so its id cannot be the account id alone (pg-boss keeps finished jobs for 7 days).
  */
 export function loyaltyExpiryJobId(accountId: string, at: Date = new Date()): string {
-  const h = createHash('sha256').update(`fin.loyalty_expiry:${accountId}:${at.toISOString().slice(0, 10)}`).digest('hex');
+  const h = createHash('sha256').update(`fin.loyalty_expiry:${accountId}:${dtTodayIn('UTC', at)}`).digest('hex');
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 

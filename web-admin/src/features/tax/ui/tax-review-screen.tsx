@@ -17,6 +17,7 @@ import { TaxApiError, taxApi } from '../api/tax-api'
 import { useTaxConfig, useTaxErrorText, useTaxMutation, useTaxOptions } from '../hooks/use-tax'
 import type { TaxConfigView } from '../model/tax-types'
 import { TaxRegistrationsCard } from './tax-registrations-card'
+import { useClockCivilToday } from '@ui/clock'
 
 function RateEditor({ code, canManage }: { code: TaxConfigView['ratesMissing'][number]; canManage: boolean }) {
   const t = useTranslations('taxSetup.engine.review')
@@ -55,11 +56,12 @@ function SalesSummary({ view }: { view: TaxConfigView }) {
   const { currentTenant } = useAuth()
   const defaultClass = options.data?.classes.find((c) => c.tax_flow_code === 'OUTPUT' && c.is_default)?.class_code ?? null
   const country = view.tenant?.country?.toUpperCase() ?? null
-  const today = new Date().toISOString().slice(0, 10)
+  // G12: the organization's day, not the device's UTC day.
+  const today = useClockCivilToday()
 
   const preview = useQuery({
-    queryKey: ['tax', currentTenant?.tenant_id, 'review-preview', defaultClass, country, view.config?.kit_code, view.ratesMissing.length],
-    enabled: !!options.data,
+    queryKey: ['tax', currentTenant?.tenant_id, 'review-preview', defaultClass, country, view.config?.kit_code, view.ratesMissing.length, today],
+    enabled: !!options.data && !!today,
     queryFn: () =>
       taxApi.explain({
         doc_type_code: null,

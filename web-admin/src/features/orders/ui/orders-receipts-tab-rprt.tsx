@@ -1,5 +1,6 @@
 'use client';
 
+import { useInstantFormatter } from '@ui/clock';
 import { Send } from 'lucide-react';
 import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 
@@ -30,6 +31,7 @@ export function OrdersReceiptsTabRprt({
   receipts,
   translations: t,
 }: OrdersReceiptsTabRprtProps) {
+  const fmtInstant = useInstantFormatter();
 
   if (receipts.length === 0) {
     return (
@@ -82,10 +84,10 @@ export function OrdersReceiptsTabRprt({
                 </span>
               </td>
               <CmxCopyableCell
-                value={r.sentAt ? new Date(r.sentAt).toLocaleString() : null}
+                value={fmtInstant(r.sentAt)}
               />
               <CmxCopyableCell
-                value={r.deliveredAt ? new Date(r.deliveredAt).toLocaleString() : null}
+                value={fmtInstant(r.deliveredAt)}
               />
               <CmxCopyableCell value={r.retryCount ?? 0} />
             </tr>

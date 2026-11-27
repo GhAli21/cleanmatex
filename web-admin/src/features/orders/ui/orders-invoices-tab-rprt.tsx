@@ -1,5 +1,6 @@
 'use client';
 
+import { useInstantFormatter } from '@ui/clock';
 import { useRouter } from 'next/navigation';
 import { FileText, CreditCard, Receipt } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -37,6 +38,7 @@ export function OrdersInvoicesTabRprt({
   orderBasePath,
   translations: t,
 }: OrdersInvoicesTabRprtProps) {
+  const fmtInstant = useInstantFormatter();
   const router = useRouter();
   const isRTL = useRTL();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
@@ -109,7 +111,7 @@ export function OrdersInvoicesTabRprt({
                 </span>
               </td>
               <CmxCopyableCell
-                value={inv.created_at ? new Date(inv.created_at).toLocaleString() : null}
+                value={fmtInstant(inv.created_at)}
               />
               <td className="px-4 py-3 text-start">
                 <div className="flex gap-2">

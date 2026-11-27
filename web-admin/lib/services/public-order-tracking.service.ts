@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { createAdminSupabaseClient, createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { getPublicClockBlock } from '@/lib/clock/clock-block.server';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import { logger } from '@/lib/utils/logger';
 import { buildPublicApiLogContext } from '@/lib/utils/public-api-log-context';
@@ -442,6 +443,20 @@ export async function getPublicOrderTrackingResponse(
     const history = await OrderService.getOrderHistory(order.id, tenantId) as PublicOrderHistoryRow[];
     const tenantSettings = createTenantSettingsService(supabase);
     const moneyConfig = await tenantSettings.getCurrencyConfig(tenantId);
+    // Shop zone and display preferences, resolved on the server (G1, D21). The page never uses
+    // the visitor's device zone; with no zone it shows no times.
+    const clock = await getPublicClockBlock({
+      tenantOrgId: tenantId,
+      operation: 'ready_by',
+      branchId: order.branch_id ?? null,
+    }).catch((clockError: unknown) => {
+      logger.error(
+        'Public order tracking clock unavailable',
+        clockError instanceof Error ? clockError : new Error(String(clockError)),
+        { ...requestContext, orderId: order.id },
+      );
+      return null;
+    });
     const financialSnapshot = readCanonicalOrderFinancialSnapshot(order as unknown as Record<string, unknown>);
     const pickupRelease = await getPickupReleaseSummary({
       tenantId,
@@ -516,6 +531,7 @@ export async function getPublicOrderTrackingResponse(
             currencyCode: moneyConfig.currencyCode,
             decimalPlaces: moneyConfig.decimalPlaces,
           },
+          clock,
         },
       },
     };

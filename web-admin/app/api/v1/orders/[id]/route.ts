@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { getOrderById } from '@/lib/db/orders';
+import { screenClock } from '@/lib/clock/api-clock.server';
 import { prisma } from '@/lib/db/prisma';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
@@ -190,9 +191,15 @@ export async function GET(
       }),
     };
 
+    // The order's own branch clock: Ready By and stamps on the detail page (D21).
+    const clock = await screenClock(tenantId, {
+      operation: 'ready_by',
+      branchId: (order as { branch_id?: string | null }).branch_id ?? null,
+    });
     return NextResponse.json({
       success: true,
       data: serializedOrder,
+      clock,
     });
   } catch (error) {
     console.error('GET /api/v1/orders/[id] error:', error);

@@ -14,13 +14,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { isCivilDateText } from '@/lib/clock/api-input'
+import { screenClock } from '@/lib/clock/api-clock.server'
 
 function historyBoundStart(value: string, zone: string): Date {
-    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? civilDayBounds(value, zone).start : parseInstant(value)
+    return isCivilDateText(value) ? civilDayBounds(value, zone).start : parseInstant(value)
 }
 
 function historyBoundEnd(value: string, zone: string): { at: Date; exclusive: boolean } {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    if (isCivilDateText(value)) {
         return { at: civilDayBounds(value, zone).end, exclusive: true }
     }
     return { at: parseInstant(value), exclusive: false }
@@ -198,7 +200,9 @@ export async function GET(request: NextRequest) {
             where,
         })
 
+        const clock = await screenClock(tenantId, { operation: 'accept_order' })
         return NextResponse.json({
+            clock,
             data: history,
             pagination: {
                 total: totalCount,

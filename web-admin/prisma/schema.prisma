@@ -16946,7 +16946,7 @@ model org_speed_price_rules_cf {
   turnaround_hh_speed       Decimal?                    @db.Decimal(6, 2)
   name                      String?
   name2                     String?
-  effective_from            DateTime                    @default(dbgenerated("CURRENT_DATE")) @db.Date
+  effective_from            DateTime                    @db.Date
   effective_to              DateTime?                   @db.Date
   is_active                 Boolean                     @default(true)
   rec_status                Int                         @default(1) @db.SmallInt

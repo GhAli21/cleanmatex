@@ -10,6 +10,7 @@ import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { logger } from '@/lib/utils/logger';
 import { sendEmail } from '@/lib/notifications/email-sender';
 import { sendSMS } from '@/lib/notifications/sms-sender';
+import { operationalCivilToday } from '@/lib/utils/operational-zone.server';
 
 export interface DunningLevel {
   days: number;
@@ -187,7 +188,12 @@ export async function getOverdueStatements(
   const resolvedTenantId = tenantId ?? (await getTenantIdFromSession());
   if (!resolvedTenantId) throw new Error('Unauthorized: Tenant ID required');
 
-  const today = new Date().toISOString().slice(0, 10);
+  // G12: "overdue" is decided on the organization's civil day, never the server's UTC day.
+  const today = await operationalCivilToday(resolvedTenantId, 'invoice', null);
+  if (!today) {
+    logger.warn('Dunning skipped: organization time zone not configured', { tenantId: resolvedTenantId });
+    return [];
+  }
   const { data, error } = await supabase
     .from('org_b2b_statements_mst')
     .select('id, statement_no, customer_id, due_date, balance_amount')

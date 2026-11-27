@@ -3,7 +3,7 @@
  * Handles tenant onboarding, profile management, and slug generation
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient, createClient } from '@/lib/supabase/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import type { Json } from '@/types/database';
 import type {
@@ -184,6 +184,11 @@ export async function registerTenant(
   request: TenantRegistrationRequest
 ): Promise<TenantRegistrationResponse> {
   const supabase = await createClient();
+  // Signup runs without a user session (anon key). Tenant and subscription rows are written with
+  // the service role: since 0842 the zone trigger on org_tenants_mst validates the time zone with
+  // fn_cmx_dt__accept_zone, which anon may not execute, and sys_* catalogs are closed to anon (0745).
+  // The route has already validated the request; the auth sign-up below still uses the anon client.
+  const admin = createAdminSupabaseClient();
 
   // Step 1: Validate slug availability
   const slugValidation = await validateSlug(request.slug);
@@ -213,7 +218,7 @@ export async function registerTenant(
     // Note: Supabase doesn't support transactions in client, so we'll handle rollback manually if needed
 
     // Step 4: Create tenant
-    const { data: tenant, error: tenantError } = await supabase
+    const { data: tenant, error: tenantError } = await admin
       .from('org_tenants_mst')
       .insert({
         name: request.businessName,
@@ -242,7 +247,7 @@ export async function registerTenant(
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + 30); // 30 days initial period
 
-    const { data: subscription, error: subscriptionError } = await supabase
+    const { data: subscription, error: subscriptionError } = await admin
       .from('org_pln_subscriptions_mst')
       .insert({
         tenant_org_id: tenant.id,
@@ -261,7 +266,7 @@ export async function registerTenant(
     if (subscriptionError || !subscription) {
       console.error('Error creating subscription:', subscriptionError);
       // Rollback: delete the 'creating' tenant (the DB trigger removes its counters first)
-      await rollbackSignupTenant(supabase, tenant.id);
+      await rollbackSignupTenant(admin, tenant.id);
       throw new Error('Failed to create subscription');
     }
 
@@ -281,16 +286,16 @@ export async function registerTenant(
     if (authError || !authData.user) {
       console.error('Error creating admin user:', authError);
       // Rollback: Delete subscription and tenant
-      await supabase
+      await admin
         .from('org_pln_subscriptions_mst')
         .delete()
         .eq('id', subscription.id);
-      await rollbackSignupTenant(supabase, tenant.id);
+      await rollbackSignupTenant(admin, tenant.id);
       throw new Error('Failed to create admin user');
     }
 
     // Step 6b: Signup finished: leave 'creating' (from now on the tenant can never be hard-deleted).
-    const finalStatus = await finishSignupTenant(supabase, tenant.id);
+    const finalStatus = await finishSignupTenant(admin, tenant.id);
 
     // Step 7: Send welcome email (TODO: Implement email service)
     // await sendWelcomeEmail(tenant, authData.user);
@@ -312,17 +317,18 @@ export async function registerTenant(
   }
 }
 
-type ServerSupabase = Awaited<ReturnType<typeof createClient>>;
+/** The service-role client signup writes with. */
+type SignupSupabase = ReturnType<typeof createAdminSupabaseClient>;
 
 /**
  * Hard-deletes a tenant whose signup failed. The DB allows this only while the
  * tenant is 'creating' (0678) and deletes its document counters in the same
  * statement. A refusal is logged, not thrown, so the original signup error is
  * what the caller sees.
- * @param supabase server client used by the signup
+ * @param supabase service-role client used by the signup
  * @param tenantId tenant created by the failed signup
  */
-async function rollbackSignupTenant(supabase: ServerSupabase, tenantId: string): Promise<void> {
+async function rollbackSignupTenant(supabase: SignupSupabase, tenantId: string): Promise<void> {
   const { error } = await supabase
     .from('org_tenants_mst')
     .delete()
@@ -337,11 +343,11 @@ async function rollbackSignupTenant(supabase: ServerSupabase, tenantId: string):
  * Moves a tenant from 'creating' to 'trial' at the end of signup.
  * A failure does not undo the signup (the subscription and admin user exist);
  * it is logged so HQ can set the status (leaving 'creating' is always allowed).
- * @param supabase server client used by the signup
+ * @param supabase service-role client used by the signup
  * @param tenantId tenant created by the signup
  * @returns the status the tenant has now
  */
-async function finishSignupTenant(supabase: ServerSupabase, tenantId: string): Promise<string> {
+async function finishSignupTenant(supabase: SignupSupabase, tenantId: string): Promise<string> {
   const { data, error } = await supabase
     .from('org_tenants_mst')
     .update({ status: TENANT_TRIAL_STATUS })

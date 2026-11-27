@@ -34,6 +34,7 @@ import type {
   CSVTemplate,
   ProductStatistics,
 } from '@/lib/types/catalog';
+import { operationalCivilToday } from '@/lib/utils/operational-zone.server';
 
 // ==================================================================
 // SERVICE CATEGORIES
@@ -784,6 +785,8 @@ export interface ProductImportContext {
   userId: string;
   /** `pricing:create`: an express column writes a speed rule, not only a product. */
   canCreateSpeedRules: boolean;
+  /** G12: the organization's civil day, filled by {@link bulkImportProducts}; empty when no zone. */
+  todayCivil?: string;
 }
 
 type ExpressRuleDraft = Omit<SpeedRuleCreateInput, 'productId'>;
@@ -794,13 +797,14 @@ type ExpressRuleDraft = Omit<SpeedRuleCreateInput, 'productId'>;
  * @param data - the row by header
  * @returns the rule, a refusal with the column to blame, or null when no column is filled
  */
-function expressRuleFromRow(data: Record<string, string>): ExpressRuleDraft | { code: string; field: string } | null {
+function expressRuleFromRow(data: Record<string, string>, todayCivil: string): ExpressRuleDraft | { code: string; field: string } | null {
   const sellPrice = data.price_express?.trim() || null;
   const multiplier = data.express_multiplier?.trim() || null;
   const turnaround = data.turnaround_hh_express?.trim() || null;
   if (!sellPrice && !multiplier && !turnaround) return null;
   if (sellPrice && multiplier) return { code: 'EXPRESS_PRICE_AND_MULTIPLIER', field: 'price_express' };
   if (!sellPrice && !multiplier) return { code: 'EXPRESS_TURNAROUND_NEEDS_PRICE', field: 'turnaround_hh_express' };
+  if (!todayCivil) return { code: 'TIMEZONE_NOT_CONFIGURED', field: sellPrice ? 'price_express' : 'express_multiplier' };
   const parsed = speedRuleCreateSchema.safeParse({
     serviceSpeed: SERVICE_SPEEDS.EXPRESS,
     branchId: null,
@@ -810,7 +814,7 @@ function expressRuleFromRow(data: Record<string, string>): ExpressRuleDraft | { 
     defaultSpeedSellPrice: sellPrice,
     multiplierSpeed: multiplier,
     turnaroundHhSpeed: turnaround,
-    effectiveFrom: new Date().toISOString().slice(0, 10),
+    effectiveFrom: todayCivil,
   });
   if (!parsed.success) return { code: 'EXPRESS_VALUE_INVALID', field: sellPrice ? 'price_express' : 'express_multiplier' };
   return parsed.data;
@@ -897,7 +901,7 @@ function validateCSVRow(
     });
   }
 
-  const expressRule = expressRuleFromRow(data);
+  const expressRule = expressRuleFromRow(data, ctx.todayCivil ?? '');
   if (expressRule && 'code' in expressRule) {
     errors.push({ row: rowNumber, field: expressRule.field, code: expressRule.code, message: expressRule.code });
   } else if (expressRule && !ctx.canCreateSpeedRules) {
@@ -930,6 +934,8 @@ export async function bulkImportProducts(
   ctx: ProductImportContext
 ): Promise<BulkImportResult> {
   const tenantId = await getTenantIdFromSession();
+  // G12: a speed rule from the CSV starts on the organization's day, not the server's UTC day.
+  ctx = { ...ctx, todayCivil: tenantId ? await operationalCivilToday(tenantId, 'accept_order', null) : '' };
   const rows = parseCSV(csvContent);
   if (rows.length === 0) {
     return {
@@ -1000,7 +1006,7 @@ export async function bulkImportProducts(
 
       imported++;
 
-      const expressRule = expressRuleFromRow(data);
+      const expressRule = expressRuleFromRow(data, ctx.todayCivil ?? '');
       if (expressRule && !('code' in expressRule)) {
         try {
           await createSpeedRule(tenantId, ctx.userId, { ...expressRule, productId: product.id });

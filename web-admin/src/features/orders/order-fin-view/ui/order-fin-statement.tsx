@@ -29,6 +29,7 @@ import { CmxStatement, CmxStatementGroup, CmxStatementLine, CmxStatementLineList
 import { useFinMoney } from './order-fin-money';
 import { lineLabel, sectionTitle, type Translator } from './order-fin-labels';
 import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
+import { useDateValueFormatter } from '@ui/clock';
 
 const NOT_COUNTED_STATES = ['pending', 'failed', 'voided', 'reversed'] as const;
 
@@ -39,18 +40,13 @@ export interface OrderFinStatementProps {
   onRetry?: () => void;
 }
 
-function formatDate(iso: string | undefined, locale: string): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleString(locale === 'ar' ? 'ar' : 'en', { dateStyle: 'medium', timeStyle: 'short' });
-}
-
 /**
  * @param props - the view, the resolved config and an optional retry
  */
 export function OrderFinStatement({ view, resolved, onRetry }: OrderFinStatementProps) {
   const t = useTranslations() as unknown as Translator;
   const locale = useLocale();
+  const fmtDateValue = useDateValueFormatter();
   const money = useFinMoney(view);
   const print = resolved.layout === 'print';
   const showEmpty = resolved.showEmptySections || resolved.preset === 'full' || resolved.preset === 'audit';
@@ -71,7 +67,7 @@ export function OrderFinStatement({ view, resolved, onRetry }: OrderFinStatement
     const qualifier = formatLineQualifier(l.qualifier, { locale: locale === 'ar' ? 'ar' : 'en' });
     const name = lineLabel(l, key, t, locale);
     const label = qualifier ? `${name} · ${qualifier}` : name;
-    const meta = [formatDate(l.meta?.dateIso, locale), l.meta?.ref].filter(Boolean).join(' · ') || undefined;
+    const meta = [fmtDateValue(l.meta?.dateIso), l.meta?.ref].filter(Boolean).join(' · ') || undefined;
     const notCounted = (NOT_COUNTED_STATES as readonly string[]).includes(l.state);
     const chip = notCounted ? <CmxStatusBadge size="sm" tone={l.state === 'pending' ? 'warning' : 'neutral'} label={t(`orders.finView.lineStates.${l.state}`)} /> : undefined;
     let note: React.ReactNode;

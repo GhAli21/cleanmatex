@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getCountryCallingCode, type CountryCode } from 'libphonenumber-js';
 import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
+import { CmxTimeZoneSelect } from '@ui/clock';
 import {
   CmxCard,
   CmxCardHeader,
@@ -51,15 +52,6 @@ const CURRENCIES = [
   { value: 'QAR', label: 'QAR - Qatari Riyal' },
 ];
 
-const TIMEZONES = [
-  { value: 'UTC', label: 'UTC (UTC+0)' },
-  { value: 'Asia/Muscat', label: 'Asia/Muscat (UTC+4)' },
-  { value: 'Asia/Riyadh', label: 'Asia/Riyadh (UTC+3)' },
-  { value: 'Asia/Dubai', label: 'Asia/Dubai (UTC+4)' },
-  { value: 'Asia/Kuwait', label: 'Asia/Kuwait (UTC+3)' },
-  { value: 'Asia/Bahrain', label: 'Asia/Bahrain (UTC+3)' },
-  { value: 'Asia/Qatar', label: 'Asia/Qatar (UTC+3)' },
-];
 
 const LANGUAGES = [
   { value: 'en', label: 'English' },
@@ -90,18 +82,6 @@ function currencyOptionLabel(code: string): string {
     return name ? `${code} - ${name}` : code;
   } catch {
     return code;
-  }
-}
-
-function timezoneOptionLabel(zone: string): string {
-  try {
-    const offset = new Intl.DateTimeFormat('en', {
-      timeZone: zone,
-      timeZoneName: 'shortOffset',
-    }).formatToParts(new Date()).find((part) => part.type === 'timeZoneName')?.value;
-    return offset ? `${zone} (${offset})` : zone;
-  } catch {
-    return zone;
   }
 }
 
@@ -471,12 +451,12 @@ export default function TenantRegisterPage() {
 
               <div>
                 <Label className="block mb-1">{t('timezone')} <span className="text-danger-text">*</span></Label>
-                <CmxSelect
+                <CmxTimeZoneSelect
+                  source="public"
                   value={locale.timezone}
-                  onChange={(e) =>
-                    setLocaleChoice((prev) => ({ ...(prev ?? suggestedLocale), timezone: e.target.value }))
+                  onChange={(zone) =>
+                    setLocaleChoice((prev) => ({ ...(prev ?? suggestedLocale), timezone: zone }))
                   }
-                  options={ensureOption(TIMEZONES, locale.timezone, timezoneOptionLabel(locale.timezone))}
                   required
                 />
                 <p className="mt-1 text-xs text-muted-foreground">{t('timezoneHint')}</p>

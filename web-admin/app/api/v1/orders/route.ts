@@ -14,6 +14,7 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
 import { orderNoFromCode } from '@/lib/validations/code-format-schemas';
 import { logger } from '@/lib/utils/logger';
+import { screenClock } from '@/lib/clock/api-clock.server';
 import { getPickupReleaseSummaries } from '@/lib/services/pickup/pickup-release-state.service';
 import {
   listStageWorklistOrderPage,
@@ -319,6 +320,7 @@ export async function GET(request: NextRequest) {
       if (worklist.orderIds.length === 0) {
         return NextResponse.json({
           success: true,
+          clock: await screenClock(tenantId, { operation: 'accept_order' }),
           data: {
             orders: [],
             pagination: {
@@ -510,8 +512,10 @@ export async function GET(request: NextRequest) {
     });
 
     const total = stageWorklistTotal ?? (count || 0);
+    const clock = await screenClock(tenantId, { operation: 'accept_order' });
     return NextResponse.json({
       success: true,
+      clock,
       data: {
         orders: ordersWithPickupRelease,
         pagination: {

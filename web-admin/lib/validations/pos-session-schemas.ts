@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { zCivilDate, zCivilOrInstantDate } from '@/lib/clock/api-input';
 import { zUuidIfEnabled } from '@/lib/validations/cmx-temp-utils-para/validators/is-uuid-if-enabled';
 
 /** Validates the caller-controlled context required to start a POS session. */
@@ -75,10 +76,10 @@ export const posSessionListQuerySchema = z.object({
   cashDrawerId: zUuidIfEnabled().optional(),
   cashDrawerSessionId: zUuidIfEnabled().optional(),
   sessionNo: z.string().trim().min(1).max(120).optional(),
-  businessDateFrom: z.coerce.date().optional(),
-  businessDateTo: z.coerce.date().optional(),
-  openedAtFrom: z.coerce.date().optional(),
-  openedAtTo: z.coerce.date().optional(),
+  businessDateFrom: zCivilOrInstantDate.optional(),
+  businessDateTo: zCivilOrInstantDate.optional(),
+  openedAtFrom: zCivilOrInstantDate.optional(),
+  openedAtTo: zCivilOrInstantDate.optional(),
   status: z.enum(['OPEN', 'PAUSED', 'CLOSED', 'FORCE_CLOSED']).optional(),
   scope: z.enum(['own', 'all']).default('own'),
   // Soft-record state remains independent from the operational session status.
@@ -111,7 +112,7 @@ export const posSessionEventsQuerySchema = z.object({
 });
 
 /** Business dates are calendar days (`YYYY-MM-DD`), compared as text so no timezone shifts them. */
-const businessDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD');
+const businessDay = zCivilDate;
 
 /** Bounded, server-paged filters for the Z-report archive. */
 export const posShiftZArchiveQuerySchema = z.object({

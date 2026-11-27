@@ -75,7 +75,7 @@ describe('Cart Line Grouping P1 — two lines of one product stay independent', 
   });
 });
 
-describe('ADD_ITEM keeps the P1 merge rule without losing pieces', () => {
+describe('ADD_ITEM into a chosen line keeps its pieces', () => {
   it('a second tap on a product adds a piece to its line and keeps the existing pieces', () => {
     const tapped = { ...line(newCartLineKey()), quantity: 1, measure: undefined, uom: undefined };
     tapped.pieces = [{ id: `temp-${tapped.lineKey}-1`, itemId: tapped.lineKey, pieceSeq: 1 }];
@@ -83,7 +83,7 @@ describe('ADD_ITEM keeps the P1 merge rule without losing pieces', () => {
       { id: `temp-${A}-1`, itemId: A, pieceSeq: 1, notes: 'keep me' },
       { id: `temp-${A}-2`, itemId: A, pieceSeq: 2 },
     ] }] };
-    const after = newOrderReducer(start, { type: 'ADD_ITEM', payload: tapped });
+    const after = newOrderReducer(start, { type: 'ADD_ITEM', payload: tapped, mergeInto: A });
     expect(after.items).toHaveLength(1);
     expect(after.items[0].quantity).toBe(3);
     expect(after.items[0].pieces).toEqual([

@@ -15,6 +15,7 @@ import {
 } from '@/lib/orders/order-preferences-dtl';
 
 import { CmxStatusBadge } from '@ui/feedback';
+import { CmxInstant } from '@ui/clock';
 /** Columns hidden below `md` to reduce horizontal scroll on smaller viewports. */
 const PREF_GRID_HIDE_MD_COLS = new Set<OrderPreferenceDtlColumn>([
   'tenant_org_id',
@@ -139,16 +140,6 @@ function sourceLabel(source: string, t: OrdersPreferencesTabRprtProps['translati
   return map[source] ?? source;
 }
 
-function formatDateTime(value: string | null, locale: 'en' | 'ar') {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString(locale === 'ar' ? 'ar' : 'en', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  });
-}
-
 function UuidCell({ value }: { value: string | null }) {
   if (!value) return <span className="text-muted-foreground">—</span>;
   return (
@@ -236,8 +227,7 @@ function renderDtlCell(
     case 'updated_at': {
       const raw =
         col === 'confirmed_at' ? pref.confirmed_at : col === 'created_at' ? pref.created_at : pref.updated_at;
-      const formatted = formatDateTime(raw, locale);
-      return <span className="text-xs text-muted-foreground whitespace-nowrap">{formatted ?? '—'}</span>;
+      return <span className="text-xs text-muted-foreground whitespace-nowrap"><CmxInstant value={raw} /></span>;
     }
     case 'rec_status':
       return <span className="tabular-nums text-xs">{pref.rec_status ?? '—'}</span>;

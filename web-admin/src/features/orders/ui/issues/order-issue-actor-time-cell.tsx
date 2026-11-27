@@ -8,6 +8,7 @@ import {
   formatIssueActorName,
   formatIssueDateTime,
 } from './order-issue-table-types';
+import { useClock } from '@ui/clock';
 
 export interface OrderIssueActorTimeCellProps {
   /** Label above the actor name (e.g. "Created by") */
@@ -31,6 +32,7 @@ export function OrderIssueActorTimeCell({
   at,
   locale,
 }: OrderIssueActorTimeCellProps) {
+  const { zone } = useClock();
   return (
     <div className="min-w-[8.5rem] space-y-2 text-sm">
       <div className="space-y-0.5">
@@ -45,7 +47,7 @@ export function OrderIssueActorTimeCell({
         <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
           {whenLabel}
         </div>
-        <div className="text-foreground">{formatIssueDateTime(at, locale)}</div>
+        <div className="text-foreground">{formatIssueDateTime(at, locale, zone)}</div>
       </div>
     </div>
   );

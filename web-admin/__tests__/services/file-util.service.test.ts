@@ -20,6 +20,8 @@ const m = {
   signedUrls: jest.fn(),
   productUpdateMany: jest.fn(),
   tenantUpdateMany: jest.fn(),
+  queryRaw: jest.fn(),
+  enqueue: jest.fn(),
 };
 
 const mockFileModel = {
@@ -46,8 +48,10 @@ jest.mock('@/lib/db/prisma', () => ({
     org_order_item_pieces_dtl: { findFirst: (...a: unknown[]) => m.pieceFindFirst(...a) },
     get org_file_mst() { return mockFileModel; },
     $transaction: (fn: (t: typeof mockTx) => unknown) => fn(mockTx),
+    $queryRaw: (...a: unknown[]) => m.queryRaw(...a),
   },
 }));
+jest.mock('@/lib/jobs/producer', () => ({ jobs: { enqueue: (...a: unknown[]) => m.enqueue(...a) } }));
 jest.mock('@/lib/db/tenant-guard', () => ({ withTenantGuardBypass: (_r: string, fn: () => unknown) => fn() }));
 jest.mock('@/lib/services/usage-tracking.service', () => ({ canStoreBytes: (...a: unknown[]) => m.canStoreBytes(...a) }));
 jest.mock('@/lib/utils/logger', () => ({ logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() } }));
@@ -65,7 +69,15 @@ jest.mock('@/lib/supabase/server', () => ({
   }),
 }));
 
-import { completeFileUpload, deleteFile, FileUtilError, initFileUpload, updateFile } from '@/lib/services/file-util/file-util.service';
+import {
+  completeFileUpload,
+  deleteFile,
+  FILE_PURGE_BATCH,
+  FileUtilError,
+  initFileUpload,
+  purgeDeletedFiles,
+  updateFile,
+} from '@/lib/services/file-util/file-util.service';
 
 const T1 = '11111111-1111-1111-1111-111111111111';
 const T2 = '99999999-9999-9999-9999-999999999999';
@@ -377,5 +389,51 @@ describe('published URL (PRODUCT_IMAGE / MAIN)', () => {
       where: { id: ORDER, tenant_org_id: T1 },
       data: expect.objectContaining({ product_image: `https://pub/${key}` }),
     });
+  });
+});
+
+describe('purgeDeletedFiles (file.purge.sweep, step 6e)', () => {
+  const due = (tenant: string, id: string, thumb: string | null = null) => ({
+    tenant_org_id: tenant,
+    file_id: id,
+    bucket_code: 'TENANT_FILES',
+    object_key: `k/${id}`,
+    thumb_object_key: thumb,
+  });
+
+  it('removes all keys of a bucket in one call and marks the rows of each tenant with that tenant filter', async () => {
+    m.queryRaw.mockResolvedValue([due(T1, 'f1', 't/f1'), due(T2, 'f2')]);
+
+    const out = await purgeDeletedFiles();
+
+    expect(m.remove).toHaveBeenCalledTimes(1);
+    expect(m.remove).toHaveBeenCalledWith(['k/f1', 't/f1', 'k/f2']);
+    expect(m.fileUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { tenant_org_id: T1, id: { in: ['f1'] }, status_code: 'DELETED', purged_at: null },
+    }));
+    expect(m.fileUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { tenant_org_id: T2, id: { in: ['f2'] }, status_code: 'DELETED', purged_at: null },
+    }));
+    expect(out).toEqual({ purged: 2, failed: 0, nextPage: null });
+    expect(m.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('leaves rows unpurged and throws when storage refuses the removal', async () => {
+    m.queryRaw.mockResolvedValue([due(T1, 'f1')]);
+    m.remove.mockResolvedValue({ error: { message: 'storage down' } });
+
+    await expect(purgeDeletedFiles()).rejects.toThrow('1 file(s) not purged');
+    expect(m.fileUpdateMany).not.toHaveBeenCalled();
+    expect(m.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('queues the next page after a full batch', async () => {
+    m.queryRaw.mockResolvedValue(Array.from({ length: FILE_PURGE_BATCH }, (_, i) => due(T1, `f${i}`)));
+    m.fileUpdateMany.mockResolvedValue({ count: FILE_PURGE_BATCH });
+
+    const out = await purgeDeletedFiles(3);
+
+    expect(m.enqueue).toHaveBeenCalledWith(expect.anything(), 'file.purge.sweep', { page: 4 });
+    expect(out.nextPage).toBe(4);
   });
 });

@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { zInstant } from '@/lib/clock/api-input';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { DeliveryRouteQueryService } from '@/lib/services/delivery/delivery-route-query.service';
@@ -44,7 +45,7 @@ const createRouteSchema = z.object({
   orderIds: z.array(z.string().uuid()).min(1),
   driverId: z.string().uuid().optional(),
   idempotencyKey: z.string().trim().min(1).max(200),
-  startedAt: z.string().datetime().optional(),
+  startedAt: zInstant.optional(),
   estimatedDurationMinutes: z.number().int().positive().max(1440).optional(),
   totalDistanceKm: z.number().positive().max(5000).optional(),
 });

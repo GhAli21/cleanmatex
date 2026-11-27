@@ -24,6 +24,7 @@ import { Save, Clock, Globe, DollarSign, Mail, Phone, MapPin, Lock } from 'lucid
 import Link from 'next/link'
 import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives'
 import { CmxPhoneInput } from '@ui/forms'
+import { CmxTimeZoneSelect } from '@ui/clock'
 import { dialCodeToDefaultCountry } from '@/lib/phone/phone-utils'
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token'
 
@@ -53,7 +54,8 @@ const INITIAL_SETTINGS: GeneralSettings = {
   address: '',
   city: '',
   country: 'US',
-  timezone: 'UTC',
+  // No implicit zone (G2): UTC is a valid explicit choice, never a silent default.
+  timezone: '',
   currency: 'USD',
   defaultLanguage: 'en',
 }
@@ -96,7 +98,7 @@ export default function GeneralSettingsPage() {
           address: data.address ?? '',
           city: data.city ?? '',
           country: data.country || 'US',
-          timezone: data.timezone || 'UTC',
+          timezone: data.timezone ?? '',
           currency: data.currency || 'USD',
           defaultLanguage: data.defaultLanguage || 'en',
         }
@@ -326,18 +328,10 @@ export default function GeneralSettingsPage() {
             }
             error={fieldErrors.timezone}
           >
-            <CmxSelect
+            <CmxTimeZoneSelect
               value={settings.timezone}
-              onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-              options={[
-                { value: 'UTC', label: 'UTC (UTC+0)' },
-                { value: 'Asia/Muscat', label: 'Asia/Muscat (GMT+4)' },
-                { value: 'Asia/Riyadh', label: 'Asia/Riyadh (GMT+3)' },
-                { value: 'Asia/Dubai', label: 'Asia/Dubai (GMT+4)' },
-                { value: 'Asia/Kuwait', label: 'Asia/Kuwait (GMT+3)' },
-                { value: 'Asia/Bahrain', label: 'Asia/Bahrain (GMT+3)' },
-                { value: 'Asia/Qatar', label: 'Asia/Qatar (GMT+3)' },
-              ]}
+              onChange={(zone) => setSettings({ ...settings, timezone: zone })}
+              required
             />
           </Field>
 

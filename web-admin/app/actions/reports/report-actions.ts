@@ -20,14 +20,13 @@ import type {
 import { civilRangeQuery, parseInstant } from '@/lib/utils/operational-time';
 import { OperationalZoneMissingError, resolveOrganizationTimeZone } from '@/lib/utils/operational-zone.server';
 import { isRealIsoDate } from '@/lib/validations/iso-date';
+import { isInstantText } from '@/lib/clock/api-input';
 
 interface ActionResult<T> {
   success: boolean;
   data?: T;
   error?: string;
 }
-
-const OFFSET_INSTANT = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?)(Z|[+-]\d{2}:\d{2})$/;
 
 async function reportFailure(error: unknown, fallback: string): Promise<ActionResult<never>> {
   if (error instanceof OperationalZoneMissingError) {
@@ -54,8 +53,8 @@ async function parseFilters(tenantId: string, params: {
 }): Promise<ReportFilters> {
   const zone = await resolveOrganizationTimeZone(tenantId);
   if (!zone) throw new OperationalZoneMissingError();
-  const startIsInstant = OFFSET_INSTANT.test(params.startDate);
-  const endIsInstant = OFFSET_INSTANT.test(params.endDate);
+  const startIsInstant = isInstantText(params.startDate);
+  const endIsInstant = isInstantText(params.endDate);
   let startDate: Date;
   let endDate: Date;
   if (startIsInstant && endIsInstant) {

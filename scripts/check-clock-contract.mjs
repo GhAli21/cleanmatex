@@ -169,6 +169,10 @@ const STRICT_FROM = 842;
 const LEGACY_FROM = 832;
 const ALLOWLIST = new Map([
   ['0832_lockout_timestamptz.sql', 'G4: the naive-timestamp text is in a comment that documents the conversion'],
+  // Applied before the rule reached their authors (0.1.47): `updated_at = now()` audit instants only, no civil day.
+  // New migrations write `public.fn_cmx_dt_now()` or mark the line `-- CLOCK-OK: <reason>`.
+  ['0847_bg_jobs_file_purge.sql', 'applied 2026-11-27; now() only for updated_at (instant)'],
+  ['0848_hq_nav_uom_config.sql', 'written 2026-11-27 outside the clock program; now() only for updated_at (instant)'],
 ]);
 const ZONE_DOORS = /CREATE(?: OR REPLACE)? FUNCTION\s+(?:public\.)?(?:fn_ops_zone|fn_cmx_dt_zone|fn_tenant_tz_validate|fn_hq_gen_cfg_validate)\b/i;
 const NEW_SQL_BANS = [

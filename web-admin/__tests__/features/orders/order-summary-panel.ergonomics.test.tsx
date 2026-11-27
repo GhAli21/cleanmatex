@@ -8,8 +8,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 jest.mock('next-intl', () => ({
   useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
+  useLocale: () => 'en',
 }));
 let mockRtl = false;
+// The panel imports @ui/forms (since 25 Nov), which pulls a server action; keep it out of jsdom.
+jest.mock('@/app/actions/tenant/get-phone-country-code', () => ({ getPhoneCountryCodeAction: jest.fn() }));
 jest.mock('@/lib/hooks/useRTL', () => ({ useRTL: () => mockRtl }));
 jest.mock('@ui/feedback', () => ({ CmxSummaryMessage: () => null }));
 jest.mock('@/lib/context/tenant-currency-context', () => ({ useTenantCurrency: () => ({}) }));
@@ -51,6 +54,34 @@ beforeEach(() => {
 });
 
 describe('OrderSummaryPanel ergonomics', () => {
+  it('shows Ready By in the fulfilment-branch zone, not the device zone (G1)', () => {
+    const { container } = render(
+      <OrderSummaryPanel
+        isQuickDrop={false}
+        onQuickDropToggle={jest.fn()}
+        quickDropQuantity={0}
+        onQuickDropQuantityChange={jest.fn()}
+        notes=""
+        onNotesChange={jest.fn()}
+        readyByAt="2026-11-27T06:00:00Z"
+        readyByZone="Asia/Muscat"
+        onSubmit={jest.fn()}
+        loading={false}
+        canSubmit
+      />,
+    );
+    const times = container.querySelectorAll('time');
+    expect(times).toHaveLength(2);
+    expect(times[0]).toHaveAttribute('dateTime', '2026-11-27T06:00:00.000Z');
+    expect(container.textContent).toMatch(/Nov 27, 2026/);
+    expect(container.textContent).toMatch(/10:00/);
+  });
+
+  it('shows no Ready By time while the zone is unknown (fail closed)', () => {
+    setup({ readyByAt: '2026-11-27T06:00:00Z', readyByZone: null });
+    expect(document.querySelectorAll('time')).toHaveLength(0);
+  });
+
   it('names the Quick Drop steppers with i18n keys, not English literals', () => {
     setup();
     expect(screen.getByRole('button', { name: `${S}.quickDropDecrease` })).toBeInTheDocument();

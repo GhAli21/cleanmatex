@@ -25,6 +25,7 @@
 import type { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { zInstant } from '@/lib/clock/api-input'
 import { prisma } from '@/lib/db/prisma'
 import { withTenantContext } from '@/lib/db/tenant-context'
 import { queueCampaignStartTx } from '@/lib/notifications/campaign-jobs.service'
@@ -60,7 +61,7 @@ const CONFIGURE_TRANSITIONS: Record<string, string[]> = {
 const statusTransitionSchema = z.object({
   status:          z.string(),
   approval_notes:  z.string().optional(),
-  scheduled_at:    z.string().datetime().optional(),
+  scheduled_at:    zInstant.optional(),
 })
 
 /**

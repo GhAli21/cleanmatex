@@ -25,6 +25,7 @@ import {
 import { prisma } from '@/lib/db/prisma';
 import { resolveOperationalTimeZoneOn } from '@/lib/utils/operational-zone.server';
 import { OrderDetailClient } from './order-detail-client';
+import { ClockProvider } from '@ui/clock';
 import { OrderDetailError } from './order-detail-error';
 
 /** Labels the tenant-scoped order detail route without exposing its identifier in browser history. */
@@ -233,7 +234,9 @@ async function OrderDetailContent({
     branchId: order.branch_id,
   });
 
+  // S3: tabs and panels paint instants in the order's operations zone (never the device zone).
   return (
+    <ClockProvider zone={opsZone}>
     <OrderDetailClient
       order={serializedOrder}
       publicTrackingPath={publicTrackingPath}
@@ -359,6 +362,7 @@ async function OrderDetailContent({
       }}
       locale={locale as 'en' | 'ar'}
     />
+    </ClockProvider>
   );
 }
 

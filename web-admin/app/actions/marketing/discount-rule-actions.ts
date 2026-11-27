@@ -9,6 +9,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { zInstant } from '@/lib/clock/api-input';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
@@ -47,8 +48,8 @@ const discountRuleFormSchema = z.object({
   priority: z.number().int().min(0).default(0),
   can_stack_with_promo: z.boolean().default(false),
   can_stack_with_other_rules: z.boolean().default(false),
-  valid_from: z.string().datetime(),
-  valid_to: z.string().datetime().optional(),
+  valid_from: zInstant,
+  valid_to: zInstant.optional(),
   is_enabled: z.boolean().default(true),
 });
 

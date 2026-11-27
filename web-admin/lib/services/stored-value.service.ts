@@ -736,7 +736,8 @@ export async function getStoredValueSummary(tenantId: string, customerId: string
  * copy of credit note expiry: row lock, EXPIRED + zero balance, one EXPIRY ledger row keyed
  * `cn-expiry-${id}` when a balance remained. Idempotent. No GL dispatch (gift-card expiry owns
  * D008/D012). `onlyIfDue` (the daily expiry): a note not yet past its date is left alone
- * (error CREDIT_NOTE_NOT_DUE).
+ * (error CREDIT_NOTE_NOT_DUE). Without a ledger zone the daily expiry leaves the note alone
+ * (error CREDIT_NOTE_ZONE_MISSING, migration 0846).
  */
 export async function expireCreditNote(
   id: string,

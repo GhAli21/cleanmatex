@@ -21,12 +21,13 @@ import {
   type FxResolution,
   type FxRateSourceBook,
 } from '@/lib/constants/currency-fx';
+import { OperationalZoneMissingError, operationalCivilToday } from '@/lib/utils/operational-zone.server';
 
 export interface ResolveRateInput {
   from: string;
   to: string;
   rateType?: string;
-  /** YYYY-MM-DD; defaults to today (UTC). */
+  /** YYYY-MM-DD; defaults to the organization ledger day (G12). */
   date?: string;
   /** Restrict to one publisher; otherwise publishers are ranked by display_order. */
   source?: string;
@@ -79,16 +80,19 @@ function daysBetween(fromDate: Date, toDate: string): number {
   return Math.round((Date.parse(`${toDate}T00:00:00Z`) - fromDate.getTime()) / MS_PER_DAY);
 }
 
-function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
+/** G12: the default rate day is the organization's ledger day; a missing zone refuses the lookup. */
+async function ledgerToday(tenantId: string): Promise<string> {
+  const day = await operationalCivilToday(tenantId, 'ledger', null);
+  if (!day) throw new OperationalZoneMissingError();
+  return day;
 }
 
 export async function resolveRate(tenantId: string, input: ResolveRateInput): Promise<ResolvedRate> {
   const from = input.from.toUpperCase();
   const to = input.to.toUpperCase();
-  const requestedDate = input.date ?? todayUtc();
-
   if (from === to) {
+    // Same currency needs no rate, so a missing zone does not block it (the day is informational).
+    const requestedDate = input.date ?? (await operationalCivilToday(tenantId, 'ledger', null));
     return {
       resolution: FX_RESOLUTION.SAME_CURRENCY,
       book: null,
@@ -104,6 +108,8 @@ export async function resolveRate(tenantId: string, input: ResolveRateInput): Pr
       stale: false,
     };
   }
+
+  const requestedDate = input.date ?? (await ledgerToday(tenantId));
 
   return withTenantContext(tenantId, async (tenant) => {
     const [fxSettings, sources] = await Promise.all([

@@ -12,6 +12,7 @@ import { taxApi } from '../api/tax-api'
 import { useTaxMutation } from '../hooks/use-tax'
 import type { TaxOptions, TaxRuleRow } from '../model/tax-types'
 import { TaxCriteriaFields, type TaxCriteriaValues } from './tax-rule-fields'
+import { useClockCivilToday } from '@ui/clock'
 
 interface TaxRuleDialogProps {
   /** The rule being edited; null creates a new one. */
@@ -26,6 +27,8 @@ export function TaxRuleDialog({ row, options, onClose }: TaxRuleDialogProps) {
   const tEngine = useTranslations('taxSetup.engine')
   const tCommon = useTranslations('common')
   const bilingual = useBilingual()
+  // G12: the organization's day, not the device's UTC day.
+  const today = useClockCivilToday()
 
   const [ruleCode, setRuleCode] = useState(row?.rule_code ?? '')
   const [name, setName] = useState(row?.name ?? '')
@@ -41,7 +44,7 @@ export function TaxRuleDialog({ row, options, onClose }: TaxRuleDialogProps) {
     serviceCategoryCode: row?.service_category_code ?? '',
   })
   const [priority, setPriority] = useState(String(row?.priority ?? 100))
-  const [from, setFrom] = useState(row?.effective_from ?? new Date().toISOString().slice(0, 10))
+  const [from, setFrom] = useState(row?.effective_from ?? today)
   const [to, setTo] = useState(row?.effective_to ?? '')
   const [codes, setCodes] = useState<string[]>(row?.tax_codes ?? [])
   const [nextCode, setNextCode] = useState('')

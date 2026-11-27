@@ -419,3 +419,25 @@ No schedule. When an accounting posting fails with a **system error**, the posti
 8. Wait about 20 minutes. **Expected:** the job is `completed` with `{"outcome":"RETRIED"}`; the System error exception shows **Retried**; the payment's journal exists; the exception history shows "Retried automatically after a system error" by `system/erp-auto-retry`. The first "Missing usage mapping" exception stays open (known limit): close it in the Workbench.
 9. Repeat 6–7, but ignore the System error exception before its job runs. **Expected:** the job completes with `SKIPPED_ORPHAN`, reason `EXCEPTION_IGNORED`; no journal.
 10. Repeat 6–7 and keep the block on until the job has run. **Expected:** the automatic retry fails (third attempt): one more System error exception and **no** further job. Unblock.
+
+### 6.4 File purge (STEP6_PLAN 6e)
+
+Runs in cmx-workers every Sunday at 03:47 UTC. It deletes the stored bytes of files that were deleted (or abandoned uploads that `file-util-expire` marked deleted), then marks them purged.
+
+**Database (Owner):**
+
+1. Apply `0847_bg_jobs_file_purge.sql` on local, then remote. **Expected:** it commits. In SQL: `SELECT name, policy, expire_seconds FROM pgboss.queue WHERE name = 'file.purge.sweep'` → `stately`, 300; `sys_ops_job_cf` has `file.purge.sweep` (PGBOSS_QUEUE, off) and `file.purge.weekly` (PGBOSS_SCHEDULE, `47 3 * * 0`, off); `file-util-purge` is `SUPERSEDED`.
+2. On your machine: `npm test --workspace=cmx-workers`. **Expected:** all pass, including `file-purge.test.ts` (37/37 on 27 Nov). If every file fails with "'react' does not provide an export named 'cache'", the react stub in `cmx-workers/build.mjs` is missing.
+
+**Release:**
+
+3. Deploy cmx-workers and web-admin (after step 1 on remote). **Expected:** the worker starts with no "registry sync failed".
+4. HQ → Ops → Jobs: switch on `file.purge.sweep`, then "File purge (weekly)". **Expected:** within about 30 seconds the schedule shows as applied; `SELECT name, key, cron, timezone FROM pgboss.schedule` lists it with `47 3 * * 0`, `UTC`.
+
+**Behaviour (demo Organization):**
+
+5. Open an order, Files tab: upload a photo, then delete it. In SQL: `SELECT status_code, purged_at FROM org_file_mst WHERE tenant_org_id = '<tenant>' ORDER BY created_at DESC LIMIT 1` → `DELETED`, `purged_at` empty.
+6. "File purge (weekly)" → **Run now**. **Expected:** SUCCESS in its run history; within about 5 minutes the job is `completed` with `{"purged":1,"failed":0,"nextPage":null}` (`SELECT output FROM pgboss.job WHERE name = 'file.purge.sweep' ORDER BY created_on DESC LIMIT 1`); the row has `purged_at` set; in Supabase Studio → Storage the object (and its thumbnail) is gone.
+7. Run now again. **Expected:** `{"purged":0,...}`; nothing else changes.
+8. HQ → File Util usage health: "deleted, not purged" is 0.
+9. Switch the schedule off. **Expected:** within 30 seconds it is gone from `pgboss.schedule` and shows as off.

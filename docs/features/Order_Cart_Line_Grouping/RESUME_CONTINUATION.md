@@ -1,9 +1,14 @@
 # Order Cart Line Grouping — Resume Here
 
-**State (2026-11-25):** P1 (line keys) done in code, owner QA + commit left (STATUS.md log). Next: P2, after Measured Pricing's line label helper (§8.1) is ready — see DESIGN §0 order.
+**State (2026-11-27):** P1 and P2 done in code (P1 committed; P2 owner QA + commit left, STATUS.md log). Next: P3 (move a piece between lines of one product, ITEM-level hint), then PF, then P4 after QA.
 
 ## What this is
 Let one product have several lines in an order (New Order + Order Edit), so garments of the same product can get their own price, measure, and (at ITEM commercial level) speed or discount. No screen-wide switch: an add rule plus a "Move to a new line" action.
+
+## P2 facts for P3
+- The add rule lives in `model/cart-line-grouping.ts`; the reducer never merges on its own (`ADD_ITEM` needs `mergeInto`).
+- `SPLIT_MEASURED_SHARE` is the measured-only move; P3's `MOVE_PIECE` is for count lines and must keep the piece id stable (piece ids are still `temp-<lineKey>-<seq>`; the split renames the moved piece to `temp-<newLineKey>-1`).
+- Line numbers come from `productLineNumber`; the cart and steps 2–4 already show them.
 
 ## P1 facts for P2/P3
 - `LineKey` is branded: passing a product id where a line is meant does not compile. Comparing a `LineKey` with a string still compiles, so grep `productId ===` in cart code after each change.

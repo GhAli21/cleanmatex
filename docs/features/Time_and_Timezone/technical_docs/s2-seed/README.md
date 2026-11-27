@@ -1,6 +1,6 @@
 # S2 seed script (zone catalog and CLDR country defaults)
 
-`gen_seed.py` produced the values in `supabase/migrations/0842_cmx_dt_clock_api.sql` (zone catalog seed) and `0843_cmx_dt_settings.sql` (country clock defaults) on 2026-11-27. It is kept so the `0850` refresh (S13) can reproduce and diff them.
+`gen_seed.py` produced the values in `supabase/migrations/0842_cmx_dt_clock_api.sql` (zone catalog seed) and `0843_cmx_dt_settings.sql` (country clock defaults) on 2026-11-27. It is kept so the `0851` refresh (S13) can reproduce and diff them.
 
 Inputs (official files, downloaded on the agent's machine; paths at the top of the script):
 - IANA tzdb **2026f**: `zone.tab`, `zone1970.tab`, `backward`, `version` (https://www.iana.org/time-zones).

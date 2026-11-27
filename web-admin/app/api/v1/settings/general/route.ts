@@ -21,6 +21,7 @@ import {
   updateTenantGeneral,
   TenantProfileError,
 } from '@/lib/services/tenant-profile.service';
+import { canonicalActiveZone } from '@/lib/services/timezone-catalog.service';
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -45,14 +46,6 @@ const businessHoursSchema = z.object({
 });
 
 const ALLOWED_COUNTRIES = ['OM', 'SA', 'AE', 'KW', 'BH', 'QA'] as const;
-const ALLOWED_TIMEZONES = [
-  'Asia/Muscat',
-  'Asia/Riyadh',
-  'Asia/Dubai',
-  'Asia/Kuwait',
-  'Asia/Bahrain',
-  'Asia/Qatar',
-] as const;
 const ALLOWED_CURRENCIES = ['SAR', 'OMR', 'AED', 'KWD', 'BHD', 'QAR'] as const;
 const ALLOWED_LANGUAGES = ['en', 'ar'] as const;
 
@@ -64,7 +57,8 @@ const generalInputSchema = z.object({
   address: z.string().trim().max(500).optional().default(''),
   city: z.string().trim().max(100).optional().default(''),
   country: z.enum(ALLOWED_COUNTRIES),
-  timezone: z.enum(ALLOWED_TIMEZONES),
+  /** Any active catalog zone (G2); checked against `sys_timezone_cd` after parsing. */
+  timezone: z.string().trim().min(1, 'timezone is required').max(64),
   currency: z.enum(ALLOWED_CURRENCIES),
   defaultLanguage: z.enum(ALLOWED_LANGUAGES),
   /** Older clients only: hours are edited on Business Calendar; absent leaves them unchanged. */
@@ -131,6 +125,20 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // G2: the catalog decides, not a hard-coded list. An alias is saved as its canonical name.
+    const zone = await canonicalActiveZone(parsed.data.timezone);
+    if (!zone) {
+      return NextResponse.json(
+        {
+          error: 'Validation failed',
+          code: 'INVALID_TIME_ZONE',
+          fieldErrors: { timezone: 'Choose a time zone from the list.' },
+        },
+        { status: 400 }
+      );
+    }
+    parsed.data.timezone = zone;
 
     const userInfo = request.headers.get('user-agent') ?? undefined;
 

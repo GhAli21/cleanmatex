@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { TAX_CATEGORIES } from '@/lib/constants/commercial';
 import { civilDayBounds } from '@/lib/utils/operational-time';
+import { leadingCivilDate } from '@/lib/clock/api-input';
+import { screenClock } from '@/lib/clock/api-clock.server';
 import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 
 /**
@@ -31,10 +33,10 @@ export async function GET(request: NextRequest) {
     );
   }
   const dateFilter: { gte?: Date; lt?: Date } = {};
-  if (from && zone && /^\d{4}-\d{2}-\d{2}/.test(from)) {
+  if (from && zone && leadingCivilDate(from)) {
     dateFilter.gte = civilDayBounds(from.slice(0, 10), zone).start;
   }
-  if (to && zone && /^\d{4}-\d{2}-\d{2}/.test(to)) {
+  if (to && zone && leadingCivilDate(to)) {
     dateFilter.lt = civilDayBounds(to.slice(0, 10), zone).end;
   }
 
@@ -111,7 +113,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, data: { rows, grandTotal, categories } });
+    const clock = await screenClock(tenantId, { operation: 'invoice', branchId: branchId ?? null });
+    return NextResponse.json({ success: true, data: { rows, grandTotal, categories }, clock });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to generate tax report';
     return NextResponse.json({ success: false, error: message }, { status: 500 });

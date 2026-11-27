@@ -11,6 +11,7 @@ import { textToTimeColumn, timeColumnToText } from '@/lib/services/commercial/ca
 import { prisma } from '@/lib/db/prisma';
 import { businessDateForTimezone } from '@/lib/utils/business-date';
 import { OperationalZoneMissingError, readDatabaseInstant, resolveOrganizationTimeZone } from '@/lib/utils/operational-zone.server';
+import { prismaDateToCivil } from '@/lib/utils/operational-time';
 import type { SpeedRuleBulkInput, SpeedRuleBulkStatusInput, SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
 
 /**
@@ -79,7 +80,7 @@ export interface SpeedRuleView {
 
 type RuleRow = Prisma.org_speed_price_rules_cfGetPayload<object>;
 
-const dateText = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
+const dateText = (d: Date | null) => (d ? prismaDateToCivil(d) : null);
 const dec = (v: Prisma.Decimal | null) => (v == null ? null : v.toString());
 
 function levelOf(r: { productId: string | null; serviceCategoryCode: string | null; branchId: string | null }): SpeedRuleLevel {

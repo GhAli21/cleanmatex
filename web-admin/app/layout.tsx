@@ -5,7 +5,8 @@ import '@mdi/font/css/materialdesignicons.min.css';
 import { AppProviders } from '@/lib/providers/AppProviders'
 import { loadLocaleMessages } from '@/lib/i18n/load-locale-messages'
 import { getLocaleFromCookies } from '@/lib/utils/locale.server';
-import { getTenantTimeZone } from '@/lib/utils/tenant-timezone.server';
+import { getTenantClockBlock } from '@/lib/utils/tenant-timezone.server';
+import { ClockProvider } from '@ui/clock';
 import { getRequestTheme } from '@/lib/services/ui-theme.service';
 import { getRequestExtraConfig } from '@/lib/services/tenant-extra-config.service';
 import { TABLE_DENSITY_OVERRIDES } from '@/lib/constants/tenant-extra-config';
@@ -49,8 +50,8 @@ export default async function RootLayout({
   // Get locale from cookies (server-side compatible)
   const locale = await getLocaleFromCookies();
   const messages = await loadLocaleMessages(locale)
-  const [timeZone, theme, extraConfig] = await Promise.all([
-    getTenantTimeZone(),
+  const [clockBlock, theme, extraConfig] = await Promise.all([
+    getTenantClockBlock(),
     getRequestTheme(),
     getRequestExtraConfig(),
   ])
@@ -59,6 +60,8 @@ export default async function RootLayout({
       ? extraConfig.tableDensityOverride
       : theme.density;
   const themeCss = themeStyleCss(theme)
+  // G8: the organization zone for every screen; null renders "—" instead of the viewer's clock.
+  const timeZone = clockBlock?.zone ?? undefined
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
 
   return (
@@ -87,9 +90,11 @@ export default async function RootLayout({
           mode={theme.mode}
           extraConfig={extraConfig}
         >
-          <TenantBrandProvider value={{ appName: theme.appName, appName2: theme.appName2, logoUrl: theme.logoUrl, logoDarkUrl: theme.logoDarkUrl }}>
-            {children}
-          </TenantBrandProvider>
+          <ClockProvider block={clockBlock}>
+            <TenantBrandProvider value={{ appName: theme.appName, appName2: theme.appName2, logoUrl: theme.logoUrl, logoDarkUrl: theme.logoDarkUrl }}>
+              {children}
+            </TenantBrandProvider>
+          </ClockProvider>
         </AppProviders>
       </body>
     </html>

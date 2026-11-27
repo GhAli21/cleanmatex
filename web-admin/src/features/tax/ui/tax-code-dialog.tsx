@@ -10,6 +10,7 @@ import { cmxMessage } from '@ui/feedback'
 import { taxApi } from '../api/tax-api'
 import { useTaxMutation } from '../hooks/use-tax'
 import type { TaxCodeRow, TaxOptions } from '../model/tax-types'
+import { useClockCivilToday } from '@ui/clock'
 
 interface TaxCodeDialogProps {
   /** The version being edited; null creates a new code. */
@@ -18,7 +19,6 @@ interface TaxCodeDialogProps {
   onClose: () => void
 }
 
-const today = () => new Date().toISOString().slice(0, 10)
 
 /** Creates a tax code or changes a version. The server makes a new version if orders already used this one. */
 export function TaxCodeDialog({ row, options, onClose }: TaxCodeDialogProps) {
@@ -26,6 +26,8 @@ export function TaxCodeDialog({ row, options, onClose }: TaxCodeDialogProps) {
   const tEngine = useTranslations('taxSetup.engine')
   const tCommon = useTranslations('common')
   const bilingual = useBilingual()
+  // G12: the organization's day, not the device's UTC day.
+  const today = useClockCivilToday()
 
   const [f, setF] = useState({
     taxCode: row?.tax_code ?? '',
@@ -42,7 +44,7 @@ export function TaxCodeDialog({ row, options, onClose }: TaxCodeDialogProps) {
     recoverablePct: row ? String(Number(row.recoverable_pct)) : '100',
     isReverseCharge: row?.is_reverse_charge ?? false,
     priority: String(row?.priority ?? 1),
-    effectiveFrom: row?.effective_from?.slice(0, 10) ?? today(),
+    effectiveFrom: row?.effective_from?.slice(0, 10) ?? today,
     effectiveTo: row?.effective_to?.slice(0, 10) ?? '',
   })
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }))

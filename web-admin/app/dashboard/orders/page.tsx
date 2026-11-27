@@ -22,6 +22,7 @@ import { OrdersRefreshButton } from '@features/orders/ui/orders-refresh-button';
 import { CmxCrudPageShell } from '@ui/patterns/cmx-crud-page-shell';
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { CmxButton, CmxSkeletonTable } from '@ui/primitives';
+import { CmxViewZoneToggle, CmxZoneNotice, ViewZoneProvider } from '@ui/clock';
 import { CMX_DEFAULT_PAGE_SIZE, CMX_PAGE_SIZE_OPTIONS } from '@ui/data-display/cmx-table-defaults';
 import { PagePermissionDeniedFallback } from '@features/auth/ui/RequirePermission';
 
@@ -192,6 +193,12 @@ export default async function OrdersPage({ searchParams }: PageProps) {
       kpis={statsData ? <OrderStatsCards stats={statsData} currentFilters={params} /> : undefined}
       filters={<OrderFiltersBar currentFilters={params} />}
     >
+      {/* G8: say why times show "—"; D20: display-only viewer-zone choice for Ready By. */}
+      <ViewZoneProvider screenKey="orders-list">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <CmxZoneNotice />
+        <CmxViewZoneToggle className="ms-auto inline-flex items-center gap-2" />
+      </div>
       {/* Orders table with graceful error state (simplified table component) */}
       <Suspense fallback={<CmxSkeletonTable rows={8} columns={8} />}>
         {ordersData ? (
@@ -225,6 +232,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
           />
         )}
       </Suspense>
+      </ViewZoneProvider>
     </CmxCrudPageShell>
   );
 }

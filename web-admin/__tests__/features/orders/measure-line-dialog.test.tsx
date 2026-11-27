@@ -81,4 +81,36 @@ describe('MeasureLineDialog', () => {
     expect(screen.getByRole('textbox')).toHaveValue('4')
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
   })
+
+  // Cart Line Grouping §4.1: a line with this measure is already in the order.
+  it('Add shows the choice when a line can take the article; staff pick the line, a new line, or go back', () => {
+    const onConfirm = jest.fn()
+    const onMerge = jest.fn()
+    const mergeChoice = jest.fn(() => ({
+      title: 'A line with this measure is already in the order',
+      options: [{ lineKey: 'line-1', label: 'Add to line 1', result: 'Becomes 2 pieces · 7 kg' }],
+      newLineLabel: 'Add as a new line',
+    }))
+    render(<MeasureLineDialog open productName="Carpet" uom={KG} mergeChoice={mergeChoice} onMerge={onMerge} onConfirm={onConfirm} onClose={jest.fn()} />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '3.5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(mergeChoice).toHaveBeenCalledWith(expect.objectContaining({ measuredQty: '3.5' }))
+    expect(screen.getByText('A line with this measure is already in the order')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.getByRole('textbox')).toHaveValue('3.5')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    fireEvent.click(screen.getByRole('button', { name: /Add to line 1/ }))
+    expect(onMerge).toHaveBeenCalledWith('line-1', expect.objectContaining({ measuredQty: '3.5' }))
+    expect(onConfirm).not.toHaveBeenCalled()
+  })
+
+  it('Add without a matching line adds a new line at once', () => {
+    const onConfirm = jest.fn()
+    render(<MeasureLineDialog open productName="Carpet" uom={KG} mergeChoice={() => null} onMerge={jest.fn()} onConfirm={onConfirm} onClose={jest.fn()} />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '3.5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ measuredQty: '3.5' }))
+  })
 })

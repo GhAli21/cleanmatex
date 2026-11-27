@@ -17,6 +17,10 @@ import {
 } from '@/lib/services/promotion-engine.service';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import { ClockError } from '@cmx/clock';
+import { isCivilDateText } from '@/lib/clock/api-input';
+import { civilDayBounds, parseInstant } from '@/lib/utils/operational-time';
+import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import type { PromoType } from '@/lib/constants/order-financial';
 
@@ -40,22 +44,25 @@ function discountTypeFromPromoType(promoType: PromoType | string): string {
   return 'percentage';
 }
 
-/** Date-only → local start-of-day; otherwise parse as-is. */
-function parseStart(value?: string): Date | undefined {
-  if (!value) return undefined;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return new Date(`${value}T00:00:00.000`);
-  }
-  return new Date(value);
+/**
+ * A promotion bound from the form (S6). A civil day is a day at the organization (`accept_order`
+ * zone): start = first instant of the day, end = last millisecond of the day. Before S6 the day
+ * was read in the server's zone. An instant needs an offset. No zone: `TIMEZONE_NOT_CONFIGURED`.
+ */
+async function promoBound(tenantId: string, value: string, edge: 'start' | 'end'): Promise<Date> {
+  if (!isCivilDateText(value)) return parseInstant(value);
+  const zone = await resolveOperationalTimeZone(tenantId, 'accept_order', null);
+  if (!zone) throw new ClockError('TIMEZONE_NOT_CONFIGURED');
+  const bounds = civilDayBounds(value, zone);
+  return edge === 'start' ? bounds.start : new Date(bounds.end.getTime() - 1);
 }
 
-/** Date-only → local end-of-day; otherwise parse as-is. */
-function parseEnd(value?: string): Date | null {
-  if (!value) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return new Date(`${value}T23:59:59.999`);
-  }
-  return new Date(value);
+async function parseStart(tenantId: string, value?: string): Promise<Date | undefined> {
+  return value ? promoBound(tenantId, value, 'start') : undefined;
+}
+
+async function parseEnd(tenantId: string, value?: string): Promise<Date | null> {
+  return value ? promoBound(tenantId, value, 'end') : null;
 }
 
 /**
@@ -113,8 +120,8 @@ export async function createPromotionAction(input: CreatePromotionInput) {
       discountValue: input.discountValue,
       maxDiscountAmount: input.maxDiscountAmount,
       minOrderAmount: input.minOrderAmount,
-      startsAt: parseStart(input.startsAt),
-      expiresAt: parseEnd(input.expiresAt) ?? undefined,
+      startsAt: await parseStart(auth.tenantId, input.startsAt),
+      expiresAt: (await parseEnd(auth.tenantId, input.expiresAt)) ?? undefined,
       maxUses: input.maxUses,
       maxUsesPerCustomer: input.maxUsesPerCustomer,
       isAutoApply: input.isAutoApply ?? !input.promoCode,
@@ -152,6 +159,8 @@ export async function updatePromotionAction(input: UpdatePromotionInput) {
       ? discountTypeFromPromoType(input.promoType)
       : undefined;
 
+    const validFrom = input.startsAt !== undefined ? await parseStart(tenantId, input.startsAt) : undefined;
+    const validTo = input.expiresAt !== undefined ? await parseEnd(tenantId, input.expiresAt) : undefined;
     const updated = await withTenantContext(tenantId, () =>
       prisma.org_promotions_mst.update({
         where: { id: input.id, tenant_org_id: tenantId },
@@ -172,8 +181,8 @@ export async function updatePromotionAction(input: UpdatePromotionInput) {
           ...(input.minOrderAmount !== undefined && {
             min_order_amount: input.minOrderAmount ?? null,
           }),
-          ...(input.startsAt !== undefined && { valid_from: parseStart(input.startsAt) }),
-          ...(input.expiresAt !== undefined && { valid_to: parseEnd(input.expiresAt) }),
+          ...(input.startsAt !== undefined && { valid_from: validFrom }),
+          ...(input.expiresAt !== undefined && { valid_to: validTo }),
           ...(input.maxUses !== undefined && { max_uses: input.maxUses ?? null }),
           ...(input.maxUsesPerCustomer !== undefined && {
             max_uses_per_customer: input.maxUsesPerCustomer ?? null,

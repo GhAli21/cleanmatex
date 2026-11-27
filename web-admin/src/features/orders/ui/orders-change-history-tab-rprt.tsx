@@ -19,6 +19,7 @@ import { CmxEmptyState } from '@ui/data-display';
 import { CmxButton } from '@ui/primitives';
 
 import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card';
+import { useInstantFormatter } from '@ui/clock';
 
 const OPERATION_CODES = new Set<string>(ORDER_CHANGE_OPERATION_CODES);
 const OUTCOMES = new Set(['NONE', 'OUTSTANDING_OPTIONAL', 'OUTSTANDING_REQUIRED', 'OVERPAYMENT']);
@@ -64,6 +65,7 @@ export function OrdersChangeHistoryTabRprt({
   initialError,
 }: OrdersChangeHistoryTabRprtProps) {
   const t = useTranslations('orders.detail.changeHistory');
+  const fmtInstant = useInstantFormatter();
   const locale = useLocale();
   const isRTL = useRTL();
   const { decimalPlaces, currencyCode: tenantCurrency } = useTenantCurrency();
@@ -78,9 +80,7 @@ export function OrdersChangeHistoryTabRprt({
 
   const formatWhen = (iso: string | null) => {
     if (!iso) return t('notRecorded');
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return iso;
-    return new Intl.DateTimeFormat(moneyLocale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+    return fmtInstant(iso) ?? '—';
   };
 
   const formatMoney = (amount: string, currencyCode: string) =>

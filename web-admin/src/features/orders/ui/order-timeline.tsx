@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, Circle, Clock, ChevronDown, ChevronUp, User, AlertCircle, Copy, PlusCircle, CheckCircle, FileText, Receipt, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { useLocale } from '@/lib/hooks/useLocale';
 import { createClient } from '@/lib/supabase/client';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { STATUS_META } from '@/lib/types/workflow';
+import { useInstantFormatter } from '@ui/clock';
 
 interface HistoryEntry {
   id: string;
@@ -49,7 +49,7 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
   const t = useTranslations('orders.timeline');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
-  const locale = useLocale();
+  const fmtInstant = useInstantFormatter();
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -121,10 +121,7 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
   };
 
   const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
+    return fmtInstant(timestamp) ?? '—';
   };
 
   /**

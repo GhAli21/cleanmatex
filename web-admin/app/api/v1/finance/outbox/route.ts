@@ -16,6 +16,7 @@ import {
   type OutboxListFilters,
 } from '@/lib/services/outbox-monitor.service';
 import { civilInstantRange } from '@/lib/utils/operational-time';
+import { leadingCivilDate } from '@/lib/clock/api-input';
 import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
 
 export async function GET(request: NextRequest) {
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   const from = searchParams.get('from');
   const to = searchParams.get('to');
-  if ((from && !/^\d{4}-\d{2}-\d{2}/.test(from)) || (to && !/^\d{4}-\d{2}-\d{2}/.test(to))) {
+  if ((from && !leadingCivilDate(from)) || (to && !leadingCivilDate(to))) {
     return NextResponse.json({ success: false, error: 'from and to must be YYYY-MM-DD' }, { status: 400 });
   }
   const zone = from || to ? await resolveOperationalTimeZone(tenantId, 'ledger', null) : null;

@@ -12,6 +12,7 @@
 import { PosSessionError } from '@/lib/services/pos-session.service';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { leadingCivilDate, zInstant } from '@/lib/clock/api-input';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
@@ -48,7 +49,7 @@ const issueGiftCardAdminSchema = z.object({
   card_name:             z.string().min(1).max(200),
   card_name2:            z.string().max(200).optional(),
   amount:                z.number().positive(),
-  expiry_date:           z.string().datetime().optional(),
+  expiry_date:           zInstant.optional(),
   issued_to_customer_id: z.string().uuid().optional(),
   card_pin:              z.string().min(4).max(20).optional(),
   issue_type:            z.enum(['PROMOTIONAL', 'CORPORATE', 'GOODWILL', 'MIGRATION', 'REPLACEMENT']).optional(),
@@ -62,7 +63,7 @@ const sellGiftCardWithTenderSchema = z.object({
   card_name:                  z.string().min(1).max(200),
   card_name2:                 z.string().max(200).optional(),
   amount:                     z.number().positive(),
-  expiry_date:                z.string().datetime().optional(),
+  expiry_date:                zInstant.optional(),
   issued_to_customer_id:      z.string().uuid().optional(),
   purchased_by_customer_id:   z.string().uuid().optional(),
   card_pin:                   z.string().min(4).max(20).optional(),
@@ -95,10 +96,10 @@ async function giftCardDayRange(
   const zone = await resolveOperationalTimeZone(tenantId, 'invoice', null);
   if (!zone) return null;
   const range: { gte?: Date; lt?: Date } = {};
-  if (dateFrom && /^\d{4}-\d{2}-\d{2}/.test(dateFrom)) {
+  if (dateFrom && leadingCivilDate(dateFrom)) {
     range.gte = civilDayBounds(dateFrom.slice(0, 10), zone).start;
   }
-  if (dateTo && /^\d{4}-\d{2}-\d{2}/.test(dateTo)) {
+  if (dateTo && leadingCivilDate(dateTo)) {
     range.lt = civilDayBounds(dateTo.slice(0, 10), zone).end;
   }
   return range;

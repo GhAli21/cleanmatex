@@ -11,6 +11,16 @@ const mockFxSettingsFindFirst = jest.fn();
 const mockSourceFindMany = jest.fn();
 const mockRateTypeFindUnique = jest.fn();
 
+// G12 (S4): "today" comes from the organization zone; tests pin it.
+const mockCivilToday = jest.fn(async (..._a: unknown[]): Promise<string> => '2026-11-27');
+jest.mock('@/lib/utils/operational-zone.server', () => {
+  class OperationalZoneMissingError extends Error {
+    readonly code = 'TIMEZONE_NOT_CONFIGURED';
+    constructor() { super('TIMEZONE_NOT_CONFIGURED'); }
+  }
+  return { operationalCivilToday: (...a: unknown[]) => mockCivilToday(...a), OperationalZoneMissingError };
+});
+
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     org_fx_rate_mst: { findMany: (...a: unknown[]) => mockTenantRateFindMany(...a) },
@@ -66,6 +76,25 @@ beforeEach(() => {
 });
 
 describe('fx-rate-resolver.service — resolveRate', () => {
+  it('G12: without a date the rate day is the organization ledger day', async () => {
+    mockTenantRateFindMany.mockResolvedValue([tenantRow()]);
+    const result = await resolveRate(TENANT_ID, { from: 'USD', to: 'OMR' });
+    expect(mockCivilToday).toHaveBeenCalledWith(TENANT_ID, 'ledger', null);
+    expect(result.requestedDate).toBe('2026-11-27');
+  });
+
+  it('G12: a missing organization zone refuses a lookup without a date, never the UTC day', async () => {
+    mockCivilToday.mockResolvedValueOnce('');
+    await expect(resolveRate(TENANT_ID, { from: 'USD', to: 'OMR' })).rejects.toMatchObject({ code: 'TIMEZONE_NOT_CONFIGURED' });
+    expect(mockTenantRateFindMany).not.toHaveBeenCalled();
+  });
+
+  it('G12: same currency still works without a zone', async () => {
+    mockCivilToday.mockResolvedValueOnce('');
+    const result = await resolveRate(TENANT_ID, { from: 'OMR', to: 'OMR' });
+    expect(result.rate).toBe('1');
+  });
+
   it('short-circuits SAME_CURRENCY without consulting either book', async () => {
     const result = await resolveRate(TENANT_ID, { from: 'OMR', to: 'OMR' });
 

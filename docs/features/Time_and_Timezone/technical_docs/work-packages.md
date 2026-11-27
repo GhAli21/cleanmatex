@@ -1,6 +1,6 @@
 # Work packages
 
-Live queue: [`../RESUME_CONTINUATION.md`](../RESUME_CONTINUATION.md). Read **Risks while implementing** in that file before editing. Refresh that file at the end of every slice. Current version is `0.1.43` (S1 done; S2 migration files `0842`/`0843` written 2026-11-27, not applied). The next step is the user applying them, then S3 (`0.1.44`) in [`../MASTER_PLAN_v2.md`](../MASTER_PLAN_v2.md), which maps the open packages to slices (WP6→S3/S4/S14, WP10/WP11→S6, WP16/WP17→S7, WP18→S8, WP19→S11, WP20→S12, WP21→S13, WP22→S14). Do not start again at WP1. Do not treat a route or screen named below as still open until you check `CHANGELOG.md`. `0828` through `0841` are already applied. Do not edit them. Only the user applies migrations (D17): the agent writes the SQL file and stops, as the "write the SQL and stop" line below says. SQL names in the master plan use `fn_cmx_dt_*` (the deployed `fn_ops_zone` is wrapped by `fn_cmx_dt_zone`); a package below that says `fn_ops_*` for new work means that family. `RESUME_CONTINUATION.md` wins when they disagree.
+Live queue: [`../RESUME_CONTINUATION.md`](../RESUME_CONTINUATION.md). Read **Risks while implementing** in that file before editing. Refresh that file at the end of every slice. Current version is `0.1.47` (S1–S5 done, `0842`–`0846` applied; S6 done in code). The next step is S7 in [`../MASTER_PLAN_v2.md`](../MASTER_PLAN_v2.md), which maps the open packages to slices (WP6→S3/S4/S14, WP10/WP11→S6, WP16/WP17→S7, WP18→S8, WP19→S11, WP20→S12, WP21→S13, WP22→S14). Do not start again at WP1. Do not treat a route or screen named below as still open until you check `CHANGELOG.md`. `0828` through `0841` are already applied. Do not edit them. Only the user applies migrations (D17): the agent writes the SQL file and stops, as the "write the SQL and stop" line below says. SQL names in the master plan use `fn_cmx_dt_*` (the deployed `fn_ops_zone` is wrapped by `fn_cmx_dt_zone`); a package below that says `fn_ops_*` for new work means that family. `RESUME_CONTINUATION.md` wins when they disagree.
 
 Do the packages in order. A package that says "migration" produces a new SQL file and stops. It does not apply the file.
 
@@ -187,6 +187,8 @@ Applied on local and remote as `0834_org_audit_stamps_timestamptz.sql`. Views th
 
 ## WP10 — HTTP APIs, webhooks, and Zod
 
+> **S6 (`0.1.47`, 2026-11-27):** route, action and schema time input moved to `web-admin/lib/clock/api-input.ts` (fresh search: 43 hits → 1, `lib/validations/iso-date.ts`); `clock` block per `api-clock-inventory.md`. Webhooks and `toApiInstant` response serialization: see S7/S11 in the master plan.
+
 **Depends on** the parser from WP1.
 
 Refresh the route list, then change every hit. The 2026-11-24 start set includes:
@@ -210,6 +212,8 @@ An instant field accepts only RFC 3339 with an offset and is stored as UTC. A ci
 **Close-out:** list the routes changed and any route left with a written reason.
 
 ## WP11 — Server actions
+
+> **S6 (`0.1.47`):** promotions, gift cards, discount rules, promo codes and report actions use `api-input`; promotions-actions no longer reads a typed day in the server's zone. Loyalty, refunds, drivers, cash drawers, payment methods and terminals had no date parse in the fresh search.
 
 Same contract as WP10 for `web-admin/app/actions`. The 2026-11-24 start set includes promotions, gift cards, discount rules, loyalty, tax, refunds, reconciliation, drivers, cash drawers, payment methods, and terminals.
 

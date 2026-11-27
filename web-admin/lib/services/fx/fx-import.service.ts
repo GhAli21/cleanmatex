@@ -34,6 +34,7 @@ import {
   FX_RATE_TYPE,
   type FxImportBatchStatus,
 } from '@/lib/constants/currency-fx';
+import { OperationalZoneMissingError, operationalCivilToday } from '@/lib/utils/operational-zone.server';
 
 export interface HqCopyPreviewInput {
   tenantId: string;
@@ -86,8 +87,11 @@ export interface HqCopyCommitResult {
   rateIds: string[];
 }
 
-function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
+/** G12: the FX "as of" day is the organization's ledger day; a missing zone refuses the import. */
+async function ledgerToday(tenantId: string): Promise<string> {
+  const day = await operationalCivilToday(tenantId, 'ledger', null);
+  if (!day) throw new OperationalZoneMissingError();
+  return day;
 }
 
 /** C3-valid pairs: every active anchor (base, reporting) paired with every other active portfolio currency. */
@@ -132,7 +136,7 @@ export async function previewHqCopyImport(input: HqCopyPreviewInput): Promise<Hq
 
     const pairs = buildC3Pairs(portfolio);
     const rateTypeCode = (input.rateTypeCode ?? fxSettings?.default_rate_type_code ?? FX_RATE_TYPE.SPOT).toUpperCase();
-    const asOfDate = input.asOfDate ?? todayUtc();
+    const asOfDate = input.asOfDate ?? (await ledgerToday(input.tenantId));
 
     let rows: HqCopyPreviewRow[] = [];
 

@@ -6,6 +6,7 @@ import { createTenantSettingsService } from '@/lib/services/tenant-settings.serv
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import { logger } from '@/lib/utils/logger';
 import { buildPublicApiLogContext } from '@/lib/utils/public-api-log-context';
+import { publicScreenClock } from '@/lib/clock/api-clock.server';
 
 function extractBearerToken(request: NextRequest): string | null {
   const authorization = request.headers.get('authorization') ?? '';
@@ -135,9 +136,12 @@ export async function GET(request: NextRequest) {
       ordersCount: orders?.length ?? 0,
     });
 
+    // Public subset only (zone, serverNow, hourCycle, dateFormat; §7.16).
+    const clock = await publicScreenClock(tenantId, { operation: 'accept_order' });
     return NextResponse.json(
       {
         success: true,
+        clock,
         data: {
           currencyCode: moneyConfig.currencyCode,
           orders: (orders ?? []).map((order: any) => {

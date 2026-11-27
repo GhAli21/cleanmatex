@@ -301,6 +301,7 @@ DECLARE
   v_a UUID := (SELECT v::uuid FROM zz_ctx WHERE k = 'a');
   v_b UUID := (SELECT v::uuid FROM zz_ctx WHERE k = 'b');
   v_fn TEXT; v_bad TEXT;
+  v_user UUID; v_ou UUID; v_sid UUID := gen_random_uuid();
 BEGIN
   -- anon: only the clock functions.
   SELECT string_agg(p.oid::regprocedure::text, ', ') INTO v_bad
@@ -321,7 +322,25 @@ BEGIN
      AND NOT EXISTS (SELECT 1 FROM unnest(p.proconfig) c WHERE c LIKE 'search\_path=%');
   IF v_bad IS NOT NULL THEN RAISE EXCEPTION 'FAIL 6e: no search_path on %', v_bad; END IF;
   -- A signed-in user of tenant A cannot read tenant B.
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-0000-0000-0000000000aa', 'role', 'authenticated', 'tenant_org_id', v_a)::text, true);
+  -- current_tenant_id() (0734/0748) reads the caller's ACTIVE row in sys_auth_user_sessions_mst and
+  -- ignores JWT tenant claims, so the test opens a session for an unlocked member of A
+  -- (rolled back with the rest of the file).
+  SELECT ou.id, ou.user_id INTO v_ou, v_user
+    FROM public.org_users_mst ou
+    JOIN public.sys_users_mst su ON su.id = ou.user_id AND NOT su.is_globally_locked
+         AND (su.attack_locked_until IS NULL OR su.attack_locked_until <= now())  -- CLOCK-OK: mirrors current_tenant_id
+   WHERE ou.tenant_org_id = v_a AND ou.is_active AND NOT ou.is_membership_locked
+   ORDER BY (ou.user_id::text = (SELECT v FROM zz_ctx WHERE k = 'user')) DESC
+   LIMIT 1;
+  IF v_ou IS NULL THEN
+    RAISE NOTICE 'NOTE 6: no unlocked member of tenant A; 6i (own-tenant read) skipped';
+  ELSE
+    INSERT INTO public.sys_auth_user_sessions_mst (auth_session_id, auth_user_id, org_user_id, tenant_org_id, status, expires_at)
+    VALUES (v_sid, v_user, v_ou, v_a, 'ACTIVE', now() + interval '1 hour');  -- CLOCK-OK: test fixture
+  END IF;
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', coalesce(v_user, '00000000-0000-0000-0000-0000000000aa'::uuid), 'role', 'authenticated', 'session_id', v_sid)::text, true);
+  IF v_ou IS NOT NULL AND public.current_tenant_id() IS DISTINCT FROM v_a THEN
+    RAISE EXCEPTION 'FAIL 6 setup: the test session does not resolve to tenant A'; END IF;
   SET LOCAL ROLE authenticated;
   BEGIN
     PERFORM public.fn_cmx_dt_settings(v_b);
@@ -338,11 +357,18 @@ BEGIN
     RESET ROLE; RAISE EXCEPTION 'FAIL 6h: all-tenant health as authenticated';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
-  IF public.fn_cmx_dt_hour_cycle(v_a) IS NULL OR public.fn_cmx_dt_zone(v_a, 'accept_order', NULL) <> 'Asia/Muscat' THEN
+  IF v_ou IS NOT NULL AND (public.fn_cmx_dt_hour_cycle(v_a) IS NULL OR public.fn_cmx_dt_zone(v_a, 'accept_order', NULL) <> 'Asia/Muscat') THEN
     RESET ROLE; RAISE EXCEPTION 'FAIL 6i: own tenant read as authenticated'; END IF;
+  -- 6j: catalog readers work for a signed-in user although sys_timezone_cd is closed to it (0745, 0844).
+  IF public.fn_cmx_dt__accept_zone('Asia/Calcutta') IS DISTINCT FROM 'Asia/Kolkata'
+     OR NOT public.fn_cmx_dt_is_valid_zone('Asia/Muscat')
+     OR public.fn_cmx_dt_canonical_zone('Asia/Calcutta') IS DISTINCT FROM 'Asia/Kolkata' THEN
+    RESET ROLE; RAISE EXCEPTION 'FAIL 6j: catalog readers as authenticated'; END IF;
+  IF has_table_privilege('authenticated', 'public.sys_timezone_cd', 'SELECT') THEN
+    RAISE NOTICE 'NOTE 6: authenticated has SELECT on sys_timezone_cd (0745 expects none)'; END IF;
   RESET ROLE;
   PERFORM set_config('request.jwt.claims', '', true);
-  RAISE NOTICE 'PASS 6: anon only gets the clock, health is service-only, env table owner-only, search_path pinned, tenant isolation';
+  RAISE NOTICE 'PASS 6: anon only gets the clock, health is service-only, env table owner-only, search_path pinned, tenant isolation, catalog readers as authenticated';
 END $$;
 
 -- ------------------------------------------------------------------

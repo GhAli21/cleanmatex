@@ -110,7 +110,7 @@ describe('newOrderReducer', () => {
             expect(result.items[0]).toEqual(newItem);
         });
 
-        it('should increment quantity when adding existing item', () => {
+        it('adds a piece to the line the add rule chose (mergeInto)', () => {
             const existingItem: OrderItem = {
                 lineKey: 'line-product-1' as LineKey,
                 productId: 'product-1',
@@ -130,6 +130,7 @@ describe('newOrderReducer', () => {
             const action: NewOrderAction = {
                 type: 'ADD_ITEM',
                 payload: existingItem,
+                mergeInto: existingItem.lineKey,
             };
 
             const result = newOrderReducer(stateWithItem, action);

@@ -9,6 +9,7 @@ import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
 import { narrowBranchFilter, resolveBranchScope } from '@/lib/services/branch-access.service';
 import type { CashDrawerTrxType } from '@/lib/constants/cash-drawer';
 import { guardBranchIds, guardDrawersBranch } from '@/lib/api/branch-access-guard';
+import { screenClock } from '@/lib/clock/api-clock.server';
 
 /**
  * POST /api/v1/cash-drawers/trx
@@ -75,7 +76,8 @@ export async function GET(request: NextRequest) {
       parsed.data,
       narrowBranchFilter(await resolveBranchScope(auth)),
     );
-    return NextResponse.json({ success: true, data: result });
+    const clock = await screenClock(tenantId, { operation: 'pos_session' });
+    return NextResponse.json({ success: true, data: result, clock });
   } catch (error) {
     return mapCashDrawerError(error, 'Failed to load drawer transactions');
   }

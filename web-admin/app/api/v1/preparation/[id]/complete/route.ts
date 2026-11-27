@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { zInstantDate } from '@/lib/clock/api-input';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { requireAllPermissions } from '@/lib/middleware/require-permission';
 import { isPreparationEnabled } from '@/lib/config/features';
@@ -23,7 +24,7 @@ import {
 
 const completePreparationRequestSchema = z.object({
   expectedStateVersion: z.number().int().nonnegative().optional(),
-  readyByOverride: z.coerce.date().optional(),
+  readyByOverride: zInstantDate.optional(),
   internalNotes: z.string().max(1000).optional(),
 });
 

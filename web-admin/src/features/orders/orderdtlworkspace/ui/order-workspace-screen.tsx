@@ -44,6 +44,7 @@ import type {
   OrderWorkspaceStage,
   OrderWorkspaceWorkflowJourneyStage,
 } from './order-workspace-types';
+import { useInstantFormatter } from '@ui/clock';
 
 /**
  * Data and navigation context required to render the order operations workspace.
@@ -129,6 +130,7 @@ export function OrderWorkspaceScreen({
   workflowJourney,
 }: OrderWorkspaceScreenProps) {
   const t = useTranslations('orders.detail.workspace');
+  const fmtInstant = useInstantFormatter();
   const router = useRouter();
   const refreshMoney = useOrderMoneyRefresh();
   const searchParams = useSearchParams();
@@ -286,9 +288,7 @@ export function OrderWorkspaceScreen({
               {order.received_at ? (
                 <p className="mt-1 text-sm text-muted-foreground">
                   {t('receivedAt', {
-                    value: new Date(String(order.received_at)).toLocaleString(
-                      locale === 'ar' ? 'ar' : 'en',
-                    ),
+                    value: fmtInstant(String(order.received_at)) ?? '—',
                   })}
                 </p>
               ) : null}

@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { zCivilDate } from '@/lib/clock/api-input';
 
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { getVarianceByCashierReport } from '@/lib/services/cash-drawer-variance-report.service';
 import { narrowBranchFilter, resolveBranchScope } from '@/lib/services/branch-access.service';
 import { mapCashDrawerError } from '@/lib/api/cash-drawer-route-errors';
+import { screenClock } from '@/lib/clock/api-clock.server';
 
-const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD');
+const dateOnly = zCivilDate;
 
 const querySchema = z
   .object({
@@ -43,7 +45,8 @@ export async function GET(request: NextRequest) {
       filter,
       narrowBranchFilter(await resolveBranchScope(auth), branchId),
     );
-    return NextResponse.json({ success: true, data: report });
+    const clock = await screenClock(tenantId, { operation: 'pos_session', branchId: branchId ?? null });
+    return NextResponse.json({ success: true, data: report, clock });
   } catch (error) {
     return mapCashDrawerError(error, 'Failed to load the cash variance report');
   }

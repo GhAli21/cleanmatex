@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { zCivilDate, zInstant } from '@/lib/clock/api-input';
 import {
   AR_ADJUSTMENT_TYPES,
   AR_DISPUTE_STATUSES,
@@ -14,7 +15,7 @@ import { zUuidIfEnabled } from '@/lib/validations/cmx-temp-utils-para/validators
 
 const uuidSchema = z.string().uuid();
 const moneySchema = z.number().nonnegative();
-const dateStringSchema = z.string().date().or(z.string().datetime()).optional();
+const dateStringSchema = zCivilDate.or(zInstant).optional();
 
 export const arInvoiceStatusSchema = z.enum([
   AR_INVOICE_STATUSES.DRAFT,

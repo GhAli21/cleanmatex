@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { zCivilOrInstantDate } from '@/lib/clock/api-input';
 
 import { CASH_DRAWER_TRX_TYPES, CASH_DRAWER_POST_CLOSE_STATUSES } from '@/lib/constants/cash-drawer';
 
@@ -17,8 +18,8 @@ export const drawerCountsListQuerySchema = pageQuerySchema;
 export const drawerTrxListQuerySchema = pageQuerySchema.extend({
   drawerId: z.string().uuid().optional(),
   trxTypeCode: z.enum(Object.values(CASH_DRAWER_TRX_TYPES) as [string, ...string[]]).optional(),
-  dateFrom: z.coerce.date().optional(),
-  dateTo: z.coerce.date().optional(),
+  dateFrom: zCivilOrInstantDate.optional(),
+  dateTo: zCivilOrInstantDate.optional(),
 });
 
 export const drawerLedgerQuerySchema = pageQuerySchema;

@@ -87,6 +87,7 @@ import {
   packingPreferencePriceMap,
 } from '@/lib/utils/order-packing-charges';
 import { useBilingual } from '@/lib/utils/bilingual';
+import { useReadyByZone } from '../hooks/use-ready-by-zone';
 
 /**
  * New Order Content Component
@@ -1105,6 +1106,8 @@ export function NewOrderContent() {
     },
   });
 
+  // G1: the Ready By is shown in the fulfilment-branch zone, not the device zone.
+  const readyByZoneQuery = useReadyByZone(state.state.branchId);
   const sharedSummaryPanelProps = {
     items: memoizedOrderItems,
     onEditItem: priceCapability.interactive ? (itemId: LineKey) => {
@@ -1120,6 +1123,7 @@ export function NewOrderContent() {
     notes: state.state.notes,
     onNotesChange: state.setNotes,
     readyByAt: state.state.readyByAt,
+    readyByZone: readyByZoneQuery.data ?? null,
     cartQuote: state.state.isEditMode
       ? undefined
       : {

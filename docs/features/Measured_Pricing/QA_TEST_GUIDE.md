@@ -158,3 +158,15 @@ Use an order with a measured line (e.g. a rug in m, 2.5) and, in Order Edit, a s
 38. Public tracking link and the customer app order detail API: items show the qualifier; a line removed by an Edit no longer appears on Ready detail or prints.
 39. WhatsApp/email receipt text: "Rug · 2.5 m² x1 - 12.500 OMR".
 40. Customer app booking: a measured product is not offered; a forged submit returns `booking_item_needs_measure`.
+
+
+## P7 - HQ Units & Conversions and product setup (steps 41-47)
+
+Apply 0848 first (HQ menu). Sign in to HQ as TECH_ADMIN or SUPER_ADMIN.
+41. HQ menu > Units & Conversions (or open `/uom-config`). **Expected:** two cards; EN and Arabic (RTL).
+42. Units: add `TOLA` (Weight, 3 decimals, UN/ECE `GRM`). **Expected:** saved; after a refresh an organization's Units page lists it. Add a Count unit with 1 decimal: refused on "Decimal places". A base unit has no Deactivate button.
+43. Units: change the dimension of `KG`. **Expected:** refused on the field (organizations use it). Deactivate a unit an active template is priced in: refused, naming the item codes.
+44. Conversions: add `OZ` to `KG` if missing, rate 0.028349523125. **Expected:** "Divide by" is filled by the server. Add KG to M: refused (different things). A rate with 13 decimals: refused.
+45. Products & Items > Templates: a template shows "Unit" (all units) and price type Fixed / Per unit; "Needs weight / dimensions" are gone. Set a template to `KG` + Fixed: refused on price type. Set `KG` + Per unit: saved.
+46. Create an organization (or run catalog seeding) after step 45. **Expected:** that product is seeded with unit KG, not PC.
+47. Bulk templates: export, change `base_uom_code` of one new row, import. **Expected:** the new row has that unit; an old file with `requires_weight` columns still validates.

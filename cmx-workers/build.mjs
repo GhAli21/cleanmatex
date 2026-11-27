@@ -22,6 +22,8 @@ const shared = {
     '@cmx/jobs': here('../packages/jobs/src/index.ts'),
     // `server-only` guards Next.js client bundles; a plain Node process has no client side.
     'server-only': here('./src/stubs/server-only.ts'),
+    // Plain Node's `react` has no `cache` (a React Server export); see the stub.
+    react: here('./src/stubs/react.ts'),
     // `next` has no package exports map, so Node's ESM loader needs the file name for its subpaths.
     // Only imported by web-admin modules further down the reaction import chain; never called here.
     'next/headers': 'next/headers.js',

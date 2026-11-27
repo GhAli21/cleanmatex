@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { zInstant } from '@/lib/clock/api-input'
 import { requirePermission } from '@/lib/middleware/require-permission'
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
@@ -28,7 +29,7 @@ const campaignFields = {
   template_code:   z.string().max(200).optional(),
   /** Values for the template's variables by variable_key (migration 0819); used by WhatsApp campaigns. */
   template_vars:   z.record(z.string(), z.string().max(1000)).optional(),
-  scheduled_at:    z.string().datetime().optional(),
+  scheduled_at:    zInstant.optional(),
 }
 
 /**

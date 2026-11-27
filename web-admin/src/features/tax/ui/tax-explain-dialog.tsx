@@ -11,6 +11,7 @@ import { taxApi } from '../api/tax-api'
 import { useTaxMutation } from '../hooks/use-tax'
 import type { TaxExplainFacts, TaxExplainResponse, TaxOptions, TaxPartyScopeValue } from '../model/tax-types'
 import { EMPTY_TAX_CRITERIA, TaxCriteriaFields } from './tax-rule-fields'
+import { useClockCivilToday } from '@ui/clock'
 
 /** Answers "which tax would apply here, and why?" without saving anything. */
 export function TaxExplainDialog({ options, onClose }: { options: TaxOptions; onClose: () => void }) {
@@ -18,7 +19,9 @@ export function TaxExplainDialog({ options, onClose }: { options: TaxOptions; on
   const tEngine = useTranslations('taxSetup.engine')
   const bilingual = useBilingual()
   const [flow, setFlow] = useState<TaxFlow>('OUTPUT')
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  // G12: the organization's day, not the device's UTC day.
+  const today = useClockCivilToday()
+  const [date, setDate] = useState(today)
   const [criteria, setCriteria] = useState(EMPTY_TAX_CRITERIA)
   const [result, setResult] = useState<TaxExplainResponse | null>(null)
   const run = useTaxMutation((facts: TaxExplainFacts) => taxApi.explain(facts), setResult)

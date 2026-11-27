@@ -8,6 +8,22 @@ import type { UsageTracking, UsageMetrics, UsageWarning, LimitCheckResult } from
 import { getSubscription } from './subscriptions.service';
 import { getPlan } from './subscriptions.service';
 import { prisma } from '@/lib/db/prisma';
+import { dtTodayIn } from '@cmx/clock';
+
+/**
+ * G12: plan usage is a platform metric, so its months are UTC months on purpose
+ * (not a shop day). Explicit UTC, never the server's local zone.
+ */
+function utcMonthBounds(at: Date): { start: Date; end: Date } {
+  const y = at.getUTCFullYear();
+  const m = at.getUTCMonth();
+  return { start: new Date(Date.UTC(y, m, 1)), end: new Date(Date.UTC(y, m + 1, 0)) };
+}
+
+/** `YYYY-MM-DD` of an instant in UTC (platform metric). */
+function utcCivil(at: Date): string {
+  return dtTodayIn('UTC', at);
+}
 
 // ========================
 // Usage Calculation
@@ -30,8 +46,9 @@ export async function calculateUsage(
   const supabase = createAdminSupabaseClient();
 
   // Default to current month if not specified
-  const start = periodStart || new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const end = periodEnd || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+  const month = utcMonthBounds(new Date());
+  const start = periodStart || month.start;
+  const end = periodEnd || month.end;
 
   // Count orders in period
   const { count: ordersCount } = await supabase
@@ -67,8 +84,8 @@ export async function calculateUsage(
     .upsert(
       {
         tenant_org_id: tenantId,
-        period_start: start.toISOString().split('T')[0],
-        period_end: end.toISOString().split('T')[0],
+        period_start: utcCivil(start),
+        period_end: utcCivil(end),
         orders_count: ordersCount || 0,
         users_count: usersCount || 0,
         branches_count: branchesCount || 0,
@@ -140,14 +157,13 @@ export async function getUsageMetrics(tenantId: string): Promise<UsageMetrics> {
   const plan = await getPlan(subscription.plan);
 
   // Get current period usage
-  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+  const { start: startOfMonth, end: endOfMonth } = utcMonthBounds(new Date());
 
   const { data: usage, error } = await supabase
     .from('org_usage_tracking')
     .select('*')
     .eq('tenant_org_id', tenantId)
-    .eq('period_start', startOfMonth.toISOString().split('T')[0])
+    .eq('period_start', utcCivil(startOfMonth))
     .single();
 
   if (error && error.code !== 'PGRST116') {
@@ -450,13 +466,13 @@ export async function getUsageHistory(
   const supabase = await createClient();
 
   const startDate = new Date();
-  startDate.setMonth(startDate.getMonth() - months);
+  startDate.setUTCMonth(startDate.getUTCMonth() - months);
 
   const { data, error } = await supabase
     .from('org_usage_tracking')
     .select('*')
     .eq('tenant_org_id', tenantId)
-    .gte('period_start', startDate.toISOString().split('T')[0])
+    .gte('period_start', utcCivil(startDate))
     .order('period_start', { ascending: false });
 
   if (error) {

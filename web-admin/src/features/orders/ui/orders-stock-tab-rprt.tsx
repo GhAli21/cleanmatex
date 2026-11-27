@@ -1,5 +1,6 @@
 'use client';
 
+import { useInstantFormatter } from '@ui/clock';
 import Link from 'next/link';
 import { Package } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -26,6 +27,7 @@ export function OrdersStockTabRprt({
   transactions,
   translations: t,
 }: OrdersStockTabRprtProps) {
+  const fmtInstant = useInstantFormatter();
   const tInv = useTranslations('inventory');
 
   const getTypeBadge = (type: string) => {
@@ -100,7 +102,7 @@ export function OrdersStockTabRprt({
               <td className="px-4 py-3 font-medium text-start">{tx.quantity}</td>
               <CmxCopyableCell value={tx.branch_name ?? undefined} />
               <CmxCopyableCell
-                value={tx.transaction_date ? new Date(tx.transaction_date).toLocaleString() : null}
+                value={fmtInstant(tx.transaction_date)}
               />
               <CmxCopyableCell
                 value={tx.reference_no ?? tx.reference_id ?? undefined}

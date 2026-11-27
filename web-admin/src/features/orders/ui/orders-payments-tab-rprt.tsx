@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable react-hooks/set-state-in-effect */
 
+import { useInstantFormatter } from '@ui/clock';
 import Link from 'next/link';
 import { useMemo, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
@@ -39,6 +40,7 @@ export function OrdersPaymentsTabRprt({
   filterVoucherId,
   translations: t,
 }: OrdersPaymentsTabRprtProps) {
+  const fmtInstant = useInstantFormatter();
   const tDetail = useTranslations('orders.detailFull');
   const isRTL = useRTL();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
@@ -230,9 +232,9 @@ export function OrdersPaymentsTabRprt({
                   </td>
                   <td className="px-4 py-3 text-start">
                     <div className="space-y-2 text-sm">
-                      <CopyValue value={paidDate ? new Date(paidDate).toLocaleString() : null} />
+                      <CopyValue value={fmtInstant(paidDate)} />
                       <div className="text-xs text-muted-foreground">
-                        {tDetail('createdAt')}: {payment.created_at ? new Date(payment.created_at).toLocaleString() : '—'}
+                        {tDetail('createdAt')}: {fmtInstant(payment.created_at) ?? '—'}
                       </div>
                     </div>
                   </td>

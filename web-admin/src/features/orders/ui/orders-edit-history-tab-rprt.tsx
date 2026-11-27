@@ -1,5 +1,6 @@
 'use client';
 
+import { CmxInstant, useDateValueFormatter, useInstantFormatter } from '@ui/clock';
 import { useState } from 'react';
 import {
   History,
@@ -148,10 +149,11 @@ interface OrdersEditHistoryTabRprtProps {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatVal(val: unknown, isDate?: boolean): string {
+function formatVal(val: unknown, isDate?: boolean, fmtDate?: (v: string) => string | null): string {
   if (val == null) return '—';
   if (isDate) {
-    try { return new Date(val as string).toLocaleString(); } catch { return String(val); }
+    // Civil dates as stored; instants in the screen zone; never the device zone.
+    return fmtDate ? (fmtDate(String(val)) ?? '—') : '—';
   }
   if (typeof val === 'boolean') return val ? '✓' : '✗';
   return String(val);
@@ -183,16 +185,9 @@ export function toOrderEditStatusValues(order: Record<string, unknown>): OrderEd
 }
 
 /** Formats persisted timestamps using the active UI locale while preserving malformed legacy values. */
-function formatEditStatusTimestamp(value: string | null, locale: string): string {
+function formatEditStatusTimestamp(value: string | null, fmtInstant: (v: string) => string | null): string {
   if (!value) return '—';
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  return fmtInstant(value) ?? '—';
 }
 
 /** Renders the current persisted edit-control values independently of audit-history availability. */
@@ -207,16 +202,17 @@ function OrderEditStatusSection({
   locale: string;
   isRTL: boolean;
 }) {
+  const fmtInstant = useInstantFormatter();
   const rows = [
-    { label: t.committedAt, value: formatEditStatusTimestamp(status.committedAt, locale) },
+    { label: t.committedAt, value: formatEditStatusTimestamp(status.committedAt, fmtInstant) },
     { label: t.committedBy, value: formatVal(status.committedBy) },
     { label: t.editStateVersion, value: formatVal(status.editStateVersion) },
     { label: t.editAccessStatus, value: formatVal(status.editAccessStatus) },
     { label: t.editBlockReasonCode, value: formatVal(status.editBlockReasonCode) },
     { label: t.editBlockReasonText, value: formatVal(status.editBlockReasonText) },
-    { label: t.editBlockedAt, value: formatEditStatusTimestamp(status.editBlockedAt, locale) },
+    { label: t.editBlockedAt, value: formatEditStatusTimestamp(status.editBlockedAt, fmtInstant) },
     { label: t.editBlockedBy, value: formatVal(status.editBlockedBy) },
-    { label: t.editBlockUntil, value: formatEditStatusTimestamp(status.editBlockUntil, locale) },
+    { label: t.editBlockUntil, value: formatEditStatusTimestamp(status.editBlockUntil, fmtInstant) },
   ];
 
   return (
@@ -250,6 +246,7 @@ const BOOL_FIELDS = new Set(['express', 'isQuickDrop']);
 function FieldChangesSection({
   fields, t, isRTL,
 }: { fields: FieldChange[]; t: EditHistoryTranslations; isRTL: boolean }) {
+  const fmtDateValue = useDateValueFormatter();
   if (!fields.length) return null;
   return (
     <div>
@@ -272,7 +269,7 @@ function FieldChangesSection({
                 </td>
                 <td className="px-3 py-2.5 text-danger-text text-start">
                   <span className="bg-danger-bg rounded px-1.5 py-0.5 line-through text-xs font-mono">
-                    {formatVal(fc.oldValue, DATE_FIELDS.has(fc.field))}
+                    {formatVal(fc.oldValue, DATE_FIELDS.has(fc.field), fmtDateValue)}
                   </span>
                 </td>
                 <td className="px-1 py-2.5 text-center">
@@ -280,7 +277,7 @@ function FieldChangesSection({
                 </td>
                 <td className="px-3 py-2.5 text-success-text text-start">
                   <span className="bg-success-bg rounded px-1.5 py-0.5 font-semibold text-xs font-mono">
-                    {formatVal(fc.newValue, DATE_FIELDS.has(fc.field))}
+                    {formatVal(fc.newValue, DATE_FIELDS.has(fc.field), fmtDateValue)}
                   </span>
                 </td>
               </tr>
@@ -751,7 +748,7 @@ function EditEntryRow({
                 <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2 flex-wrap">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    {new Date(entry.editedAt).toLocaleString()}
+                    <CmxInstant value={entry.editedAt} />
                   </span>
                   <span className="flex items-center gap-1">
                     <User className="w-3 h-3" />

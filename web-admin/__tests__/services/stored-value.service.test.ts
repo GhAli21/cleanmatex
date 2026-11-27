@@ -57,6 +57,11 @@ jest.mock('@/lib/db/tenant-context', () => ({
   withTenantContext: jest.fn(async (_id: string, fn: () => Promise<unknown>) => fn()),
 }));
 
+const mockCivilToday = jest.fn();
+jest.mock('@/lib/utils/operational-zone.server', () => ({
+  operationalCivilToday: (...a: unknown[]) => mockCivilToday(...a),
+}));
+
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn().mockResolvedValue({}),
 }));
@@ -613,6 +618,8 @@ describe('expireCreditNote / expireCreditNotes (fn_fin_credit_note_expire_one, m
     expect(await expireCreditNote('cn-1', TENANT, { onlyIfDue: true })).toEqual({ success: false, error: 'CREDIT_NOTE_NOT_DUE' });
     mockTxQueryRaw.mockResolvedValueOnce([{ outcome: 'NOT_FOUND' }]);
     expect(await expireCreditNote('cn-1', TENANT)).toEqual({ success: false, error: 'CREDIT_NOTE_NOT_FOUND' });
+    mockTxQueryRaw.mockResolvedValueOnce([{ outcome: 'ZONE_MISSING' }]);
+    expect(await expireCreditNote('cn-1', TENANT, { onlyIfDue: true })).toEqual({ success: false, error: 'CREDIT_NOTE_ZONE_MISSING' });
   });
 
   it('loops eligible notes and does not stop on a single failure', async () => {
@@ -621,9 +628,16 @@ describe('expireCreditNote / expireCreditNotes (fn_fin_credit_note_expire_one, m
       .mockResolvedValueOnce([{ outcome: 'EXPIRED' }])
       .mockRejectedValueOnce(new Error('lock timeout'));
 
+    mockCivilToday.mockResolvedValueOnce('2026-03-02');
     const result = await expireCreditNotes(TENANT);
     expect(result.expiredCount).toBe(1);
     expect(result.failedCount).toBe(1);
+  });
+
+  it('a missing ledger zone expires nothing', async () => {
+    mockCivilToday.mockResolvedValueOnce(null);
+    expect(await expireCreditNotes(TENANT)).toEqual({ expiredCount: 0, failedCount: 0 });
+    expect(mockCreditNoteFindMany).not.toHaveBeenCalled();
   });
 });
 
@@ -649,6 +663,7 @@ describe('credit notes past their expiry date are not spendable', () => {
 
   it('getCreditNotes lists only notes with no expiry date or one from today on', async () => {
     mockCreditNoteFindMany.mockResolvedValue([]);
+    mockCivilToday.mockResolvedValueOnce('2026-03-02');
     await getCreditNotes(TENANT, CUST);
     const where = mockCreditNoteFindMany.mock.calls[0][0].where;
     expect(where).toMatchObject({ tenant_org_id: TENANT, customer_id: CUST, status: 'ACTIVE' });

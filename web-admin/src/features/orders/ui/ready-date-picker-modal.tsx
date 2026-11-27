@@ -45,6 +45,13 @@ export function ReadyDatePickerModal(props: ReadyDatePickerModalProps) {
 
 type ReadyDatePickerModalOpenProps = Omit<ReadyDatePickerModalProps, 'open'>;
 
+/**
+ * Picker cells are local wall-calendar containers (year, month, day), never instants;
+ * the instant is always built with `instantFromCivilDateTime(…, opsZone)`.
+ */
+// clock-ok: wall-calendar container fields of a picker cell, not an instant (S4 review)
+const cal = (d: Date) => ({ y: d.getFullYear(), m: d.getMonth(), day: d.getDate(), wd: d.getDay() });
+
 function calendarDate(initialDate: Date | undefined, opsZone: string | null): Date {
   if (initialDate) return initialDate;
   if (!opsZone) return new Date();
@@ -102,12 +109,9 @@ function ReadyDatePickerModalOpen({
   };
 
   const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
+    const { y: year, m: month } = cal(date);
+    const daysInMonth = cal(new Date(year, month + 1, 0)).day;
+    const startingDayOfWeek = cal(new Date(year, month, 1)).wd;
 
     const days: (Date | null)[] = [];
     for (let i = 0; i < startingDayOfWeek; i++) {
@@ -120,9 +124,7 @@ function ReadyDatePickerModalOpen({
   };
 
   const isSameDay = (date1: Date, date2: Date) =>
-    date1.getDate() === date2.getDate() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getFullYear() === date2.getFullYear();
+    civilDateFromPickerDate(date1) === civilDateFromPickerDate(date2);
 
   const isToday = (date: Date) => civilDateFromPickerDate(date) === civilToday;
 
@@ -152,11 +154,11 @@ function ReadyDatePickerModalOpen({
   ];
 
   const previousMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+    setCurrentMonth(new Date(cal(currentMonth).y, cal(currentMonth).m - 1));
   };
 
   const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+    setCurrentMonth(new Date(cal(currentMonth).y, cal(currentMonth).m + 1));
   };
 
   // Time options (every hour from 8 AM to 10 PM)
@@ -225,7 +227,7 @@ function ReadyDatePickerModalOpen({
                 <ChevronLeft className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
               </CmxButton>
               <h3 className="font-bold text-base text-start">
-                {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                {monthNames[cal(currentMonth).m]} {cal(currentMonth).y}
               </h3>
               <CmxButton
                 type="button"
@@ -265,7 +267,7 @@ function ReadyDatePickerModalOpen({
                         : ''
                   }`}
                 >
-                  {day?.getDate()}
+                  {day ? cal(day).day : null}
                 </CmxButton>
               ))}
             </div>

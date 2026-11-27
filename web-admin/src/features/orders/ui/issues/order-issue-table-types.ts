@@ -45,12 +45,16 @@ export function formatIssueActorName(
  */
 export function formatIssueDateTime(
   value: string | null | undefined,
-  locale: string
+  locale: string,
+  /** Screen zone; without it the time is not shown (never the device zone). */
+  zone: string | null | undefined
 ): string {
-  if (!value) return '—';
+  if (!value || !zone) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
   return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
+    timeZone: zone,
+    numberingSystem: 'latn',
     weekday: 'short',
     day: 'numeric',
     month: 'short',

@@ -6,6 +6,7 @@ import { useLocale } from '@/lib/hooks/useLocale';
 import type { Invoice } from '@/lib/types/payment';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { useDateValueFormatter } from '@ui/clock';
 
 /** One canonical AR payment allocation, shaped for the print. */
 export interface InvoicePaymentPrintRow {
@@ -40,16 +41,6 @@ interface OrderInvoicesPaymentsPrintRprtProps {
   data: OrderInvoicesPaymentsPrintRprtData;
 }
 
-function formatDate(dateStr: string | undefined, locale: string): string {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString(locale === 'ar' ? 'ar' : 'en', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  });
-}
-
 /**
  *
  * @param root0
@@ -58,6 +49,7 @@ function formatDate(dateStr: string | undefined, locale: string): string {
 export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPrintRprtProps) {
   const tOrders = useTranslations('orders');
   const tInvoices = useTranslations('invoices');
+  const fmtDateValue = useDateValueFormatter();
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const locale = useLocale();
@@ -108,7 +100,7 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
             <div className="space-y-1 text-sm">
               <div className="flex justify-between print-row">
                 <span>{tInvoices('date') ?? 'Date'}</span>
-                <span>{formatDate(inv.invoice_date ?? inv.created_at, locale)}</span>
+                <span>{fmtDateValue(inv.invoice_date ?? inv.created_at, 'date') ?? '—'}</span>
               </div>
               <div className="flex justify-between print-row">
                 <span>{tOrders('total') ?? 'Total'}</span>
@@ -215,7 +207,7 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
                   <tbody>
                     {inv.payments.map((p) => (
                       <tr key={p.id} className="border-b border-dashed border-border">
-                        <td className="py-0.5">{p.paid_at ? formatDate(p.paid_at, locale) : '—'}</td>
+                        <td className="py-0.5">{p.paid_at ? fmtDateValue(p.paid_at, 'date') ?? '—' : '—'}</td>
                         <td className="py-0.5 text-end">
                           {formatMoneyAmountWithCode(Number(p.amount), {
                             currencyCode: (p.currency_code?.trim() || tenantCurrency) as string,
