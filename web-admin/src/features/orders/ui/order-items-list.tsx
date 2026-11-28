@@ -13,6 +13,8 @@ import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import type { LineQualifier } from '@/lib/orders/line-qualifier';
 import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
+import { formatQty } from '@/lib/uom/format';
+import { formatUnitPriceWithCode } from '@/lib/money/format-money';
 import { lineCodeOfPieceRef } from '@features/orders/lib/piece-highlight';
 import { OrderLineNetNote } from './order-line-net-note';
 
@@ -75,7 +77,19 @@ export function OrderItemsList({
   const tOrders = useTranslations('orders');
   const tPieces = useTranslations('newOrder.pieces');
   const getBilingual = useBilingual();
-  const { formatMoneyWithCode } = useTenantCurrency();
+  const { formatMoneyWithCode, currencyCode, decimalPlaces } = useTenantCurrency();
+  const tUom = useTranslations('uom');
+  const uiLocale = locale === 'ar' ? 'ar' : 'en';
+  const qualifierText = (item: OrderItem) =>
+    formatLineQualifier(item.line_qualifier ?? undefined, { locale: uiLocale, t: tUom });
+  // A measured line is charged on its billed measure, not on its piece count.
+  const priceBasis = (item: OrderItem) => {
+    const measure = item.line_qualifier?.measure;
+    if (!measure?.billedQty) return `${item.quantity || 1} × ${formatMoneyWithCode(Number(item.price_per_unit))}`;
+    const billed = formatQty(measure.billedQty, measure, { locale: uiLocale });
+    const price = formatUnitPriceWithCode(String(item.price_per_unit), { currencyCode, decimalPlaces, locale: uiLocale });
+    return `${billed} × ${price}`;
+  };
   // A piece code names its line; a piece id does not, so then every line opens to find it.
   const highlightLine = lineCodeOfPieceRef(highlightPiece);
   const isHighlightLine = (item: OrderItem) =>
@@ -120,9 +134,9 @@ export function OrderItemsList({
                 <span className="text-sm font-medium text-foreground text-start">
                   {getBilingual(item.product_name, item.product_name2) || item.service_category_code || t('item')}
                 </span>
-                {formatLineQualifier(item.line_qualifier ?? undefined, { locale: locale === 'ar' ? 'ar' : 'en' }) && (
+                {item.line_qualifier && qualifierText(item) && (
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    {formatLineQualifier(item.line_qualifier ?? undefined, { locale: locale === 'ar' ? 'ar' : 'en' })}
+                    {qualifierText(item)}
                   </span>
                 )}
                 <CmxCodeChip code={item.order_item_srno} kind="item" />
@@ -138,7 +152,7 @@ export function OrderItemsList({
                 {formatMoneyWithCode(parseFloat(item.total_price.toString()))}
               </div>
               <div className="text-xs text-muted-foreground text-end">
-                {item.quantity || 1} × {formatMoneyWithCode(parseFloat(item.price_per_unit.toString()))}
+                {priceBasis(item)}
               </div>
               <OrderLineNetNote gross={item.total_price} net={item.net_amount} format={formatMoneyWithCode} />
             </div>

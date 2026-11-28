@@ -28,6 +28,11 @@ export interface OrderLineQualifierInput {
   billedQty?: string | number | null;
   /** The line's own speed code (`service_speed`). */
   speedCode?: string | null;
+  /** The product's minimum and billing step as snapshotted on the line; they explain why billed differs. */
+  minBillableQty?: string | number | null;
+  billingIncrement?: string | number | null;
+  /** The stored price per unit (`price_per_unit`). */
+  unitPrice?: string | number | null;
 }
 
 /** The measure part: what was measured and the unit facts to format it. */
@@ -38,6 +43,10 @@ export interface LineQualifierMeasure {
   symbol: string;
   symbol2: string | null;
   qtyDecimals: number;
+  minBillableQty: string | null;
+  billingIncrement: string | null;
+  /** Price of one unit, as stored. Renderers without a price column show it after the billed quantity. */
+  unitPrice: string | null;
 }
 
 /** The parts to show after a line's name; an absent part is not shown. */
@@ -58,13 +67,17 @@ const COUNT_DIMENSION = 'COUNT';
 function measureOf(line: OrderLineQualifierInput): LineQualifierMeasure | undefined {
   if (!line.uomDimension || line.uomDimension === COUNT_DIMENSION) return undefined;
   if (line.measuredQty == null || line.measuredQty === '' || !line.uomCode) return undefined;
+  const optional = (v: string | number | null | undefined) => (v == null || v === '' ? null : String(v));
   return {
     qty: String(line.measuredQty),
-    billedQty: line.billedQty == null || line.billedQty === '' ? null : String(line.billedQty),
+    billedQty: optional(line.billedQty),
     uomCode: line.uomCode,
     symbol: line.uomSymbol ?? line.uomCode,
     symbol2: line.uomSymbol2 ?? null,
     qtyDecimals: line.uomQtyDecimals ?? 3,
+    minBillableQty: optional(line.minBillableQty),
+    billingIncrement: optional(line.billingIncrement),
+    unitPrice: optional(line.unitPrice),
   };
 }
 
@@ -134,11 +147,14 @@ export interface OrderItemQualifierRow {
   measured_qty?: { toString(): string } | string | number | null;
   billed_qty?: { toString(): string } | string | number | null;
   service_speed?: string | null;
+  min_billable_qty?: { toString(): string } | string | number | null;
+  billing_increment?: { toString(): string } | string | number | null;
+  price_per_unit?: { toString(): string } | string | number | null;
 }
 
 /**
  * Maps a stored order-item row to the helper's input, so every server surface reads the same columns the same way.
- * @param row the item row with the `uom_*`, `measured_qty`, `billed_qty` and `service_speed` columns
+ * @param row the item row with the `uom_*`, measure, minimum / step, `price_per_unit` and `service_speed` columns
  * @returns the helper input
  */
 export function qualifierInputOfRow(row: OrderItemQualifierRow): OrderLineQualifierInput {
@@ -154,5 +170,8 @@ export function qualifierInputOfRow(row: OrderItemQualifierRow): OrderLineQualif
     measuredQty: text(row.measured_qty),
     billedQty: text(row.billed_qty),
     speedCode: row.service_speed,
+    minBillableQty: text(row.min_billable_qty),
+    billingIncrement: text(row.billing_increment),
+    unitPrice: text(row.price_per_unit),
   };
 }

@@ -68,8 +68,8 @@ type SeedIds = { customerId: string; orderId: string; refundId: string };
 /** Seeds a minimal-but-real customer + order + APPROVED refund, all committed. */
 async function seedApprovedRefund(refundAmount: number, totalPaid: number): Promise<SeedIds> {
   const customer = await prisma.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id, name)
-    VALUES (${tenantId}::uuid, ${'B28 concurrency test customer'})
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name)
+    VALUES (gen_random_uuid()::text, ${tenantId}::uuid, ${'B28 concurrency test customer'})
     RETURNING id`;
   const customerId = customer[0].id;
 

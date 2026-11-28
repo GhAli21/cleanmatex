@@ -9,7 +9,6 @@ import { createClient } from '@/lib/supabase/server';
 import { PRODUCT_PRICE_TYPES } from '@/lib/constants/commercial';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { getStockStatus, TRANSACTION_TYPES, ADJUSTMENT_ACTIONS } from '@/lib/constants/inventory';
-import { legacyUnitToUomCode } from '@/lib/uom/legacy';
 import { UOM_DEFAULT_COUNT_CODE } from '@/lib/constants/uom';
 import { assertQtyScale } from '@/lib/uom/scale';
 import { throwIfUomRule } from '@/lib/uom/errors';
@@ -121,8 +120,6 @@ export async function createInventoryItem(
     is_retail_item: true,
     item_type_code: request.item_type_code || 'RETAIL_GOODS',
     service_category_code: 'RETAIL_ITEMS',
-    // Legacy text kept in step with the unit code until Migration B.
-    product_unit: request.product_unit || (request.base_uom_code && request.base_uom_code !== UOM_DEFAULT_COUNT_CODE ? request.base_uom_code : 'piece'),
     product_cost: request.product_cost ?? 0,
     default_sell_price: request.default_sell_price ?? 0,
     id_sku: request.id_sku || null,
@@ -142,7 +139,7 @@ export async function createInventoryItem(
   if (request.product_group3 !== undefined) insertData.product_group3 = request.product_group3;
   if (request.product_type !== undefined) insertData.product_type = request.product_type;
   insertData.price_type = request.price_type ?? PRODUCT_PRICE_TYPES.PER_UNIT;
-  insertData.base_uom_code = request.base_uom_code ?? legacyUnitToUomCode(request.product_unit) ?? UOM_DEFAULT_COUNT_CODE;
+  insertData.base_uom_code = request.base_uom_code ?? UOM_DEFAULT_COUNT_CODE;
   if (request.min_quantity !== undefined) insertData.min_quantity = request.min_quantity;
   if (request.pieces_per_product !== undefined)
     insertData.pieces_per_product = request.pieces_per_product;
@@ -213,8 +210,6 @@ export async function updateInventoryItem(
   if (request.product_name2 !== undefined) updateData.product_name2 = request.product_name2;
   if (request.hint_text !== undefined) updateData.hint_text = request.hint_text;
   if (request.item_type_code !== undefined) updateData.item_type_code = request.item_type_code;
-  if (request.product_unit !== undefined) updateData.product_unit = request.product_unit;
-  else if (request.base_uom_code !== undefined) updateData.product_unit = request.base_uom_code;
   if (request.base_uom_code !== undefined) updateData.base_uom_code = request.base_uom_code;
   if (request.product_cost !== undefined) updateData.product_cost = request.product_cost;
   if (request.default_sell_price !== undefined) updateData.default_sell_price = request.default_sell_price;
@@ -463,7 +458,6 @@ export async function searchInventoryItems(
       product_name: row.product_name as string | null,
       product_name2: row.product_name2 as string | null,
       item_type_code: row.item_type_code as string | null,
-      product_unit: row.product_unit as string | null,
       base_uom_code: (row.base_uom_code as string | null) ?? null,
       product_cost: productCost,
       default_sell_price: row.default_sell_price != null ? Number(row.default_sell_price) : null,

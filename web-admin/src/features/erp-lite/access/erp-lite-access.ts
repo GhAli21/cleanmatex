@@ -332,7 +332,26 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_exceptions_enabled'],
       requireAllFeatureFlags: true,
     },
+    actions: {
+      retryAllSystemErrors: {
+        label: 'Retry all open System error exceptions (this Organization only)',
+        requirement: {
+          permissions: ['erp_lite_exceptions:retry'],
+          requireAllPermissions: true,
+        },
+      },
+    },
     apiDependencies: [
+      {
+        label: 'Retry all open System error exceptions',
+        method: 'POST',
+        path: 'app/actions/finance/run-now-actions.retryErpSystemErrorsAction',
+        notes: ['Background Jobs 6g: runs for the signed-in Organization only.'],
+        requirement: {
+          permissions: ['erp_lite_exceptions:retry'],
+          requireAllPermissions: true,
+        },
+      },
       {
         label: 'Resolve exception',
         method: 'POST',

@@ -8,7 +8,7 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { formatMoneyAmountWithCode, formatUnitPriceWithCode } from '@/lib/money/format-money';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { Plus, Minus } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
@@ -28,6 +28,8 @@ interface ProductCardProps {
   product: Product;
   quantity: number;
   price: number;
+  /** Set for a measured product: the price is per this unit ("/ kg"). */
+  perUnitSymbol?: string;
   /** Shown under the price when the order speed adds a premium (priced in the cart). */
   speedNote?: string | null;
   currencyCode?: string;
@@ -53,6 +55,7 @@ export function ProductCard({
   product,
   quantity,
   price,
+  perUnitSymbol,
   speedNote = null,
   currencyCode = '',
   categoryLabel,
@@ -122,11 +125,12 @@ export function ProductCard({
       {/* Price */}
       <div className="mb-2 text-start">
         <p className="text-primary-text font-bold text-sm">
-          {formatMoneyAmountWithCode(price, {
+          {(perUnitSymbol ? formatUnitPriceWithCode : formatMoneyAmountWithCode)(price, {
             currencyCode: currencyCode as string,
             decimalPlaces,
             locale: moneyLocale,
           })}
+          {perUnitSymbol ? <span className="text-xs font-medium text-muted-foreground"> / <bdi>{perUnitSymbol}</bdi></span> : null}
         </p>
         {speedNote ? (
           <span className="text-xs text-warning-text font-medium">{speedNote}</span>

@@ -1,23 +1,31 @@
 /**
  * POST /api/v1/customers/link
- * Link customer from sys_global or other tenant to current tenant
+ * Connect an existing global sys_customers_mst identity to the current tenant.
+ * Cross-tenant org_other_tenant linking is permanently disallowed.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthContext } from '@/lib/auth/server-auth';
 import { linkCustomerToTenant } from '@/lib/services/customers.service';
+import { requirePermission } from '@/lib/middleware/require-permission';
+import { validateCSRF } from '@/lib/middleware/csrf';
+import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
+import { logger } from '@/lib/utils/logger';
 
-/**
- *
- * @param request
- */
 export async function POST(request: NextRequest) {
   try {
-    await getAuthContext();
-    const body = await request.json();
-    const { customerId, sourceType, originalTenantId } = body;
+    const csrfResponse = await validateCSRF(request);
+    if (csrfResponse) return csrfResponse;
 
-    // Validate input
+    const authCheck = await requirePermission('customers:create')(request);
+    if (authCheck instanceof NextResponse) return authCheck;
+    const { tenantId } = authCheck;
+
+    const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
+    if (rateLimitResponse) return rateLimitResponse;
+
+    const body = await request.json();
+    const { customerId, sourceType } = body ?? {};
+
     if (!customerId || typeof customerId !== 'string') {
       return NextResponse.json(
         { success: false, error: 'customerId is required and must be a string' },
@@ -25,26 +33,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!sourceType || !['sys', 'org_other_tenant'].includes(sourceType)) {
+    if (sourceType && sourceType !== 'sys') {
       return NextResponse.json(
-        { success: false, error: 'sourceType must be "sys" or "org_other_tenant"' },
-        { status: 400 }
+        { success: false, error: 'Only global sys customer linking (sourceType="sys") is permitted' },
+        { status: 403 }
       );
     }
 
-    if (sourceType === 'org_other_tenant' && !originalTenantId) {
-      return NextResponse.json(
-        { success: false, error: 'originalTenantId is required when sourceType is "org_other_tenant"' },
-        { status: 400 }
-      );
-    }
-
-    // Link customer to tenant
-    const result = await linkCustomerToTenant(
-      customerId,
-      sourceType,
-      originalTenantId
-    );
+    const result = await linkCustomerToTenant(customerId, 'sys');
 
     return NextResponse.json(
       {
@@ -52,15 +48,19 @@ export async function POST(request: NextRequest) {
         data: {
           orgCustomerId: result.orgCustomerId,
           customerId: result.customerId,
+          customerCode: result.customerCode,
         },
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error linking customer:', error);
+    logger.error(
+      'Error linking customer',
+      error instanceof Error ? error : new Error('Unknown error'),
+      { feature: 'customers', action: 'link' }
+    );
 
     if (error instanceof Error) {
-      // Handle specific error messages
       if (error.message.includes('not found')) {
         return NextResponse.json(
           { success: false, error: error.message },

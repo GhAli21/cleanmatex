@@ -136,6 +136,9 @@ class AppLocalizations {
       'orders.timelineTitle': 'Tracking timeline',
       'orders.deliveryMode.standard': 'Pickup and delivery',
       'orders.garmentCount': '{count} garments',
+      'orders.line.billed': 'Billed: {qty}',
+      'orders.line.billedMinimum': 'Billed: {qty} (minimum)',
+      'orders.line.billedStep': 'Billed: {qty} (per {step})',
       'orders.status.draft': 'Booked',
       'orders.intake.pendingDropoffSubtitle':
           'Bring your items to the branch so we can start cleaning.',
@@ -532,6 +535,9 @@ class AppLocalizations {
       'orders.timelineTitle': 'الخط الزمني للتتبع',
       'orders.deliveryMode.standard': 'استلام وتسليم',
       'orders.garmentCount': '{count} قطعة',
+      'orders.line.billed': 'المُحاسَب: {qty}',
+      'orders.line.billedMinimum': 'المُحاسَب: {qty} (الحد الأدنى)',
+      'orders.line.billedStep': 'المُحاسَب: {qty} (لكل {step})',
       'orders.status.draft': 'محجوز',
       'orders.intake.pendingDropoffSubtitle':
           'أحضر القطع إلى الفرع لنبدأ التنظيف.',

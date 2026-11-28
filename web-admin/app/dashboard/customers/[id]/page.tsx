@@ -27,6 +27,8 @@ import { CustomerWhatsAppConsentCard } from '@features/customers/ui/customer-wha
 import { CustomerMarketingConsentCard } from '@features/customers/ui/customer-marketing-consent-card'
 import { CustomerStoredValueTab } from '@features/customers/ui/customer-stored-value-tab'
 import { CustomerLoyaltyTab } from '@features/customers/ui/customer-loyalty-tab'
+import { CustomerAuditHistoryTab } from '@features/customers/ui/customer-audit-history-tab'
+import { CustomerAppPasswordAction } from '@features/customers/ui/customer-app-password-action'
 import {
   CustomerB2BContactsTab,
   CustomerB2BContractsTab,
@@ -41,7 +43,7 @@ import { useHasPermission } from '@/lib/hooks/use-has-permission'
 import { CmxButton } from '@ui/primitives'
 
 // Tab definitions
-type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty' | 'preferences' | 'stored_value' | 'files' | 'b2b_contacts' | 'b2b_contracts' | 'b2b_statements'
+type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty' | 'preferences' | 'stored_value' | 'files' | 'audit' | 'b2b_contacts' | 'b2b_contracts' | 'b2b_statements'
 
 interface Tab {
   id: TabId
@@ -82,6 +84,7 @@ export default function CustomerDetailPage() {
     { id: 'stored_value', label: t('storedValue.title'), icon: '💳' },
     { id: 'loyalty', label: t('loyalty'), icon: '⭐' },
     { id: 'files', label: t('files'), icon: '📎' },
+    { id: 'audit', label: t('audit.tabLabel'), icon: '🕒' },
   ]
 
   const b2bTabs: Tab[] = [
@@ -320,6 +323,12 @@ export default function CustomerDetailPage() {
               >
                 {tCommon('edit')}
               </CmxButton>
+              {currentTenant?.tenant_id && (
+                <CustomerAppPasswordAction
+                  tenantId={currentTenant.tenant_id}
+                  customerId={customer.id}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -456,6 +465,9 @@ export default function CustomerDetailPage() {
                 source={FILE_SOURCES.CUSTOMER_PROFILE}
                 readOnly={!canUpdateCustomer}
               />
+            )}
+            {activeTab === 'audit' && (
+              <CustomerAuditHistoryTab customerId={customer.id} />
             )}
             {activeTab === 'b2b_contacts' && (
               <CustomerB2BContactsTab customerId={customer.id} />

@@ -16,6 +16,7 @@ import { CmxInput } from '@ui/primitives';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
 import type { LineKey, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
 import { productLineNumber } from '../model/cart-line-grouping';
+import { PieceMoveMenu } from './piece-move-menu';
 
 interface OrderPiecesNotesSectionProps {
   onCopyPieceToAll: (itemId: LineKey, pieceId: string) => void;
@@ -195,7 +196,8 @@ export function OrderPiecesNotesSection({
                             aria-label={tPieces('notes') || 'Notes'}
                           />
                         </TableCell>
-                        <TableCell className="px-2 py-2 align-middle text-center">
+                        <TableCell className="px-2 py-2 align-middle text-center whitespace-nowrap">
+                          <PieceMoveMenu lineKey={item.lineKey} pieceId={piece.id} pieceNumber={piece.pieceSeq} />
                           <CmxButton
                             type="button"
                             variant="ghost"

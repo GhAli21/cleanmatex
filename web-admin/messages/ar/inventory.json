@@ -57,16 +57,6 @@
     "overstock": "مخزون زائد",
     "negativeStock": "مخزون سالب"
   },
-  "units": {
-    "piece": "قطعة",
-    "liter": "لتر",
-    "kg": "كيلوغرام",
-    "gram": "غرام",
-    "box": "صندوق",
-    "bottle": "زجاجة",
-    "pack": "عبوة",
-    "roll": "لفة"
-  },
   "actions": {
     "addItem": "إضافة صنف",
     "editItem": "تعديل صنف",

@@ -12,6 +12,15 @@ const ok = (schema: { safeParse: (v: unknown) => { success: boolean } }, value: 
 
 describe('createUnitSchema', () => {
   const custom = { kind: 'custom', code: 'BASKET', dimension: 'COUNT', name: 'Basket', symbol: 'bsk', qtyDecimals: 0 };
+  it('requires the base size of a custom measured unit, within what can be converted back', () => {
+    const weight = { ...custom, dimension: 'MASS', qtyDecimals: 2 };
+    expect(ok(createUnitSchema, weight)).toBe(false);
+    expect(ok(createUnitSchema, { ...weight, baseMultiplyRate: '5' })).toBe(true);
+    expect(ok(createUnitSchema, { ...weight, baseMultiplyRate: '0' })).toBe(false);
+    // 1 / 3000000000 keeps only 12 decimals: the pair would break the reciprocal CHECK.
+    expect(ok(createUnitSchema, { ...weight, baseMultiplyRate: '3000000000' })).toBe(false);
+  });
+
   it('accepts a custom count unit and a system add', () => {
     expect(ok(createUnitSchema, custom)).toBe(true);
     expect(ok(createUnitSchema, { kind: 'system', codes: ['GAL', 'YD'] })).toBe(true);
@@ -23,8 +32,9 @@ describe('createUnitSchema', () => {
     expect(ok(createUnitSchema, { kind: 'system', codes: [] })).toBe(false);
   });
   it('accepts a measured custom unit with decimals and a UN/ECE code', () => {
-    expect(ok(createUnitSchema, { ...custom, code: 'JUG_5L', dimension: 'VOLUME', qtyDecimals: 3, uneceCode: 'LTR' })).toBe(true);
-    expect(ok(createUnitSchema, { ...custom, dimension: 'VOLUME', qtyDecimals: 3, uneceCode: 'l' })).toBe(false);
+    const jug = { ...custom, code: 'JUG_5L', dimension: 'VOLUME', qtyDecimals: 3, baseMultiplyRate: '5' };
+    expect(ok(createUnitSchema, { ...jug, uneceCode: 'LTR' })).toBe(true);
+    expect(ok(createUnitSchema, { ...jug, uneceCode: 'l' })).toBe(false);
   });
 });
 

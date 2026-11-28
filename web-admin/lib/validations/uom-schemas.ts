@@ -12,7 +12,7 @@ import {
   UOM_RATE_RECIPROCAL_TOLERANCE,
   UOM_UNECE_PATTERN,
 } from '@/lib/constants/uom';
-import { areRatesReciprocal } from '@/lib/uom/convert';
+import { areRatesReciprocal, reciprocalRate } from '@/lib/uom/convert';
 
 /** A decimal as text: digits with an optional fraction; the sign is not allowed. */
 const decimalText = (label: string, maxDecimals: number) =>
@@ -28,6 +28,13 @@ export const uomCodeSchema = z.string().trim().regex(UOM_CODE_PATTERN, 'Use capi
 
 /** A unit dimension. */
 export const uomDimensionSchema = z.enum(Object.values(UOM_DIMENSIONS) as [string, ...string[]]);
+
+/** Whether the rate and its 12-decimal reciprocal satisfy the database CHECK. */
+const isStorableRate = (rate: string) =>
+  Number(rate) > 0 && areRatesReciprocal(rate, reciprocalRate(rate), UOM_RATE_RECIPROCAL_TOLERANCE);
+
+/** UN/ECE Rec 20 code of a custom unit (e-invoice); null = the default of its dimension. */
+const uneceCode = z.string().trim().regex(UOM_UNECE_PATTERN, 'UN/ECE code is 2–3 capital letters or digits').nullable().optional();
 
 /** Presentation fields a tenant may edit on any unit. */
 const unitPresentation = {
@@ -45,10 +52,16 @@ export const createCustomUnitSchema = z.object({
   code: uomCodeSchema,
   dimension: uomDimensionSchema,
   isPackaging: z.boolean().default(false),
-  uneceCode: z.string().trim().regex(UOM_UNECE_PATTERN, 'UN/ECE code is 2–3 capital letters or digits').nullable().optional(),
+  uneceCode,
+  /** Measured units only: how many base units (KG, M, SQM, L, HR) one of this unit is. */
+  baseMultiplyRate: positiveDecimalText('Size in the base unit', 12).nullable().optional(),
   ...unitPresentation,
 }).refine((v) => v.dimension !== UOM_DIMENSIONS.COUNT || v.qtyDecimals === 0, {
   path: ['qtyDecimals'], message: 'A count unit is always whole (0 decimals)',
+}).refine((v) => v.dimension === UOM_DIMENSIONS.COUNT || v.baseMultiplyRate != null, {
+  path: ['baseMultiplyRate'], message: 'A measured unit needs its size in the base unit',
+}).refine((v) => v.baseMultiplyRate == null || isStorableRate(v.baseMultiplyRate), {
+  path: ['baseMultiplyRate'], message: 'This size is too large or too small to convert back',
 });
 
 /** POST /api/v1/uom/units — add system units to the Organization ("Add from system catalog"). */
@@ -68,6 +81,7 @@ export const updateUnitSchema = z.object({
   symbol2: unitPresentation.symbol2,
   qtyDecimals: unitPresentation.qtyDecimals.optional(),
   displayOrder: unitPresentation.displayOrder,
+  uneceCode,
   isActive: z.boolean().optional(),
 }).refine((v) => Object.keys(v).length > 0, 'Nothing to change');
 
@@ -110,7 +124,7 @@ export const convertPreviewSchema = z.object({
 export const lineMeasureSchema = z.object({
   /** KG, M, L … (any non-area measured unit). */
   measuredQty: positiveDecimalText('Measure', 6).optional(),
-  /** Area units: metres. */
+  /** Area units: in the unit's side unit (metres for m², feet for ft²). */
   length: positiveDecimalText('Length', 6).optional(),
   width: positiveDecimalText('Width', 6).optional(),
 }).refine((v) => (v.length == null) === (v.width == null), {

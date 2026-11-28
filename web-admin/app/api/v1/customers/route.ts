@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
 import {
-  createCustomer,
+  createOrConnectCustomer,
   searchCustomers,
   searchCustomersProgressive,
   getCustomerStatistics,
@@ -77,7 +77,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!body.firstName || body.firstName.trim().length === 0) {
+    const isConnectingGlobal =
+      'connectSysCustomerId' in body && Boolean(body.connectSysCustomerId);
+
+    if (!isConnectingGlobal && body.type !== 'b2b' && (!body.firstName || body.firstName.trim().length === 0)) {
       return NextResponse.json(
         { error: 'firstName is required' },
         { status: 400 }
@@ -99,10 +102,20 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-    if (body.type === 'stub' || body.type === 'full') {
+    if (body.type === 'stub') {
+      const hasPhone = 'phone' in body && Boolean(body.phone?.trim());
+      const hasEmail = 'email' in body && Boolean(body.email?.trim());
+      if (!isConnectingGlobal && !hasPhone && !hasEmail) {
+        return NextResponse.json(
+          { error: 'phone or email is required for stub profile' },
+          { status: 400 }
+        );
+      }
+    }
+    if (body.type === 'full') {
       if (!('phone' in body) || !body.phone) {
         return NextResponse.json(
-          { error: 'phone is required for stub and full profiles' },
+          { error: 'phone is required for full profile' },
           { status: 400 }
         );
       }
@@ -134,15 +147,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. Create customer via service
-    const customer = await createCustomer(body);
+    // 5. Create or connect customer atomically via service
+    const result = await createOrConnectCustomer(body);
 
     // 6. Return success response
     return NextResponse.json(
       {
         success: true,
-        data: customer,
-        message: `${body.type.charAt(0).toUpperCase() + body.type.slice(1)} customer created successfully`,
+        data: result.customer,
+        action: result.action,
+        message:
+          result.action === 'CONNECTED_EXISTING'
+            ? 'Customer connected to organization successfully'
+            : `${body.type.charAt(0).toUpperCase() + body.type.slice(1)} customer created successfully`,
       },
       { status: 201 }
     );
@@ -159,7 +176,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 401 });
       }
 
-      if (error.message.includes('already exists')) {
+      if (
+        error.message.includes('already exists') ||
+        error.message.includes('two different global customer profiles')
+      ) {
         return NextResponse.json({ error: error.message }, { status: 409 });
       }
 

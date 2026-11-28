@@ -96,14 +96,11 @@
       "web-admin/lib/tax/determine.ts": 1,
       "web-admin/lib/utils/operational-time.ts": 1,
       "web-admin/lib/validations/iso-date.ts": 1,
-      "web-admin/scripts/audit-tenant-guard.mjs": 1,
-      "web-admin/src/features/catalog/ui/price-history-timeline.tsx": 1,
-      "web-admin/src/ui/data-display/cmx-data-grid.tsx": 1
+      "web-admin/scripts/audit-tenant-guard.mjs": 1
     },
     "ts.iso-split-date": {
       "web-admin/app/dashboard/catalog/pricing/[id]/page.tsx": 1,
-      "web-admin/lib/services/voucher-biz.service.ts": 2,
-      "web-admin/src/ui/primitives/data-table.tsx": 1
+      "web-admin/lib/services/voucher-biz.service.ts": 2
     },
     "ts.muscat-literal": {
       "web-admin/lib/utils/registration-browser-defaults.ts": 1

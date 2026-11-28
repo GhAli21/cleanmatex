@@ -7,9 +7,12 @@
 
 import { useState, useEffect } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { dtTodayOrNull, systemClock, type ClockBlock, type PublicClockBlock } from '@cmx/clock'
+import { formatInstantText, useClock } from '@ui/clock/clock-provider'
+import { CmxViewZoneToggle, ViewZoneProvider, useViewZone } from '@ui/clock/view-zone'
+import { exportFileDay, exportLocalText, toApiInstant } from '@/lib/clock/api-output'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money'
-import { useRTL } from '@/lib/hooks/useRTL'
 import { CmxCard, CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives'
 import { Calendar, Filter, Download, Clock, User, DollarSign } from 'lucide-react'
 
@@ -41,9 +44,23 @@ interface PriceHistoryTimelineProps {
  * @param root0.priceListId
  * @param root0.productId
  */
-export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTimelineProps) {
+export function PriceHistoryTimeline(props: PriceHistoryTimelineProps) {
+  // D20 second list: "Show times in: Branch zone / My device zone" (display only).
+  return (
+    <ViewZoneProvider screenKey="price-history">
+      <PriceHistoryTimelineBody {...props} />
+    </ViewZoneProvider>
+  )
+}
+
+function PriceHistoryTimelineBody({ priceListId, productId }: PriceHistoryTimelineProps) {
   const t = useTranslations('catalog.priceHistory')
-  const isRTL = useRTL()
+  const clock = useClock()
+  const { displayZone } = useViewZone()
+  const [clockBlock, setClockBlock] = useState<ClockBlock | PublicClockBlock | null>(null)
+  // Operations zone from the endpoint `clock` block (S6), else the screen provider; never the device zone.
+  const opsZone = clockBlock?.zone ?? clock.zone ?? null
+  const zone = displayZone(opsZone)
   const locale = useLocale()
   const { currencyCode, decimalPlaces, formatNumber } = useTenantCurrency()
   const moneyLocale = locale === 'ar' ? 'ar' : 'en'
@@ -75,6 +92,7 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
       const json = await res.json()
       if (res.ok) {
         setHistory(json.data || [])
+        setClockBlock(json.clock ?? null)
       } else {
         console.error('Failed to load price history:', json.error)
         setHistory([])
@@ -90,9 +108,12 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
   async function handleExport() {
     try {
       if (history.length === 0) return
-      const headers = ['Date', 'Entity Type', 'Price List / Product', 'Old Price', 'New Price', 'Old Discount %', 'New Discount %', 'Change Reason', 'Changed By']
+      // Instant in UTC (`Z`), local text in the shown zone, and the zone named per row (S7, D20).
+      const headers = ['Changed At (UTC)', 'Changed At (Local)', 'Time Zone', 'Entity Type', 'Price List / Product', 'Old Price', 'New Price', 'Old Discount %', 'New Discount %', 'Change Reason', 'Changed By']
       const rows = history.map((entry) => [
-        formatDate(entry.created_at),
+        toApiInstant(entry.created_at) ?? '',
+        exportLocalText(entry.created_at, zone),
+        zone ?? '',
         entry.entity_type,
         entry.entity_type === 'price_list_item' ? entry.price_list_name || 'N/A' : entry.product_name || entry.product_name2 || 'N/A',
         entry.old_price ?? '',
@@ -113,7 +134,7 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `price-history-${new Date().toISOString().slice(0, 10)}.csv`
+      a.download = `price-history-${exportFileDay(opsZone ? dtTodayOrNull(systemClock, opsZone) : null)}.csv`
       a.click()
       URL.revokeObjectURL(url)
     } catch (err) {
@@ -121,15 +142,9 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString(isRTL ? 'ar' : 'en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+  const formatDate = (dateString: string) =>
+    formatInstantText(dateString, zone, { ...clock, hourCycle: clockBlock?.hourCycle ?? clock.hourCycle }) ??
+    t('notAvailable')
 
   const formatPrice = (price: number | null) => {
     if (price === null) return '-'
@@ -151,6 +166,7 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
         <div className="flex items-center gap-2 mb-4">
           <Filter className="w-5 h-5 text-muted-foreground" />
           <h3 className="font-medium">{t('filtersTitle')}</h3>
+          <CmxViewZoneToggle className="ms-auto" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
@@ -208,7 +224,7 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
                         </span>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDate(entry.created_at)}</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /><bdi dir="ltr">{formatDate(entry.created_at)}</bdi></span>
                         {entry.created_by && (
                           <span className="flex items-center gap-1">
                             <User className="w-3 h-3" />

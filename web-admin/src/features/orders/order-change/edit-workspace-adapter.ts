@@ -219,23 +219,36 @@ function applyVisualLines(controller: EditOrderController, baseline: EditOrderBa
   }
 }
 
-function syncPersistedLine(controller: EditOrderController, line: EditOrderBaseline['lines'][number], item: OrderItem): void {
+/**
+ * How a saved line's pieces differ from the stored ones. When saved pieces were removed AND new ones added
+ * (`swapped`), the quantity alone can't say so (it may not even change): each piece change is sent itself.
+ */
+function pieceDelta(line: EditOrderBaseline['lines'][number], item: OrderItem) {
   const known = new Set(line.pieces.flatMap((piece) => piece.identity.kind === 'persisted' ? [piece.identity.id] : []));
   const kept = new Set((item.pieces ?? []).flatMap((piece) => {
     const id = persistedPieceId(piece, known);
     return id ? [id] : [];
   }));
   const removed = [...known].filter((id) => !kept.has(id));
+  const local = known.size > 0 ? localPieces(item, known) : [];
+  const swapped = removed.length > 0 && local.length > 0;
+  const added = swapped ? local : local.slice(0, Math.max(item.quantity - line.quantity, 0));
+  return { known, removed, added, swapped };
+}
+
+function syncPersistedLine(controller: EditOrderController, line: EditOrderBaseline['lines'][number], item: OrderItem): void {
+  const { known, removed, added, swapped } = pieceDelta(line, item);
   const delta = item.quantity - line.quantity;
-  if (delta !== 0) {
+  if (!swapped && delta !== 0) {
     controller.setQuantity(line.identity, item.quantity, delta < 0 && removed.length === Math.abs(delta) ? removed : undefined);
   }
-  if (delta > 0 && known.size > 0) {
-    for (const piece of localPieces(item, known).slice(0, delta)) {
-      const pieceIdentity = controller.addPiece(line.identity, pieceFields(piece));
-      syncPreferences(controller, [], piece.servicePrefs, 'PIECE', pieceIdentity, localTarget('LOCAL_PIECE', pieceIdentity));
-      recordUnlisted(controller, newPieceExtras(piece, localTarget('LOCAL_PIECE', pieceIdentity)));
-    }
+  for (const piece of added) {
+    const pieceIdentity = controller.addPiece(line.identity, pieceFields(piece));
+    syncPreferences(controller, [], piece.servicePrefs, 'PIECE', pieceIdentity, localTarget('LOCAL_PIECE', pieceIdentity));
+    recordUnlisted(controller, newPieceExtras(piece, localTarget('LOCAL_PIECE', pieceIdentity)));
+  }
+  if (swapped) {
+    for (const id of removed) controller.removePiece(line.identity, { kind: 'persisted', id });
   }
   syncPreferences(controller, line.preferences, item.servicePrefs, 'ITEM', line.identity, persistedTarget('PERSISTED_ITEM', line.identity));
   recordUnlisted(controller, persistedItemExtras(line, item));
@@ -274,7 +287,9 @@ function visualLineChangeCount(baseline: EditOrderBaseline, items: readonly Orde
       count += 1;
       continue;
     }
-    if (current.quantity !== line.quantity) count += 1;
+    const { known, removed, added, swapped } = pieceDelta(line, current);
+    if (swapped) count += removed.length + added.length;
+    else if (current.quantity !== line.quantity) count += 1;
     // A line moved only by the order speed is counted once, with the order speed.
     const speed = lineSpeedOf(current, orderSpeed);
     const movedByOrderSpeed = current.serviceSpeed == null && orderSpeed !== baseline.serviceSpeed;
@@ -284,10 +299,7 @@ function visualLineChangeCount(baseline: EditOrderBaseline, items: readonly Orde
     if (!sameLineDiscount(line.lineDiscount ?? null, lineDiscountDraft(current))) count += 1;
     count += preferenceChangeCount(line.preferences, current.servicePrefs);
     count += persistedItemExtras(line, current).length;
-    const known = new Set(line.pieces.flatMap((piece) => piece.identity.kind === 'persisted' ? [piece.identity.id] : []));
-    const delta = current.quantity - line.quantity;
-    const addedPieces = delta > 0 && known.size > 0 ? localPieces(current, known).slice(0, delta) : [];
-    for (const piece of addedPieces) {
+    for (const piece of added) {
       count += preferenceChangeCount([], piece.servicePrefs) + newPieceExtras(piece).length;
     }
     for (const piece of current.pieces ?? []) {

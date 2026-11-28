@@ -75,10 +75,11 @@ import type {
 } from '../model/new-order-types';
 import { MeasureLineDialog, type MeasureMergeChoice } from './measure-line-dialog';
 import { useUomUnits } from '@features/uom/hooks/use-uom-units';
+import { useMeasureEntryUnits } from '@features/orders/hooks/use-measure-entry-units';
 import { pricedQty } from '@/lib/utils/order-item-helpers';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
-import { newCartLineKey } from '../model/cart-line-key';
-import { findMatchingMeasuredLines, measureWithArticle, productLineNumber, resolveCartAddTarget } from '../model/cart-line-grouping';
+import { newCartLineKey, nextPieceId } from '../model/cart-line-key';
+import { findMatchingMeasuredLines, measureDialogInitial, measureWithArticle, productLineNumber, resolveCartAddTarget } from '../model/cart-line-grouping';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { readyByBlockReason } from '@/lib/utils/ready-by-calculator';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
@@ -191,7 +192,10 @@ export function NewOrderContent() {
     submitOrder: _submitOrder,
     isSubmitting,
   } = useOrderSubmission();
-  const { isDirty } = useOrderEditDirty();
+  const workspace = useOrderWorkspaceSessionOptional();
+  const { isDirty: formDirty } = useOrderEditDirty();
+  // Order Edit counts its own changes; the form check reads a payload that workspace does not load.
+  const isDirty = workspace ? !workspace.sealed && workspace.dirtyCount > 0 : formDirty;
   const {
     paymentModalVersion,
     setPaymentModalVersion,
@@ -448,7 +452,6 @@ export function NewOrderContent() {
     [state],
   );
 
-  const workspace = useOrderWorkspaceSessionOptional();
   useEffect(() => {
     if (!workspace) return;
     setEditLeaveBypass(allowNextNavigation);
@@ -469,6 +472,11 @@ export function NewOrderContent() {
   const tUom = useTranslations('uom');
   const tLines = useTranslations('newOrder.lines');
   const { formatMoneyWithCode } = useTenantCurrency();
+  /** A dialog's product name, with the line number when the product has several lines (§5.5). */
+  const lineTitle = (name: string, lineKey?: LineKey) => {
+    const number = lineKey ? productLineNumber(state.state.items, lineKey) : null;
+    return number ? `${name} · ${tLines('lineNumber', { number })}` : name;
+  };
   const [measureTarget, setMeasureTarget] = useState<{ product: Pick<Product, 'id' | 'product_code' | 'product_name' | 'product_name2'>; uom: OrderItemUom; lineKey?: LineKey } | null>(null);
   const uomOf = useCallback(
     (product: Product): OrderItemUom | null => {
@@ -592,7 +600,7 @@ export function NewOrderContent() {
       if (mergeLine && addedTo === mergeLine.lineKey) {
         // Merged: the reducer appended the piece to that line with the next sequence.
         const nextSeq = Math.max(0, ...(mergeLine.pieces ?? []).map((p) => p.pieceSeq)) + 1;
-        state.setSelectedPiece(trackByPiece ? `temp-${mergeLine.lineKey}-${nextSeq}` : null);
+        state.setSelectedPiece(trackByPiece ? nextPieceId(mergeLine.lineKey, mergeLine.pieces, nextSeq) : null);
       } else if (trackByPiece && newItem.pieces && newItem.pieces.length > 0) {
         state.setSelectedPiece(newItem.pieces[newItem.pieces.length - 1].id);
       } else if (!trackByPiece && newItem.quantity === 1) {
@@ -672,14 +680,14 @@ export function NewOrderContent() {
   /** Moves one equal share of a measured line to a new line right after it (§4.3). */
   const handleSplitMeasuredShare = useCallback(
     (lineKey: LineKey) => {
-      const result = state.splitMeasuredShare(lineKey);
+      const result = state.splitMeasuredShare(lineKey, packingPriceByCode);
       if (result === 'OK') {
         cmxMessage.success(tLines('movedToLine', { number: (productLineNumber(state.state.items, lineKey) ?? 1) + 1 }));
         return;
       }
       cmxMessage.warning(tLines(result === 'NOT_EXACT' ? 'shareNotExact' : result === 'SAVED_PIECE' ? 'savedPieceCannotMove' : 'moveBlocked'));
     },
-    [state, tLines],
+    [state, tLines, packingPriceByCode],
   );
 
   const handleRemoveItem = useCallback(
@@ -697,7 +705,7 @@ export function NewOrderContent() {
       // false: held for the measure check (measured line) or refused; the follow-up runs on confirm.
       if (!state.updateItemQuantity(lineKey, quantity)) return;
       if (trackByPiece && quantity > prevQty) {
-        state.setSelectedPiece(`temp-${lineKey}-${quantity}`);
+        state.setSelectedPiece(nextPieceId(lineKey, item?.pieces, quantity));
       }
     },
     [state, trackByPiece],
@@ -751,6 +759,8 @@ export function NewOrderContent() {
   // A piece-count change on a measured line waits here until staff check the total measure.
   const recheck = state.state.measureRecheck;
   const recheckItem = recheck ? state.state.items.find((i) => i.lineKey === recheck.lineKey) : undefined;
+  const measureEntry = useMeasureEntryUnits(uomUnits.data, measureTarget?.product.id, measureTarget?.uom);
+  const recheckEntry = useMeasureEntryUnits(uomUnits.data, recheckItem?.productId, recheckItem?.uom);
   const [recheckRefusal, setRecheckRefusal] = useState<string | undefined>(undefined);
   const closeRecheck = useCallback(() => {
     setRecheckRefusal(undefined);
@@ -772,7 +782,7 @@ export function NewOrderContent() {
         const added = pieces.find((p) => !prevPieces.some((prev) => prev.id === p.id));
         if (added) state.setSelectedPiece(added.id);
       } else if (action.type === 'UPDATE_ITEM_QUANTITY' && trackByPiece && action.payload.quantity > item.quantity) {
-        state.setSelectedPiece(`temp-${item.lineKey}-${action.payload.quantity}`);
+        state.setSelectedPiece(nextPieceId(item.lineKey, item.pieces, action.payload.quantity));
       }
     },
     [recheckItem, state, tUom, packingPriceByCode, trackByPiece],
@@ -1500,6 +1510,7 @@ export function NewOrderContent() {
                         <ProductGridSkeleton />
                       ) : (
                         <ProductGrid
+                          units={uomUnits.data}
                           products={state.state.products}
                           items={state.state.items}
                           speedNote={productSpeedNote}
@@ -1722,7 +1733,7 @@ export function NewOrderContent() {
           key={discountPiece.id}
           open
           onClose={closeDiscountDialog}
-          productName={`${getBilingual(discountItem.productName, discountItem.productName2) || discountItem.productId} · ${discountPieceIndex + 1}`}
+          productName={`${lineTitle(getBilingual(discountItem.productName, discountItem.productName2) || discountItem.productId, discountItem.lineKey)} · ${discountPieceIndex + 1}`}
           lineGross={discountPieceGross}
           current={discountPiece.lineDiscount ?? null}
           onApply={(lineDiscount) => handlePiecesChange(discountItem.lineKey, (discountItem.pieces ?? []).map((p) => (p.id === discountPiece.id ? { ...p, lineDiscount } : p)))}
@@ -1733,7 +1744,7 @@ export function NewOrderContent() {
           key={discountItem.lineKey}
           open
           onClose={closeDiscountDialog}
-          productName={getBilingual(discountItem.productName, discountItem.productName2) || discountItem.productId}
+          productName={lineTitle(getBilingual(discountItem.productName, discountItem.productName2) || discountItem.productId, discountItem.lineKey)}
           lineGross={discountLineGross}
           current={discountItem.lineDiscount ?? null}
           onApply={(lineDiscount) => state.setItemLineDiscount(discountItem.lineKey, lineDiscount)}
@@ -1742,9 +1753,10 @@ export function NewOrderContent() {
       ) : null}
       <MeasureLineDialog
         open={!!measureTarget}
-        productName={measureTarget ? getBilingual(measureTarget.product.product_name, measureTarget.product.product_name2) || measureTarget.product.product_code : ''}
+        productName={measureTarget ? lineTitle(getBilingual(measureTarget.product.product_name, measureTarget.product.product_name2) || measureTarget.product.product_code, measureTarget.lineKey) : ''}
         uom={measureTarget?.uom ?? { code: '', dimension: 'MASS', qtyDecimals: 0, symbol: '', symbol2: null, minBillableQty: null, billingIncrement: null }}
-        initial={measureTarget ? state.state.items.find((i) => (measureTarget.lineKey ? i.lineKey === measureTarget.lineKey : i.productId === measureTarget.product.id))?.measure : undefined}
+        initial={measureDialogInitial(state.state.items, measureTarget?.lineKey)}
+        entryUnits={measureEntry}
         mergeChoice={measureMergeChoice}
         onMerge={mergeMeasuredArticle}
         onConfirm={confirmMeasure}
@@ -1753,9 +1765,10 @@ export function NewOrderContent() {
       {recheck && recheckItem?.uom ? (
         <MeasureLineDialog
           open
-          productName={getBilingual(recheckItem.productName, recheckItem.productName2) || recheckItem.productId}
+          productName={lineTitle(getBilingual(recheckItem.productName, recheckItem.productName2) || recheckItem.productId, recheckItem.lineKey)}
           uom={recheckItem.uom}
           initial={recheckItem.measure}
+          entryUnits={recheckEntry}
           notice={tUom('measure.recheckNotice', { from: recheck.from, to: recheck.to })}
           refusal={recheckRefusal}
           onConfirm={confirmRecheck}

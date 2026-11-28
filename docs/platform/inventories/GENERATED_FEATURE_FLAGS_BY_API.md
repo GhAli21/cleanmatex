@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-25T08:06:29.916Z
+Generated: 2026-11-27T23:21:01.715Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -11,6 +11,6 @@ Generated: 2026-11-25T08:06:29.916Z
 | getFeatureFlags | app/api/navigation/route.ts | 91 | const flags = await withTimeout(getFeatureFlags(tenantId), 3000) |
 | getFeatureFlags | app/api/settings/tenants/[tenantId]/feature-flags/route.ts | 34 | const flags = await hqApiClient.getFeatureFlags({ |
 | getFeatureFlags | app/api/v1/settings/branding/route.ts | 31 | getFeatureFlags(tenantId), |
-| online_booking | app/api/v1/public/customer/booking/route.ts | 382 | const bookingEnabled = await canAccess(tenantId, 'online_booking'); |
-| online_booking | app/api/v1/public/customer/booking/route.ts | 711 | const bookingEnabled = await canAccess(body.tenantId, 'online_booking'); |
+| online_booking | app/api/v1/public/customer/booking/route.ts | 399 | const bookingEnabled = await canAccess(tenantId, 'online_booking'); |
+| online_booking | app/api/v1/public/customer/booking/route.ts | 730 | const bookingEnabled = await canAccess(body.tenantId, 'online_booking'); |
 | order_fin_refund_execution | app/api/v1/orders/refunds/[refundId]/process/route.ts | 55 | const executionEnabled = await canAccess(tenantId, 'order_fin_refund_execution'); |

@@ -32,7 +32,6 @@ import type {
   OutboxMonitorHealth,
   OutboxStatus,
 } from '../model/outbox-types';
-import { FinanceJobsSection } from './finance-jobs-section';
 import { OutboxEventDetailDialog } from './outbox-event-detail-dialog';
 
 const ALL = '__all__';
@@ -451,9 +450,6 @@ export function OutboxMonitorPage() {
             onCheckedChange={setAutoRefresh}
             label={t('autoRefresh')}
           />
-          <CmxButton asChild variant="ghost" size="sm">
-            <Link href="#finance-jobs">{t('jumpToJobs')}</Link>
-          </CmxButton>
           <CmxButton variant="outline" size="sm" onClick={() => void fetchOutbox()}>
             {tCommon('refresh')}
           </CmxButton>
@@ -645,8 +641,6 @@ export function OutboxMonitorPage() {
           </CmxCardContent>
         </CmxCard>
       </div>
-
-      <FinanceJobsSection />
 
       <OutboxEventDetailDialog
         event={detail}

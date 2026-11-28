@@ -441,3 +441,101 @@ Runs in cmx-workers every Sunday at 03:47 UTC. It deletes the stored bytes of fi
 7. Run now again. **Expected:** `{"purged":0,...}`; nothing else changes.
 8. HQ → File Util usage health: "deleted, not purged" is 0.
 9. Switch the schedule off. **Expected:** within 30 seconds it is gone from `pgboss.schedule` and shows as off.
+
+### 6.5 Tenant Finance jobs section removed (STEP6_PLAN 6f)
+
+Page: tenant app → Internal finance → Outbox (`/dashboard/internal_fin/outbox`), signed in as a user who had `finance_jobs:view` / `finance_jobs:run` (for example the Organization admin).
+
+1. Deploy web-admin with 6f. Open the page in English. **Expected:** the outbox counts, filters, event list and handler catalog show as before; there is **no** "Finance jobs" table and **no** "Scheduled jobs" button in the header.
+2. Switch to Arabic. **Expected:** the same, laid out right to left, with no missing-text keys.
+3. In the address bar open `/api/v1/finance/jobs`. **Expected:** 404 (the route is gone). `POST /api/v1/finance/jobs/gift_card_expiry/run` also returns 404.
+4. HQ → Ops → Jobs. **Expected:** gift card, credit note and loyalty expiry, POS rollover, ERP retry and the other jobs are listed with their switches, Run now and run history: the only place to run them for every Organization (6.6 covers the per-Organization buttons).
+
+### 6.6 Run now for one Organization (STEP6_PLAN 6g)
+
+Sign in as the Organization admin of the demo Organization. Do each step in English, then once in Arabic (layout right to left, no missing text).
+
+**Database (Owner):**
+
+1. Apply `0851_bg_jobs_fin_tenant_run_now.sql` on local, then remote. **Expected:** it commits; the notice says how many users' permissions were rebuilt. **Done 27 Nov (Owner); verified on remote by Dev: new signatures, grants, permission cache of the 3 admin users.**
+2. In SQL: `SELECT count(*) FROM fn_fin_gift_card_exp_due(100)` and `SELECT fn_fin_credit_note_expiry_run(NULL::uuid)` still work (nightly path). Do not run the second on remote unless you mean to expire.
+
+**Gift cards** (Marketing → Gift cards):
+
+3. Issue a gift card with a small balance, then in SQL set its `expiry_date` to yesterday (`UPDATE org_gift_cards_mst SET expiry_date = now() - interval '1 day' WHERE tenant_org_id = '<tenant>' AND id = '<card>'`).
+4. Click **Expire due cards now** → confirm. **Expected:** "1 gift card expired."; the list shows the card as Expired; its transaction log has one EXPIRE row; ERP-Lite (when on) has one journal for it.
+5. Click it again. **Expected:** "No gift cards were due."; nothing else changes.
+
+**Credit notes** (Customers → Stored value):
+
+6. Issue a credit note, set its `expires_at` to two days ago in SQL (with `tenant_org_id`). Click **Expire due credit notes now** → confirm. **Expected:** "1 credit note expired."; the customer's credit-note total drops; the note's ledger has one EXPIRY row. Again → "No credit notes were due."
+
+**Loyalty** (Marketing → Loyalty), with points expiry set (for example 30 days):
+
+7. In SQL, move one customer's earn row `created_at` back 40 days (with `tenant_org_id`). Click **Expire due points now** → confirm. **Expected:** "Points expired on 1 customer account."; that customer's available points drop. Again → "No points were due."
+
+**ERP retry all** (ERP-Lite → Exceptions):
+
+8. Create a System error exception as in QA 6.3 (temporary block). Remove the block. Click **Retry all system errors** → confirm. **Expected:** "1 exception retried and posted."; the exception leaves the open list; its action history shows a manual Retry by you. Other exception types (for example missing mapping) stay.
+
+**Isolation and permissions:**
+
+9. Sign in to another Organization with its own due card. Run step 4 in the demo Organization. **Expected:** only the demo Organization's card expires.
+10. Sign in as a user without `gift_cards:expire` (for example a viewer). **Expected:** no **Expire due cards now** button. Same for the other three permissions.
+
+## Step 8 — Old plumbing removed
+
+### 8.1 Before 0857 (after deploying web-admin, HQ API and HQ web with step 8)
+
+1. `POST /api/finance/process-jobs` and `POST /api/finance/jobs/gift-card-expiry` on the tenant app. **Expected:** 404.
+2. B2B → statements → run dunning as a user with `b2b_statements:create`. **Expected:** works as before. The same call with only an `x-cron-secret` header and no session. **Expected:** 401.
+3. HQ API starts with no "BackgroundExecution" log lines; HQ → Ops → Jobs loads.
+
+### 8.2 Migration 0857 (Owner)
+
+4. Apply `0857_bg_jobs_retire_old_plumbing.sql` on local, then remote. **Expected:** it commits; notice "effective permissions rebuilt for N user/tenant rows". **Done 28 Nov (Owner); steps 5–6 verified on remote by Dev.**
+5. SQL on remote: `SELECT count(*) FROM sys_ops_job_cf` → 45 (was 57); `SELECT count(*) FROM sys_ops_job_cf WHERE kind = 'HQ_WORKER'` fails the kind check if you try to insert one; `SELECT to_regclass('public.sys_fin_job_run_log')` → NULL; `SELECT count(*) FROM org_ntf_outbox_dtl WHERE status = 'QUEUED' AND tenant_org_id IS NOT NULL` → only rows that have an `ntf.deliver` job.
+6. Regenerate types with `scripts/dev/gen-types.ps1` (both repos) and pull Prisma. **Expected:** `types/database.ts` is not empty; web-admin `tsc` shows no new errors.
+
+### 8.3 HQ → Ops → Jobs after 0857
+
+7. **Expected:** no SUPERSEDED rows; the Runner filter lists Database scheduler, Queue, Queue schedule (English) and the same in Arabic; no raw `kind.*` or `completion.*` keys.
+8. The "Queues" figure filters to the pg-boss queues. Run now on "File purge (weekly)" → the dialog says the worker sends the job within about 30 seconds; the run appears in its history.
+9. Switch a pg-boss queue off and on. **Expected:** "Saved. Consumers pause/resume this queue within about 30 seconds."
+10. HQ → File Util usage health: "Last bytes removed" says it comes from the weekly file purge job (cmx-workers), EN and AR.
+
+## Step 7 — HQ Ops Jobs on the queue, alerts
+
+### 7.1 Migration 0858 (Owner)
+
+1. Apply `0858_bg_jobs_ops_queue_views.sql` on local, then remote. **Expected:** it commits.
+2. SQL on remote (as postgres): `SELECT queue_name, ready, failed, dead_letters, alert_ready_age_s FROM fn_ops_queue_stats()` → 28 rows; `SELECT source_queue, error FROM fn_ops_dead_letter_list()` → the 6 dead letters with short messages (no stack); `SELECT * FROM fn_ops_worker_list()` → `cmx-workers` (not silent) and an unnamed HQ API row until 7b deploys; `SELECT * FROM fn_ops_job_alerts()` → `WORKER_SILENT hq-api` is expected until 7b deploys (HQ API's instance gets its name then), nothing else.
+
+**Done 28 Nov (Owner); verified on remote by Dev: 28 queues, 6 dead letters, cmx-workers running, one alert `WORKER_SILENT hq-api` (expected until HQ API deploys with its instance name).**
+
+### 7.2 Workspace (HQ → Ops → Jobs, after deploying HQ API and HQ web)
+
+3. Open HQ → Ops → Jobs. **Expected:** one page header with Refresh; tabs Jobs, Queues, Dead letters, Workers; the Jobs tab is the familiar table (switch, schedule, Run now, history, audit). `?tab=queues` in the address opens the Queues tab directly.
+4. Arabic: same tabs right to left, no raw keys (`opsJobs.…`), numbers and queue names left to right.
+5. As an operator with `hq_ops:read` only: tabs visible, no Pause / Resume / Redrive / Delete buttons.
+
+### 7.3 Queues
+
+6. Queues tab. **Expected:** 28 rows (name, `queue.name` code, On/Paused, Ready, Running, Scheduled, Failed (kept), Oldest waiting, Alert after, Dead letters, Total kept); the line above says when pg-boss last counted. `fin.order_change_applied.order_change_confirm` shows 5 dead letters.
+7. **Recent jobs** on `fin.pos_rollover.sweep`. **Expected:** the last runs, Done, with their result text (counts); no payload data.
+8. Pause a quiet queue (for example `ops.smoke_test`) → confirm. **Expected:** "Paused" and "Applying…" until the worker applies it (about 30 s); the Jobs tab shows the same switch off. Resume it.
+
+### 7.4 Dead letters
+
+9. Dead letters tab. **Expected:** 6 rows, newest first, with the queue, retries used and a short error (`ORDER_CHANGE_APPLIED_ROW_MISSING`, a POS rollover error); no stack, no data.
+10. Filter to `fin.order_change_applied.order_change_confirm` → **Delete all from this queue** → the dialog says it is permanent → confirm. **Expected:** "5 dead letters deleted"; the Queues tab shows 0 for it; HQ audit has `ops_job.dead_letter_delete` with counts only.
+11. On the remaining POS rollover row: **Redrive** → confirm. **Expected:** "1 job sent again"; in Queues → `fin.pos_rollover.sweep` → Recent jobs, a new Done run appears within about 5 minutes (polling 300 s).
+
+### 7.5 Workers and alerts
+
+12. Workers tab. **Expected:** `cmx-workers` and `hq-api` Running, last heartbeat under a minute ago, versions pg-boss 12.39.0 / Node 22; an older unnamed row may show from before the deploy.
+13. Alert test (staging or a quiet moment): suspend the cmx-workers Render service for 3 minutes. **Expected:** the banner shows "cmx-workers: no heartbeat for more than 2 minutes"; Sentry receives one event tagged `ops_alert = WORKER_SILENT` (and an email once the Sentry rule exists). Resume the service: the banner clears within about a minute; no second Sentry event until it happens again.
+
+## Step 9 — Prove it and soak
+
+The proof runs (each job twice, a consumer killed mid-job, a provider timeout) and the 48-hour soak, with their exact checks and pass criteria, are in [STEP9_PLAN.md](STEP9_PLAN.md) §9.1–9.4. Run them after everything is deployed and QA 6.x / 7.x / 8 pass. Day-to-day operation: [RUNBOOK.md](RUNBOOK.md).

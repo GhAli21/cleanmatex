@@ -106,6 +106,31 @@ describe('the shared reviewed and stored operation contract', () => {
     expect(digestOrderChangeOperationAudits([applied])).toBe(digestOrderChangeOperationAudits([reviewed!]));
   });
 
+  it.each([
+    ['a weighed line', { measuredQty: '1.800' }, { measuredQty: '1.8', measureLength: null, measureWidth: null }, { measured_qty: '1.800000', billed_qty: '3.000000' }],
+    ['an area line', { length: '2', width: '1.50' }, { measuredQty: null, measureLength: '2', measureWidth: '1.5' }, { measured_qty: '3.00', measure_length: '2', measure_width: '1.5' }],
+    ['an insert row without the measure', { measuredQty: '4' }, { measuredQty: '4', measureLength: null, measureWidth: null }, {}],
+  ])('shows the measure of a new line, signed from the request (%s)', (_name, measure, expected, storedColumns) => {
+    const itemRef = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const operation = { seq: 1, code: 'ADD_ITEM' as const, target: { kind: 'ORDER' as const }, payload: { clientRef: itemRef, productId: itemId, quantity: 1, measure } };
+    const money = { total_amount: '3.0000', total_tax_amount: '0.0000' };
+    const build = (columns: Record<string, unknown>) => buildOrderChangeOperationAudit({
+      operation, orderId, before: {}, orderBefore: money, orderAfter: money,
+      after: { id: itemRef, product_id: itemId, quantity: 1, price_per_unit: '1.0000', total_price: '3.0000', ...columns },
+    });
+    const reviewed = build({});
+    const applied = build(storedColumns);
+    expect(reviewed.afterValues).toMatchObject(expected);
+    // Whatever columns the written row carries, both signatures agree.
+    expect(digestOrderChangeOperationAudits([applied])).toBe(digestOrderChangeOperationAudits([reviewed]));
+  });
+
+  it('a new count line signs no measure keys', () => {
+    const operation = { seq: 1, code: 'ADD_ITEM' as const, target: { kind: 'ORDER' as const }, payload: { clientRef: itemId, productId: itemId, quantity: 1 } };
+    const audit = buildOrderChangeOperationAudit({ operation, orderId, before: {}, after: { id: itemId, quantity: 1 }, orderBefore: {}, orderAfter: {} });
+    expect(Object.keys(audit.afterValues).filter((key) => key.startsWith('measure'))).toEqual([]);
+  });
+
   it('signs the piece gross Apply stores when a preference extra changes the line', () => {
     const itemRef = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     const pieceRef = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';

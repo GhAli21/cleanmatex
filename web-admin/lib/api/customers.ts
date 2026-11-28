@@ -23,6 +23,10 @@ import type {
   VerifyOTPRequest,
   MergeCustomersRequest,
   CustomerStatistics,
+  CustomerLookupRequest,
+  CustomerLookupResponse,
+  CustomerCreateOrConnectResult,
+  CustomerAuditEntry,
 } from '@/lib/types/customer';
 
 const API_BASE = '/api/v1/customers';
@@ -70,6 +74,7 @@ export interface CustomerSearchPickerParams {
 /** Customer item from search API (picker format) */
 export interface CustomerSearchItem {
   id: string;
+  customerCode?: string | null;
   displayName?: string | null;
   firstName?: string;
   lastName?: string | null;
@@ -207,11 +212,38 @@ export async function getCustomerById(
 }
 
 /**
- * Create a new customer (guest, stub, or full)
+ * Lookup customer identity by mobile phone or email before creating.
+ * Checks current tenant org_customers_mst first, then global sys_customers_mst.
  */
-export async function createCustomer(
+export async function lookupCustomerIdentity(
+  request: CustomerLookupRequest
+): Promise<CustomerLookupResponse> {
+  const csrfToken = await getCSRFToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
+  const response = await fetch(`${API_BASE}/lookup`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to lookup customer');
+  }
+
+  const data = await response.json();
+  return data.data as CustomerLookupResponse;
+}
+
+/**
+ * Create a new customer or connect an existing global sys_customers_mst identity.
+ * Returns both the customer record and the action performed.
+ */
+export async function createOrConnectCustomer(
   request: CustomerCreateRequest
-): Promise<Customer> {
+): Promise<CustomerCreateOrConnectResult> {
   const csrfToken = await getCSRFToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
@@ -223,12 +255,68 @@ export async function createCustomer(
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.error || 'Failed to create customer');
   }
 
   const data = await response.json();
-  return data.data;
+  return {
+    customer: data.data as Customer,
+    action: data.action ?? 'CREATED_NEW',
+  };
+}
+
+/**
+ * Create a new customer (guest, stub, full, or b2b)
+ */
+export async function createCustomer(
+  request: CustomerCreateRequest
+): Promise<Customer> {
+  const result = await createOrConnectCustomer(request);
+  return result.customer;
+}
+
+/**
+ * Reactivate an inactive customer in the current tenant
+ */
+export async function reactivateCustomer(customerId: string): Promise<Customer> {
+  const csrfToken = await getCSRFToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
+  const response = await fetch(`${API_BASE}/${customerId}/reactivate`, {
+    method: 'POST',
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to reactivate customer');
+  }
+
+  const data = await response.json();
+  return data.data as Customer;
+}
+
+/**
+ * Fetch tenant-scoped audit history for a customer
+ */
+export async function getCustomerAuditHistory(
+  customerId: string,
+  limit = 50
+): Promise<CustomerAuditEntry[]> {
+  const response = await fetch(`${API_BASE}/${customerId}/audit?limit=${limit}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to fetch customer audit history');
+  }
+
+  const data = await response.json();
+  return Array.isArray(data.data) ? (data.data as CustomerAuditEntry[]) : [];
 }
 
 /**

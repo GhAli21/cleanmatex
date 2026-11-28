@@ -1,5 +1,7 @@
 # I11 Handler Implementation Contracts
 
+> **SUPERSEDED (28 Nov 2026, Background Jobs step 9).** Historical record only; do not follow it. The current design is [docs/features/Background_Jobs/DESIGN.md](../../features/Background_Jobs/DESIGN.md). The pg-boss redesign replaced this runtime (platform-workers and the HQ worker claims were deleted in step 8).
+
 **Status:** The Phase 2 control-plane migration is applied and the notification worker/API boundary is in controlled canary hardening. **20 Nov 2026:** Owner approved the expert-replan runtime (one HQ `BackgroundExecutionModule`, LISTEN + safety sweep, Redis-as-platform, no BullMQ on outbox). **22 Nov 2026:** the three places stay locked. Finance, POS, ERP, the finance outbox, and campaign expansion use the §1.1 build: Postgres claims due rows, and one existing poster performs the effect in-process when that poster is TypeScript. Tenant HTTP callers stay off. Delivery stays disabled. Remote production evidence still gates expansion.
 **Authority:** [I11 ADR](I11_background_execution_redesign_ADR.md), [expert replan](I11_background_execution_EXPERT_REPLAN.md), [I11 plan](I11_background_execution_redesign_PLAN.md). Remote Supabase is the production evidence authority.
 

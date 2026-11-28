@@ -9,7 +9,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
-import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { formatMoneyAmountWithCode, formatUnitPriceWithCode } from '@/lib/money/format-money';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { getPublicTrackingPathForOrderId } from '@/lib/services/public-order-tracking.service';
 import { buildAbsolutePublicTrackingUrl } from '@/lib/utils/public-order-tracking';
@@ -21,7 +21,9 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import { renderChannelTemplate } from '@/lib/notifications/template-renderer';
 import { IMMEDIATE_SEND_PRIORITY, queueImmediateSendTx } from '@/lib/notifications/immediate-send.service';
 import { orderLineQualifiers, qualifierInputOfRow } from '@/lib/orders/line-qualifier';
-import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
+import { formatLineQualifier, type LineQualifierTranslator } from '@/lib/orders/line-qualifier-format';
+import { createTranslator } from 'next-intl';
+import { loadLocaleMessages } from '@/lib/i18n/load-locale-messages';
 import { loadSpeedNames } from '@/lib/orders/line-qualifier-speed';
 
 /** Notification event of a sent receipt (sys_ntf_events_cd, 0820). */
@@ -171,6 +173,9 @@ export class ReceiptService {
             uom_qty_decimals,
             measured_qty,
             billed_qty,
+            min_billable_qty,
+            billing_increment,
+            price_per_unit,
             service_speed,
             product_name,
             product_name2,
@@ -197,11 +202,6 @@ export class ReceiptService {
       // Line qualifier (measure, own speed, ordinal) tells same-name lines apart; formatted once, in the receipt language.
       const speedNames = await loadSpeedNames((order.items ?? []).map((i: { service_speed?: string | null }) => i.service_speed), supabase);
       const qualifiers = orderLineQualifiers((order.items ?? []).map(qualifierInputOfRow), order.service_speed, speedNames);
-      order.items = (order.items ?? []).map((item) => ({
-        ...item,
-        qualifier_text: formatLineQualifier(qualifiers.get(item.id), { locale: language === 'ar' ? 'ar' : 'en' }),
-      }));
-
       // Get template
       const { data: template, error: templateError } = await supabase
         .from('org_rcpt_templates_cf')
@@ -229,6 +229,18 @@ export class ReceiptService {
       // B15: getCurrencyConfig fails loudly when unconfigured — no fallback.
       const currencyCode = moneyCfg.currencyCode;
       const moneyOpts = { ecoScore, decimalPlaces, currencyCode };
+
+      // Wording of the line qualifier follows the receipt language, not the staff member's screen.
+      const textLocale = language === 'ar' ? 'ar' : 'en';
+      const tUom = createTranslator({ locale: textLocale, messages: await loadLocaleMessages(textLocale), namespace: 'uom' });
+      order.items = (order.items ?? []).map((item) => ({
+        ...item,
+        qualifier_text: formatLineQualifier(qualifiers.get(item.id), {
+          locale: textLocale,
+          t: tUom as unknown as LineQualifierTranslator,
+          formatUnitPrice: (price) => formatUnitPriceWithCode(price, { currencyCode, decimalPlaces, locale: textLocale }),
+        }),
+      }));
 
       // Replace template placeholders
       const contentText = this.replaceTemplatePlaceholders(

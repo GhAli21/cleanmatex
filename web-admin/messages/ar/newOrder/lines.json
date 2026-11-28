@@ -10,7 +10,18 @@
   "moveOneShare": "نقل قطعة واحدة إلى سطر جديد",
   "moveOneShareFor": "نقل قطعة واحدة من {item} إلى سطر جديد",
   "shareNotExact": "لا يمكن تقسيم قياس هذا السطر إلى حصص متساوية. غيّر القياس أولاً.",
-  "savedPieceCannotMove": "لا يمكن نقل القطع المحفوظة إلى سطر آخر حالياً.",
+  "savedPieceCannotMove": "لا يمكن نقل قطعة محفوظة. احذفها، وأضف المنتج مرة أخرى، ثم انقل القطعة الجديدة.",
   "moveBlocked": "سياسة تعديل الطلب لا تسمح بهذا التغيير الآن.",
-  "movedToLine": "نُقلت إلى السطر {number}"
+  "movedToLine": "نُقلت إلى السطر {number}",
+  "moveToNewLine": "نقل إلى سطر جديد",
+  "moveToLine": "نقل إلى السطر {number}",
+  "movePieceFor": "نقل القطعة {piece} من {item}",
+  "leavesPrice": "يترك سعر السطر {number}",
+  "leavesDiscount": "يترك خصم السطر {number}",
+  "leavesSpeed": "يترك سرعة السطر {number}",
+  "takesPrice": "يأخذ سعر السطر {number}",
+  "takesDiscount": "يأخذ خصم السطر {number}",
+  "takesSpeed": "يأخذ سرعة السطر {number}",
+  "newLineTodaysPrice": "يستخدم السطر الجديد سعر اليوم.",
+  "itemLevelHint": "تحتاج سرعة أو سعراً أو خصماً مختلفاً لقطعة واحدة؟ انقلها إلى سطر جديد."
 }

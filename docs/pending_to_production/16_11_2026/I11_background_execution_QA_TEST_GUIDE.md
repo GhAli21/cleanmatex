@@ -1,5 +1,7 @@
 # I11 Background Execution — Remote QA and Evidence Guide
 
+> **SUPERSEDED (28 Nov 2026, Background Jobs step 9).** Historical record only; do not follow it. The current QA guide is [docs/features/Background_Jobs/QA_TEST_GUIDE.md](../../features/Background_Jobs/QA_TEST_GUIDE.md). The pg-boss redesign replaced this runtime (platform-workers and the HQ worker claims were deleted in step 8).
+
 **Status:** Partially executed — worker capacity attribution is complete; controlled notification canary remains blocked pending an authorized safe fixture and Owner decision. **WP0 (21 Nov 2026):** source ticks are 15 minutes; after Owner applies `0779`, HTTP jobs must show Retired, not Missing-in-scheduler Enable. Historical shots below predate `0779`.  
 **Authority:** [Expert replan](I11_background_execution_EXPERT_REPLAN.md) (living WP list, D1–D12), [I11 plan](I11_background_execution_redesign_PLAN.md) (Progress Log), [production runbook](I11_background_execution_RUNBOOK.md), [ADR](I11_background_execution_redesign_ADR.md), and [handler contracts](I11_background_execution_handler_contracts.md).  
 **Production evidence authority:** Remote Supabase read-only results and Render/HQ deployment evidence only. Local build/test output is supporting development evidence, never production proof.

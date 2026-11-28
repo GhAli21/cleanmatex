@@ -356,7 +356,6 @@ export interface Product {
   is_retail_item: boolean;
   product_type: number | null;
   price_type: string | null;
-  product_unit: string | null;
   default_sell_price: number | null;
   product_cost: number | null;
   min_sell_price: number | null;

@@ -1,6 +1,6 @@
 # Resume continuation — clock program
 
-Last refreshed: 2026-11-27, at pack `0.1.47` (S1 done; S2 done, `0842`–`0844` applied; S3, S4 done in code; S5 done, `0846` applied by the user; S6 done in code, no migration; slots moved +1 at `0.1.45` and +2 at `0.1.47` because the user's `0845`, `0847`, `0848` took those numbers; next slice takes the next free number when its file is written). Refresh this file at the end of every slice. A slice is not done while this file still names the old version, the old next step, or a route that the slice just finished. Read **Risks while implementing** before editing.
+Last refreshed: 2026-11-27, at pack `0.1.48` (S7 done in code, no migration; user `0849` took that slot, S8 projected `0850`; S1 done; S2 done, `0842`–`0844` applied; S3, S4 done in code; S5 done, `0846` applied by the user; S6 done in code, no migration; slots moved +1 at `0.1.45` and +2 at `0.1.47` because the user's `0845`, `0847`, `0848` took those numbers; next slice takes the next free number when its file is written). Refresh this file at the end of every slice. A slice is not done while this file still names the old version, the old next step, or a route that the slice just finished. Read **Risks while implementing** before editing.
 
 Read this file first. It wins over `technical_docs/work-packages.md` when they disagree. Then read `progress_summary.md` and `current_status.md`. Use `work-packages.md` only for the close-out test of the package you are in. The rule text is `docs/dev/rules/time-and-timezone.md`. Pack version is `0.1.47` (`version.txt`). S2 is applied and green. S3 is in code: use `@ui/clock` (`ClockProvider`, `CmxInstant`, `useInstantFormatter`) and `lib/clock/clock-block.server.ts`; never format an instant without a server-resolved zone. S4 is in code: zone pickers use `CmxTimeZoneSelect` + `canonicalActiveZone`; client "today" uses `useClockCivilToday()`; server "today" uses `operationalCivilToday` and fails closed; D20 toggle `ViewZoneProvider`/`CmxViewZoneToggle`. **Next: S5 (`0.1.46`, migration `0846`)**. *(Previous: S4 (`0.1.45`))*, including the G1 leftovers listed in `MASTER_PLAN_v2.md` (S3 row). Do not edit changelog headings `0.1.32` through `0.1.44`.
 
@@ -28,10 +28,10 @@ Decisions D1–D29 and D32–D35 are accepted (D30/D31 superseded by D33); detai
 | S4 "today" cluster, zone catalog, viewer-zone toggle — **DONE in code 2026-11-27** | 0.1.45 | none | T44, T56 |
 | S5 `CURRENT_DATE` replacement — **DONE, applied by the user 2026-11-27** | 0.1.46 | `0846` | T45, T67 |
 | S6 Zod primitives, `clock` block, 409 on writes — **DONE in code 2026-11-27** | 0.1.47 | none | T46, T57 |
-| S7 exports, audit, `/health/clock` | 0.1.48-plan | none | T14, T15, T55, T56 |
-| S8 jobs, quiet hours (`notify` zone) | 0.1.49-plan | `0849` | T47, T58 |
-| S9 cut-over UI, Date & Time settings fields, `business_date` on orders/payments | 0.1.50-plan | `0850` | T48, T52, T53 |
-| S10 zone-change policy | 0.1.51-plan | `0851` | T49 |
+| S7 exports, audit, `/health/clock` — **DONE in code 2026-11-27** | 0.1.48 | none | T14, T15, T55, T56 |
+| S8 jobs, quiet hours (`notify` zone) | 0.1.49-plan | next free (`0850`) | T47, T58 |
+| S9 cut-over UI, Date & Time settings fields, `business_date` on orders/payments | 0.1.50-plan | next free (`0851`) | T48, T52, T53 |
+| S10 zone-change policy | 0.1.51-plan | next free (`0852`) | T49 |
 | S11 cmx-api | 0.1.52-plan | none | vectors, e2e |
 | S12 mobile | 0.1.53-plan | none | T50 |
 | S13 HQ + `sys_*`/`hq_*` stamps + tzdb/CLDR catalog refresh | 0.1.54-plan | `0852`, `0853` | T51 |
@@ -163,6 +163,7 @@ Recent slices, so they are not repeated:
 | 0.1.41b-plan | Adversarial gap review (t136u): G19–G26, D32–D35 proposed, settings foundation re-slotted to S2 (`0843`), slots `0842`–`0851` re-set, rollback table, coverage matrix, T61–T68. Documentation only |
 | 0.1.42 | S1: `packages/clock` (`@cmx/clock`), shared vectors, `notify` in TS only, guard v2 + baseline (both repos), restored Ready By test, contract docs; D32–D35 accepted. T60 |
 | 0.1.43 | S2 files (not applied): `0842` clock API + catalog + `notify` + validators + health, `0843` settings foundation; SQL tests + vector generator; `notify` in `SQL_DOOR_OPERATIONS`; guard regex fix. T54, T59, T61–T66 (SQL) |
+| 0.1.48 | S7: `api-output.ts` (`toApiInstant`, export helpers), Date cells `Z` in grids/report CSV, civil-day export names, price-history CSV + D20 toggle (second list), audit card zone, `GET /api/v1/health/clock`; rules doc S1–S7; guard 224 → 221; user `0849` allowlisted. T14, T15, T55, T56 |
 | 0.1.47 | S5 applied (`0846`). S6: `api-input` Zod/parse helpers on routes, actions and schemas; `clock` block on 10 screen endpoints + inventory contract test; `clockErrorResponse`, `resolveZonedInput`, `CmxDstChoice`, `useClockErrorMessage`; promotions day in the organization zone; slots +2 (S8 = `0849`). T46, T57 |
 | 0.1.46 | S5: `0846` (27 SQL definitions → `fn_cmx_dt_*`, drift check, G21, G22, speed default, unknown-zone deactivation), preimage rollback script, S5 SQL test; guard 226 → 224. T45, T67 |
 | 0.1.45 | S4: G12 today cluster, G2 zone picker + catalog validation (settings, registration), G7 per-user zone removed, G8 root `ClockProvider` + notice, D20 toggle on orders list, S3 leftovers; guard 276 → 226. Slots S5–S15 +1 (S5 = `0846`). T44, T56 |

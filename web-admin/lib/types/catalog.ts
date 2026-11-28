@@ -14,10 +14,6 @@ export type PriceListType = 'standard' | 'express' | 'vip' | 'seasonal' | 'b2b' 
 /**
  *
  */
-export type ProductUnit = 'piece' | 'kg' | 'item';
-/**
- *
- */
 export type CSVTemplateType = 'basic' | 'advanced';
 /**
  * org_product_data_mst.price_type values (DB-mirror; M4,
@@ -86,7 +82,6 @@ export interface Product {
   is_retail_item: boolean;
   product_type: number | null;
   price_type: PriceType | null;
-  product_unit: ProductUnit | null;
   default_sell_price: number | null;
   product_cost: number | null;
   min_sell_price: number | null;
@@ -128,7 +123,6 @@ export interface ProductListItem {
   category_name: string | null;
   category_name2: string | null;
   default_sell_price: number | null;
-  product_unit: ProductUnit | null;
   /** The unit the product is priced in. */
   base_uom_code: string | null;
   /** Optional minimum billable measure and billing step (decimal text; null = none). Used by a measured product. */
@@ -152,8 +146,6 @@ export interface ProductCreateRequest {
   is_retail_item?: boolean;
   product_type?: number;
   price_type?: PriceType;
-  /** @deprecated Use `base_uom_code`; kept until Migration B (P9). */
-  product_unit?: ProductUnit;
   /** The unit the product is priced and stocked in (an `org_uom_cf` code); default PC. */
   base_uom_code?: string;
   /** Measured units only: smallest billed measure (decimal text); null/absent = none (D12). */
@@ -371,7 +363,8 @@ export interface BasicCSVRow {
   product_name_ar: string;
   category_code: string;
   price: number;
-  unit: ProductUnit;
+  /** A unit code (`PC`, `KG`) or a legacy word (`piece`, `kg`, `item`). */
+  unit: string;
 }
 
 /**

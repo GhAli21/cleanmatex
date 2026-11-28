@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -88,6 +88,8 @@ export interface PiecePreferenceCardProps {
   enforcePrefCompatibility?: boolean;
   siblingPieceIds: string[];
   copyAllTooltip: string;
+  /** An extra action beside the heading (e.g. move the piece to another line). */
+  headerAction?: ReactNode;
   onRemovePreference: (uiId: string) => void;
   onCopyPreferenceToPieces: (uiId: string, targetIds: string[]) => void;
   onCopyAllToPieces: (targetIds: string[]) => void;
@@ -111,6 +113,7 @@ export interface PiecePreferenceCardProps {
  * @param root0.enforcePrefCompatibility
  * @param root0.siblingPieceIds
  * @param root0.copyAllTooltip
+ * @param root0.headerAction
  * @param root0.onRemovePreference
  * @param root0.onCopyPreferenceToPieces
  * @param root0.onCopyAllToPieces
@@ -131,6 +134,7 @@ export function PiecePreferenceCard({
   enforcePrefCompatibility = false,
   siblingPieceIds,
   copyAllTooltip,
+  headerAction,
   onRemovePreference,
   onCopyPreferenceToPieces,
   onCopyAllToPieces,
@@ -252,6 +256,7 @@ export function PiecePreferenceCard({
         <div className="min-w-0 flex-1 rounded-lg border border-border/70 bg-gradient-to-b from-muted/90 to-muted/95 px-3 py-2 shadow-sm">
           <h3 className="text-sm font-semibold leading-snug text-foreground">{pieceHeading}</h3>
         </div>
+        {headerAction ? <div className="shrink-0 self-end sm:self-start">{headerAction}</div> : null}
         {targetsForCopy.length > 0 && (
           <CmxButton
             type="button"

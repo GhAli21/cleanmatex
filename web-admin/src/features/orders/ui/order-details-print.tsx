@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { formatMoneyAmountWithCode, formatUnitPriceWithCode } from '@/lib/money/format-money';
 import type { ReadyOrder } from '@features/orders/model/ready-order-types';
 import type { PrintLayout } from './order-receipt-print';
 import { sourceLabel } from '@/lib/db/order-discounts-types';
@@ -28,13 +28,19 @@ export function OrderDetailsPrint({ order, layout, discountLines = [] }: OrderDe
   const tOrdersMain = useTranslations('orders');
   const tWorkflowReady = useTranslations('workflow.ready');
   const tCommon = useTranslations('common');
+  const tUom = useTranslations('uom');
   const isRTL = useRTL();
   const locale = useLocale();
-  const qualifierLocale = locale === 'ar' ? 'ar' : 'en';
   const { currencyCode, decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
   const fmt = (n: number) =>
     formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale });
+  const qualifierText = (qualifier: ReadyOrder['items'][number]['qualifier']) =>
+    formatLineQualifier(qualifier, {
+      locale: moneyLocale,
+      t: tUom,
+      formatUnitPrice: (price) => formatUnitPriceWithCode(price, { currencyCode, decimalPlaces, locale: moneyLocale }),
+    });
 
   const containerWidthClass =
     layout === 'thermal' ? 'max-w-[80mm] w-full' : 'w-full max-w-a4';
@@ -90,8 +96,8 @@ export function OrderDetailsPrint({ order, layout, discountLines = [] }: OrderDe
               <tr key={item.id} className="border-b border-dashed border-border">
                 <td className="py-1 pe-2">
                   <div className="font-medium">{item.productName}</div>
-                  {formatLineQualifier(item.qualifier, { locale: qualifierLocale }) && (
-                    <div className="text-muted-foreground">{formatLineQualifier(item.qualifier, { locale: qualifierLocale })}</div>
+                  {item.qualifier && qualifierText(item.qualifier) && (
+                    <div className="text-muted-foreground">{qualifierText(item.qualifier)}</div>
                   )}
                 </td>
                 <td className="py-1 text-center">{item.quantity}</td>

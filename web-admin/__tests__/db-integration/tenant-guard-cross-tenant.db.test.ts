@@ -51,8 +51,8 @@ async function seedOrder(tenantId: string, customerId: string, orderNo: string):
 
 async function seedCustomer(tenantId: string): Promise<string> {
   const rows = await prisma.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id, name)
-    VALUES (${tenantId}::uuid, ${`TenantGuard test ${randomUUID()}`})
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name)
+    VALUES (gen_random_uuid()::text, ${tenantId}::uuid, ${`TenantGuard test ${randomUUID()}`})
     RETURNING id
   `;
   return rows[0].id;

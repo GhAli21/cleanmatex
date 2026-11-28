@@ -49,8 +49,8 @@ function dbit(name: string, fn: () => Promise<void>): void {
 
 async function seedOrder(): Promise<{ customerId: string; orderId: string }> {
   const customer = await prisma.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id, name)
-    VALUES (${DEMO_TENANT}::uuid, ${`Gate decision DB ${randomUUID()}`})
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name)
+    VALUES (gen_random_uuid()::text, ${DEMO_TENANT}::uuid, ${`Gate decision DB ${randomUUID()}`})
     RETURNING id
   `;
   const order = await prisma.$queryRaw<Array<{ id: string }>>`

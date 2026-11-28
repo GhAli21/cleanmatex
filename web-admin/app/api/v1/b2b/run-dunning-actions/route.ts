@@ -2,7 +2,8 @@
  * B2B Run Dunning Actions API
  * POST /api/v1/b2b/run-dunning-actions
  * Executes dunning actions (email, sms, hold_orders) for overdue statements.
- * Call manually (admin) or via cron with CRON_SECRET header.
+ * Called by staff with b2b_statements:create. Automatic dunning is a later feature
+ * (Background Jobs 6d, postponed); the unused CRON_SECRET path was removed in step 8.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -33,26 +34,10 @@ function parseDunningLevels(value: unknown): DunningLevel[] {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Allow cron with CRON_SECRET + x-tenant-id, or require b2b_statements:create (session)
-    const cronSecret = request.headers.get('x-cron-secret');
-    const expectedSecret = process.env.CRON_SECRET;
-    const isCronAuth = !!expectedSecret && cronSecret === expectedSecret;
-
-    let resolvedTenantId: string;
-    if (isCronAuth) {
-      const tenantId = request.headers.get('x-tenant-id');
-      if (!tenantId) {
-        return NextResponse.json(
-          { success: false, error: 'x-tenant-id header required for cron' },
-          { status: 400 }
-        );
-      }
-      resolvedTenantId = tenantId;
-    } else {
-      const authCheck = await requirePermission('b2b_statements:create')(request);
-      if (authCheck instanceof NextResponse) return authCheck;
-      resolvedTenantId = authCheck.tenantId;
-    }
+    const authCheck = await requirePermission('b2b_statements:create')(request);
+    if (authCheck instanceof NextResponse) return authCheck;
+    // Organization resolved server-side from the authenticated session.
+    const resolvedTenantId = authCheck.tenantId;
 
     const supabase = await createClient();
     const settingsService = createTenantSettingsService(supabase);

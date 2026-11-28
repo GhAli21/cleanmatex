@@ -77,7 +77,7 @@ describe('catalog.service', () => {
     const prod = await createProduct({
       service_category_code: 'LAUNDRY',
       product_name: 'Shirt',
-      product_unit: 'piece',
+      base_uom_code: 'PC',
       default_sell_price: 1.0,
     } as any)
     expect(prod.id).toBeDefined()

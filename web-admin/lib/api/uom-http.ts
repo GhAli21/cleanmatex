@@ -12,6 +12,9 @@ const STATUS: Partial<Record<string, number>> = {
   [UOM_ERROR_CODES.UOM_NOT_FOUND]: 404,
   [UOM_ERROR_CODES.UOM_IN_USE]: 409,
   [UOM_ERROR_CODES.UOM_CODE_RESERVED]: 409,
+  [UOM_ERROR_CODES.UOM_CODE_EXISTS]: 409,
+  [UOM_ERROR_CODES.UOM_CONV_EXISTS]: 409,
+  [UOM_ERROR_CODES.UOM_CONV_SYSTEM]: 409,
 };
 
 /** Parses a JSON body with a schema; returns the data or a 400 response. */

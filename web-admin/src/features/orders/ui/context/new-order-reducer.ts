@@ -3,7 +3,10 @@
  * Handles all state mutations for the new order feature
  */
 
-import type { NewOrderState, NewOrderAction, OrderItem, PreSubmissionPiece } from '../../model/new-order-types';
+import type { LineKey, NewOrderState, NewOrderAction, OrderItem, OrderItemMeasure, PreSubmissionPiece } from '../../model/new-order-types';
+import { nextPieceId } from '../../model/cart-line-key';
+import { isMovableLine } from '../../model/cart-line-grouping';
+import { orderItemLinePackingCharge } from '@/lib/utils/order-packing-charges';
 import { NEW_ORDER_DEFAULT_SOURCE_CODE } from '@/lib/constants/order-sources';
 import { ORDER_TYPE_IDS } from '@/lib/constants/order-types';
 import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
@@ -62,11 +65,133 @@ function appendPieces(line: OrderItem, added: PreSubmissionPiece[] | undefined):
     ...(line.pieces ?? []),
     ...added.map((piece, index) => ({
       ...piece,
-      id: `temp-${line.lineKey}-${lastSeq + index + 1}`,
+      id: nextPieceId(line.lineKey, line.pieces, lastSeq + index + 1),
       itemId: line.lineKey,
       pieceSeq: lastSeq + index + 1,
     })),
   ];
+}
+
+/** A line's pieces, generating the ones a screen shows for a line that has none stored yet. */
+function materializedPieces(line: OrderItem): PreSubmissionPiece[] {
+  if (line.pieces?.length) return line.pieces;
+  return Array.from({ length: line.quantity }, (_, i) => ({
+    id: `temp-${line.lineKey}-${i + 1}`,
+    itemId: line.lineKey,
+    pieceSeq: i + 1,
+  }));
+}
+
+/** Copies of preference rows for a new row: a saved row's id would make Order Edit skip the copy. */
+function asNewPreferences(prefs: OrderItem['servicePrefs']): OrderItem['servicePrefs'] {
+  return prefs?.map((pref) => ({ ...pref, persistedId: undefined }));
+}
+
+const renumbered = (pieces: PreSubmissionPiece[]) => pieces.map((piece, i) => ({ ...piece, pieceSeq: i + 1 }));
+
+/**
+ * A line's estimates after its pieces changed. The server prices every preference from its code; these
+ * client figures only feed the on-screen estimate, and follow the same line + piece extras.
+ */
+function withEstimates(line: OrderItem, packingPriceByCode: Map<string, number> | undefined): OrderItem {
+  const extras = [line.servicePrefs, ...(line.pieces ?? []).map((piece) => piece.servicePrefs)]
+    .flatMap((prefs) => prefs ?? [])
+    .reduce((sum, pref) => sum + (pref.extra_price ?? 0), 0);
+  const piecePacking = line.pieces?.some((piece) => piece.packingPrefCode);
+  const next: OrderItem = {
+    ...line,
+    servicePrefCharge: line.servicePrefCharge == null && extras === 0 ? undefined : extras,
+    packingPrefCharge: piecePacking && packingPriceByCode
+      ? orderItemLinePackingCharge(line, packingPriceByCode)
+      : line.packingPrefCharge,
+  };
+  return { ...next, totalPrice: itemLineBasePlusPrefCharges(next) };
+}
+
+/**
+ * Takes one piece off `source` and puts it on `target`, or on a new open line right after the source
+ * (catalog price, order speed, no discount; the line's care preferences copied). An emptied source is removed.
+ * @param state the cart state
+ * @param move the source, the piece (default: the last one), the target, and for a measured split both measures
+ * @returns the next state, or the same one when the piece is unknown
+ */
+function movePiece(
+  state: NewOrderState,
+  move: {
+    source: OrderItem;
+    target?: OrderItem;
+    pieceId?: string;
+    newLineKey: LineKey;
+    unitPrice?: number;
+    packingPriceByCode?: Map<string, number>;
+    measures?: { source: OrderItemMeasure; moved: OrderItemMeasure };
+  },
+): NewOrderState {
+  const { source, target, pieceId, newLineKey, unitPrice, packingPriceByCode, measures } = move;
+  // A count line without stored pieces moves by quantity alone, unless a piece is named or the target stores pieces.
+  const tracked = Boolean(pieceId || source.pieces?.length || target?.pieces?.length);
+  const sourcePieces = tracked ? materializedPieces(source) : [];
+  const moved = pieceId ? sourcePieces.find((piece) => piece.id === pieceId) : sourcePieces[sourcePieces.length - 1];
+  if (pieceId && !moved) return state;
+
+  const quantity = source.quantity - 1;
+  const nextSource = quantity === 0 ? null : withEstimates({
+    ...source,
+    quantity,
+    ...(measures ? { measure: measures.source } : {}),
+    pieces: moved ? renumbered(sourcePieces.filter((piece) => piece !== moved)) : source.pieces,
+  }, packingPriceByCode);
+
+  const landOn = (lineKey: LineKey, piece: PreSubmissionPiece, pieces: PreSubmissionPiece[]): PreSubmissionPiece => ({
+    ...piece,
+    id: nextPieceId(lineKey, pieces, pieces.length + 1),
+    itemId: lineKey,
+    pieceSeq: pieces.length + 1,
+  });
+
+  let landed: PreSubmissionPiece | undefined;
+  let destination: OrderItem;
+  if (target) {
+    const pieces = tracked ? materializedPieces(target) : [];
+    landed = moved ? landOn(target.lineKey, moved, pieces) : undefined;
+    destination = withEstimates({
+      ...target,
+      quantity: target.quantity + 1,
+      pieces: landed ? renumbered([...pieces, landed]) : target.pieces,
+    }, packingPriceByCode);
+  } else {
+    const price = unitPrice ?? catalogUnitPrice(source);
+    landed = moved
+      ? { ...landOn(newLineKey, moved, []), persistedId: undefined, servicePrefs: asNewPreferences(moved.servicePrefs) }
+      : undefined;
+    destination = withEstimates({
+      ...source,
+      lineKey: newLineKey,
+      persistedItemId: undefined,
+      piecePriced: undefined,
+      quantity: 1,
+      ...(measures ? { measure: measures.moved } : {}),
+      notes: undefined,
+      priceOverride: null,
+      overrideReason: null,
+      overrideBy: null,
+      pricePerUnitBeforeOverride: undefined,
+      pricePerUnit: price,
+      defaultSellPrice: unitPrice ?? source.defaultSellPrice,
+      serviceSpeed: null,
+      lineDiscount: null,
+      servicePrefs: asNewPreferences(source.servicePrefs),
+      pieces: landed ? [landed] : undefined,
+    }, packingPriceByCode);
+  }
+
+  const items = state.items.flatMap((item) => {
+    if (item === source) return [...(nextSource ? [nextSource] : []), ...(target ? [] : [destination])];
+    return item === target ? [destination] : [item];
+  });
+  // The selection follows the piece, whose id changed with its line.
+  const selectedPieceId = moved && state.selectedPieceId === moved.id ? landed?.id ?? null : state.selectedPieceId;
+  return { ...state, items, selectedPieceId };
 }
 
 /**
@@ -264,45 +389,33 @@ export function newOrderReducer(
     }
 
     case 'SPLIT_MEASURED_SHARE': {
-      const { lineKey, newLineKey, share } = action.payload;
-      const index = state.items.findIndex((item) => item.lineKey === lineKey);
-      const source = state.items[index];
+      const { lineKey, newLineKey, share, unitPrice, packingPriceByCode } = action.payload;
+      const source = state.items.find((item) => item.lineKey === lineKey);
       if (!source || source.quantity < 2 || !source.measure) return state;
       const remaining = toMoney(source.measure.measuredQty).minus(share).toString();
-      const sourcePieces = source.pieces ?? [];
-      const moved = sourcePieces[sourcePieces.length - 1];
-      const sourceMeasure = { measuredQty: remaining, length: '', width: '' };
-      const shareMeasure = { measuredQty: share, length: '', width: '' };
-      const nextSource: OrderItem = {
-        ...source,
-        quantity: source.quantity - 1,
-        measure: sourceMeasure,
-        pieces: source.pieces ? sourcePieces.slice(0, -1) : undefined,
-        totalPrice: itemLineBasePlusPrefCharges({ ...source, quantity: source.quantity - 1, measure: sourceMeasure }),
-      };
-      // The new line is open: catalog price, order speed, no discount; it keeps the line's care preferences.
-      const unitPrice = catalogUnitPrice(source);
-      const newLine: OrderItem = {
-        ...source,
-        lineKey: newLineKey,
-        persistedItemId: undefined,
-        piecePriced: undefined,
-        quantity: 1,
-        measure: shareMeasure,
-        notes: undefined,
-        priceOverride: null,
-        overrideReason: null,
-        overrideBy: null,
-        pricePerUnitBeforeOverride: undefined,
-        pricePerUnit: unitPrice,
-        serviceSpeed: null,
-        lineDiscount: null,
-        pieces: moved ? [{ ...moved, id: `temp-${newLineKey}-1`, itemId: newLineKey, pieceSeq: 1 }] : undefined,
-        totalPrice: itemLineBasePlusPrefCharges({ ...source, quantity: 1, measure: shareMeasure, pricePerUnit: unitPrice }),
-      };
-      const items = [...state.items];
-      items.splice(index, 1, nextSource, newLine);
-      return { ...state, items };
+      return movePiece(state, {
+        source,
+        newLineKey,
+        unitPrice,
+        packingPriceByCode,
+        measures: {
+          source: { measuredQty: remaining, length: '', width: '' },
+          moved: { measuredQty: share, length: '', width: '' },
+        },
+      });
+    }
+
+    case 'MOVE_PIECE': {
+      const { lineKey, pieceId, toLineKey, newLineKey, unitPrice, packingPriceByCode } = action.payload;
+      const source = state.items.find((item) => item.lineKey === lineKey);
+      const target = toLineKey ? state.items.find((item) => item.lineKey === toLineKey) : undefined;
+      if (!source || !isMovableLine(source)) return state;
+      if (toLineKey) {
+        if (!target || target === source || target.productId !== source.productId || !isMovableLine(target)) return state;
+      } else if (source.quantity < 2) {
+        return state;
+      }
+      return movePiece(state, { source, target, pieceId, newLineKey, unitPrice, packingPriceByCode });
     }
 
     case 'REMOVE_ITEM':
@@ -340,7 +453,7 @@ export function newOrderReducer(
               const newPieces = [...pieces];
               for (let addIndex = 1; addIndex <= toAdd; addIndex += 1) {
                 newPieces.push({
-                  id: `temp-${item.lineKey}-${lastSeq + addIndex}`,
+                  id: nextPieceId(item.lineKey, newPieces, lastSeq + addIndex),
                   itemId: item.lineKey,
                   pieceSeq: lastSeq + addIndex,
                 });

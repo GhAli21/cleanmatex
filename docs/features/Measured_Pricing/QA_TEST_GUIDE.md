@@ -170,3 +170,85 @@ Apply 0848 first (HQ menu). Sign in to HQ as TECH_ADMIN or SUPER_ADMIN.
 45. Products & Items > Templates: a template shows "Unit" (all units) and price type Fixed / Per unit; "Needs weight / dimensions" are gone. Set a template to `KG` + Fixed: refused on price type. Set `KG` + Per unit: saved.
 46. Create an organization (or run catalog seeding) after step 45. **Expected:** that product is seeded with unit KG, not PC.
 47. Bulk templates: export, change `base_uom_code` of one new row, import. **Expected:** the new row has that unit; an old file with `requires_weight` columns still validates.
+
+## P7d - Sync units and the price check (steps 48-52)
+
+48. HQ > Organizations > one organization > Maintenance > Branches & Catalog > Units > **Check**. **Expected:** "No units or conversions are missing" (the database keeps organizations in step). Switch to Arabic: the panel is Arabic and right-to-left, unit codes stay left-to-right.
+49. **Sync units** > confirm. **Expected:** the confirmation says customized values are kept; success message, steps timeline, check runs again. A unit name the organization changed is still the changed one.
+50. Sign in as an HQ role without `uom_config:manage` and sync. **Expected:** refused (applies when HQ permission enforcement is on).
+51. Apply 0849. Create a KG product with no price, then HQ > organization > Setup Health. **Expected:** Catalog shows "Measured products without a price" (warning) with the product count; the tenant app Setup Health shows it too and Fix opens Catalog > Services.
+52. Give it a default price, or a price above zero in the Standard price list, and recheck. **Expected:** "All measured products have a price". A price only in a B2B or VIP list still reports it.
+
+## P7e - template guards, bulk file, minimum / step (steps 53-57)
+
+53. HQ > Units & Conversions > a unit an active template uses > Edit > switch **Active** off > Save. **Expected:** refused, naming the item codes (same as Deactivate).
+54. Apply 0850. Switch off a unit no template uses, then set a template to it (form, then bulk import). **Expected:** refused on the unit field. A template already inactive still saves; reactivating it on that unit is refused.
+55. Templates > New without a template code. **Expected:** "required" on the field, nothing saved.
+56. Bulk > Organization products > export an organization that has no products. **Expected:** the file lists `base_uom_code`, `price_type`, `min_billable_qty`, `billing_increment`.
+57. HQ > organization > Products: a measured product with a minimum and step. **Expected:** both shown under the unit; Arabic shows them right-to-left with the numbers left-to-right.
+
+## P8 - customer app order detail (steps 58-61)
+
+Sign in to the customer app (not guest) with a customer who has an order containing a measured line.
+58. Order detail. **Expected:** under the product, the measure ("2.5 m²"); Express added when the line's speed differs from the order's; "(1)", "(2)" for two identical lines.
+59. A line below the minimum or between billing steps. **Expected:** "Billed: ..." with the charged quantity. No such note otherwise.
+60. Switch to Arabic. **Expected:** Arabic product name, unit symbol and speed; right-to-left; numbers read correctly.
+61. Compare each line amount with the web tracking page. **Expected:** the same figures.
+
+## P9 - after removing the old unit columns (steps 62-68)
+
+Order: apply 0852, restart HQ and tenant apps on the new code, apply 0853, regenerate types.
+62. HQ: new template with unit KG, price type Per unit; then create an organization or Maintenance > Catalog fix. **Expected:** the new product's unit is KG.
+63. Tenant: Catalog > Services, create and edit a product, change its unit. **Expected:** saved; the list shows the unit code.
+64. Tenant: product CSV export, then import the same file with one new product code. **Expected:** accepted with its unit; a unit the organization does not have is refused.
+65. Tenant: Inventory > Stock, add and edit a retail item and adjust stock. **Expected:** unit shown and kept.
+66. HQ: bulk import a file with a blank unit and price type. **Expected:** piece, per unit. A file with only a `product_unit` column: refused with that explanation. An old export with extra retired columns: accepted.
+67. Customer app: booking catalog. **Expected:** products listed "per piece"; measured products absent.
+68. HQ > organization > Products and Setup Health still load.
+
+## Custom units (steps 69-71)
+
+69. Tenant: Catalog > Units & Conversions > New custom unit, Weight, code `BASKET`, leave the size empty. **Expected:** Save is disabled.
+70. Enter size 5 and save. **Expected:** the unit appears; Conversions shows BASKET to KG, 5 and 0.2. Arabic: labels and help in Arabic.
+71. Try code `KG`. **Expected:** refused as a system unit code. A Count custom unit saves without a size field.
+
+## Gap closure 2026-11-28 (steps 72-90)
+
+Use an organization with a product priced per kg: price 1.200, minimum 3, step 0.5.
+
+### Documents
+
+72. Order 1.8 kg of the product. **Expected:** the cart row reads "measured 1.8 kg · billed 3 kg × 1.200 OMR".
+73. Submit, then open the order page. **Expected:** the line says "1.8 kg · billed 3 kg (minimum)" and "3 kg × 1.200 OMR".
+74. Print the receipt and the order details; open the money view and the public tracking link. **Expected:** "1.8 kg · billed 3 kg (minimum) × 1.200 OMR" on each.
+75. Send the receipt in Arabic and in English. **Expected:** the same wording in the receipt's language.
+76. A 3.2 kg order. **Expected:** "billed 3.5 kg (per 0.5 kg)". A 4.5 kg order. **Expected:** no billed note.
+77. Issue the tax document. **Expected:** quantity 3 with unit KG, unit price 1.200.
+78. Customer app order detail of the 1.8 kg order. **Expected:** "Billed: 3 kg (minimum) × 1.200 OMR", Arabic likewise.
+
+### Product
+
+79. New product, unit field: type "kil" then Enter. **Expected:** Kilogram chosen; the price label reads "Price per kg"; "Min quantity" is gone.
+80. Minimum 3, step 0.5. **Expected:** "What will be charged" shows 2.4 kg billed 3 kg and 3.2 kg billed 3.5 kg. Typing a fourth decimal is not possible.
+81. New order screen. **Expected:** the product card shows "1.200 OMR / kg".
+
+### Units and conversions
+
+82. Units tab: search an Arabic name, filter Weight and Inactive. **Expected:** the list narrows; "n of m units"; Clear filters restores.
+83. Switch off a unit that has products. **Expected:** message with the number of products; the unit stays on. The Products column shows real counts.
+84. New Count unit with "Packaging unit" ticked; edit a custom unit's UN/ECE code and display order. **Expected:** saved. A system unit's code field is disabled.
+85. New conversion: choose a Weight unit. **Expected:** only Weight units on the other side, no packs. Type multiply 12 and divide 1. **Expected:** the mismatch message, Save disabled.
+86. Add the same pair twice. **Expected:** "already have a conversion". Delete your own pair. **Expected:** gone; system pairs have no delete button; a custom unit's only base pair is refused.
+87. Product page > Units and packs: add BOX to KG = 12. **Expected:** listed here only, not on the Units & Conversions page.
+
+### Measure window
+
+88. Add the product. Choose "BOX" under Enter in, type 1. **Expected:** "1 box = 12 kg", billed 12 kg; saved line shows 12 kg.
+89. Choose LB, type 10. **Expected:** "10 lb = 4.536 kg", billed 5 kg. Changing the unit clears the figure. An area product offers ft for length and width and shows metres.
+90. Open Keypad, enter 4.2, press Escape. **Expected:** the keypad closes, the window stays. Try on a touch screen: the device keyboard does not cover the keypad. Arabic: right-to-left.
+91. Edit a saved order, add a weighed item (1.8 kg) and open Review. **Expected:** the added line shows "Measured: 1.8"; an area item shows length and width.
+
+## Area units (steps 92-93, after applying 0859)
+
+92. Add "Square foot" from the system catalog, create a product priced 1.000 per ft², order it. **Expected:** the measure window asks "Length (ft)" and "Width (ft)"; 8 and 10 bill 80 ft² = 80.000 before tax. Under Enter in, choose m: 2 × 3 shows "= 6.5617 ft × 9.8425 ft".
+93. Create a custom Area unit. **Expected:** it is not offered as a product unit (product form and inventory). An HQ template cannot take it: the refusal shows on the unit field.

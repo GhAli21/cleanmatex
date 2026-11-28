@@ -214,7 +214,10 @@ class OrderTrackingService {
       name: json['name'] as String? ?? '',
       name2: json['name2'] as String?,
       quantity: (json['quantity'] as num?)?.toInt() ?? 1,
-      totalPrice: (json['totalPrice'] as num?)?.toDouble() ?? 0.0,
+      totalPrice: (json['lineTotalAmount'] as num?)?.toDouble() ??
+          (json['totalPrice'] as num?)?.toDouble() ??
+          0.0,
+      qualifier: OrderLineQualifierModel.fromJson(json['qualifier']),
     );
   }
 

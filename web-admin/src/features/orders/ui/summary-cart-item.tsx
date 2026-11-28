@@ -11,7 +11,7 @@
 import { memo, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { formatMoneyAmountWithCode, formatUnitPriceWithCode } from '@/lib/money/format-money';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { cn } from '@/lib/utils';
 import { CmxButton } from '@ui/primitives';
@@ -21,8 +21,9 @@ import { STAIN_CONDITIONS } from '@/lib/types/order-creation';
 import type { PreSubmissionPiece } from '@/src/features/orders/model/new-order-types';
 import { pieceColorCodesForDisplay } from '@/src/features/orders/lib/piece-color-utils';
 import type { CartQuoteLine } from '@/lib/types/cart-quote';
-import type { OrderItemMeasure, OrderItemUom } from '../model/new-order-types';
+import type { LineKey, OrderItemMeasure, OrderItemUom } from '../model/new-order-types';
 import { CartMeasureNote } from './cart-measure-note';
+import { NewLinePriceNote, PieceMoveHint, PieceMoveMenu } from './piece-move-menu';
 import { ServiceSpeedSelect } from './service-speed-select';
 import { useServiceSpeeds } from '../hooks/use-service-speeds';
 import type { SpeedOptionPreviewSource } from '../hooks/use-speed-option-previews';
@@ -110,7 +111,8 @@ interface ColorCatalogEntry {
 
 interface SummaryCartItemProps {
   itemNumber: number;
-  itemId: string;
+  /** The cart line (`LineKey`). */
+  itemId: LineKey;
   productName: string;
   productName2?: string;
   /** A measured line: its unit, what staff measured, and the re-measure action. */
@@ -144,6 +146,7 @@ interface SummaryCartItemProps {
 
 function SummaryCartItemComponent({
   itemNumber,
+  itemId,
   productName,
   productName2,
   uom,
@@ -276,6 +279,7 @@ function SummaryCartItemComponent({
     <div key={piece.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-1">
       <dt className="min-w-16">{tPieces('pieceNumber', { number: k + 1 })}</dt>
       <dd className="flex items-center gap-2">
+        <PieceMoveMenu lineKey={itemId} pieceId={piece.id} pieceNumber={k + 1} />
         {quote?.onPieceSpeedChange ? (
           <ServiceSpeedSelect
             size="line"
@@ -406,6 +410,9 @@ function SummaryCartItemComponent({
           </CmxButton>
         )}
 
+        {/* Move one piece to another line of this product (count lines) */}
+        {!uom && <PieceMoveMenu lineKey={itemId} />}
+
         {/* Delete */}
         <CmxButton
           type="button"
@@ -428,7 +435,13 @@ function SummaryCartItemComponent({
 
       {uom && (
         <div className="px-2 pb-1 ps-8">
-          <CartMeasureNote uom={uom} measure={measure} quoted={quote?.line?.measure} onEdit={onEditMeasure} />
+          <CartMeasureNote
+            uom={uom}
+            measure={measure}
+            quoted={quote?.line?.measure}
+            unitPrice={quote?.line ? formatUnitPriceWithCode(quote.line.unitPrice, { currencyCode, decimalPlaces, locale: moneyLocale }) : undefined}
+            onEdit={onEditMeasure}
+          />
           {onSplitMeasuredShare && quantity >= 2 && (
             <CmxButton
               type="button"
@@ -441,6 +454,7 @@ function SummaryCartItemComponent({
               {tLines('moveOneShare')}
             </CmxButton>
           )}
+          {onSplitMeasuredShare && quantity >= 2 && <NewLinePriceNote lineKey={itemId} />}
         </div>
       )}
 
@@ -468,6 +482,7 @@ function SummaryCartItemComponent({
           <div className="flex justify-between gap-2"><dt>{tLine('net')}</dt><dd className="tabular-nums">{fmt(quote.line.netAmount)}</dd></div>
           <div className="flex justify-between gap-2"><dt>{tLine('tax')}</dt><dd className="tabular-nums">{fmt(quote.line.taxAmount)}</dd></div>
           {showPieceRows ? pieceRows : null}
+          {trackByPiece && quote.line.pieces.length === 0 ? <PieceMoveHint lineKey={itemId} /> : null}
           <div className="flex justify-between gap-2 font-semibold text-foreground"><dt>{tLine('lineTotal')}</dt><dd className="tabular-nums">{fmt(quote.line.lineTotalAmount)}</dd></div>
         </dl>
       ) : null}

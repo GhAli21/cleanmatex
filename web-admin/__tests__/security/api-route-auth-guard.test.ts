@@ -39,7 +39,6 @@ const EXEMPT = [
   /^app\/api\/docs\/route\.ts$/, // public OpenAPI spec for the /api-docs Swagger viewer; no tenant data
   /^app\/api\/v1\/customers\/verify-otp\/route\.ts$/, // phone verification check; send-otp needs the staff session since 5d
   /^app\/api\/v1\/tenants\/(check-slug|register)\/route\.ts$/, // pre-session tenant signup flow
-  /^app\/api\/finance\/process-jobs\/route\.ts$/, // pg_cron-driven internal job: Bearer {FINANCE_OUTBOX_SECRET}, not a user session
 ];
 
 /** Routes that predate the rule. Review each in a follow-up package; never add to this list. */

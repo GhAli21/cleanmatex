@@ -1,6 +1,6 @@
 # Time and Timezone
 
-**Status:** `0828` through `0841` are applied on the local and remote databases. Version: [`version.txt`](./version.txt). The plan for all remaining work is [`MASTER_PLAN_v2.md`](./MASTER_PLAN_v2.md) (pack `0.1.47`: S1–S5 done, `0842`–`0846` applied by the user; S6 done in code; next S7; decisions D1–D29 and D32–D35 accepted, D30/D31 superseded by D33). Slice evidence: [`IMPLEMENTATION_REPORT.md`](./IMPLEMENTATION_REPORT.md). It wins over the older queue where they disagree about what comes next. Only the user applies migrations; the agent writes files and stops.
+**Status:** `0828` through `0841` are applied on the local and remote databases. Version: [`version.txt`](./version.txt). The plan for all remaining work is [`MASTER_PLAN_v2.md`](./MASTER_PLAN_v2.md) (pack `0.1.48`: S1–S5 done, `0842`–`0846` applied by the user; S6, S7 done in code; next S8; decisions D1–D29 and D32–D35 accepted, D30/D31 superseded by D33). Slice evidence: [`IMPLEMENTATION_REPORT.md`](./IMPLEMENTATION_REPORT.md). It wins over the older queue where they disagree about what comes next. Only the user applies migrations; the agent writes files and stops.
 
 Bring every instant, civil date, local time-of-day, schedule, log, and audit timestamp in the tenant app up to [`docs/dev/rules/time-and-timezone.md`](../../dev/rules/time-and-timezone.md).
 

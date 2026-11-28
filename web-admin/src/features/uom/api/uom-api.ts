@@ -31,6 +31,8 @@ export type AddableUnit = Pick<UomUnit, 'code' | 'name' | 'name2' | 'symbol' | '
 
 export const uomApi = {
   listUnits: (activeOnly = true) => call<UomUnit[]>(`/units?active_only=${activeOnly}`),
+  /** Every unit with the number of products on it (the Units page). */
+  listUnitsWithCounts: () => call<UomUnit[]>('/units?active_only=false&with_counts=true'),
   listAddable: () => call<AddableUnit[]>('/catalog'),
   addSystemUnits: (codes: string[]) => call<{ added: number }>('/units', send('POST', { kind: 'system', codes })),
   createUnit: (body: Record<string, unknown>) => call<UomUnit>('/units', send('POST', { kind: 'custom', ...body })),
@@ -40,4 +42,5 @@ export const uomApi = {
   createConversion: (body: Record<string, unknown>) => call<UomConversion>('/conversions', send('POST', body)),
   updateConversion: (id: string, body: Record<string, unknown>) => call<UomConversion>(`/conversions/${id}`, send('PATCH', body)),
   resetConversion: (id: string) => call<void>(`/conversions/${id}/reset`, send('POST')),
+  deleteConversion: (id: string) => call<void>(`/conversions/${id}`, send('DELETE')),
 };

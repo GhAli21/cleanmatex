@@ -23,6 +23,7 @@ jest.mock('next-intl', () => ({
 }))
 
 import { CmxAuditInfoCard } from '@/src/ui/data-display/cmx-audit-info-card'
+import { ClockProvider } from '@/src/ui/clock/clock-provider'
 
 /**
  * Keeps test rendering concise so each case focuses on the audit behavior under
@@ -155,13 +156,23 @@ describe('CmxAuditInfoCard', () => {
     expect(screen.getByText('Finance Manager')).toBeInTheDocument()
   })
 
-  it('renders formatted datetime output for explicit timestamp props', () => {
-    renderCard({
-      createdAt: '2026-06-18T10:00:00.000Z',
-    })
+  it('renders explicit timestamps in the screen clock zone (S7)', () => {
+    render(
+      <ClockProvider zone="Asia/Kathmandu" hourCycle="h23">
+        <CmxAuditInfoCard createdAt="2026-06-18T10:00:00.000Z" />
+      </ClockProvider>,
+    )
 
+    // 10:00Z is 15:45 in Kathmandu (+05:45), whatever the process zone.
     expect(
-      screen.getByText((content) => content.includes('2026')),
+      screen.getByText((content) => content.includes('2026') && content.includes('15:45')),
     ).toBeInTheDocument()
+  })
+
+  it('shows the not-available mark when no clock zone is known (fail closed)', () => {
+    renderCard({ createdAt: '2026-06-18T10:00:00.000Z' })
+
+    expect(screen.queryByText((content) => content.includes('2026'))).not.toBeInTheDocument()
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1)
   })
 })

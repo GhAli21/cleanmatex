@@ -5,11 +5,11 @@ Design: [DESIGN.md](DESIGN.md) · QA: [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md) · Ha
 | Phase | State | Notes |
 |---|---|---|
 | Design | ✅ Approved 2026-11-25 | owner accepted all §11 recommendations + measured "add to matching line" (§4.1) |
-| P1 Line identity | 🟢 Code done 2026-11-25 (owner QA + commit left) | branded `LineKey`; all line actions, cart UI, steps 2–4, Edit projection and Edit unsaved-changes check by line key; 3 existing bugs fixed on the way (log below); gates in log |
-| P2 Add rule | 🟢 Code done 2026-11-27 (owner QA + commit left) | add rule + closed lines; measured match-and-choose with Edit prices; exact one-share split; grid Σ badge + LIFO −; line numbers in cart and steps 2–4; gates in log |
-| P3 Move piece | ⬜ Not started | |
-| P4 Move saved piece (Edit) | ⬜ Not started | after P1–P3 QA (owner decision); 1 catalog migration; HQ: policy rule only, no code |
-| PF Create write-path check | ⬜ Not started | **required before the program closes** (owner, 2026-11-25); measure first, change only if it misses the target (DESIGN §9.2) |
+| P1 Line identity | 🟢 Code done 2026-11-25 (committed; owner QA left) | branded `LineKey`; all line actions, cart UI, steps 2–4, Edit projection and Edit unsaved-changes check by line key; 3 existing bugs fixed on the way (log below); gates in log |
+| P2 Add rule | 🟢 Code done; measure-dialog bug fixed 2026-11-28 (committed except the fix; owner QA left) | add rule + closed lines; measured match-and-choose with Edit prices; exact one-share split; grid Σ badge + LIFO −; line numbers in cart, steps 2–4 and dialogs; gates in log |
+| P3 Move piece | 🟢 Code done 2026-11-27 (owner QA + commit left) | move menu in cart and steps 2–4; new line or line N; price notes; saved pieces and Edit policy blocked with reason; item-level hint; gates in log |
+| P4 Move saved piece (Edit) | ❌ Dropped 2026-11-27 (owner) | staff remove the saved piece, add the product again, move the new piece |
+| PF Create write-path check | 🟡 Target confirmed 2026-11-27; batched; **open: where the app runs vs the database** | meets the target up to about 6 ms round trip, misses at 17 ms; results below |
 | P5 Product line mode | ⏸ On demand | only if staff ask for "always separate" products |
 
 No migrations so far. Planned: P4 (catalog rows), P5 (typed column, on demand).
@@ -34,3 +34,48 @@ No migrations so far. Planned: P4 (catalog rows), P5 (typed column, on demand).
   - Differences from DESIGN: (1) line numbers (§5.5) shipped in P2, not P3, because P2 is the first phase that creates two lines of one product; (2) the split action stays enabled and explains with a message when the measure has no exact share (a disabled button can't explain itself); (3) Esc closes the measure dialog from the choice step (Back button returns); (4) grid − on a one-piece measured line removes it like a count line, no extra confirm (a 2+ piece line goes through the measure re-check); (5) Edit price notes use the Organization currency formatter, so a foreign-currency order would show the Organization's decimals.
   - Gates: `tsc` 0; eslint 0 on 14 source + 2 test files; `check:ui` 0/0 on 10 UI files; `check:i18n` pass; new `.test.ts` type-checked with a temporary config; jest orders + characterization 740 pass / 2 fail (same environment failures as P1: payment components `Request is not defined`, `orders-simple-table`, `order-financial-view.ui` "Missing message"). New tests: `cart-line-grouping.test.ts` (20), measure dialog choice (2).
 - 2026-11-27: P2 build: `npm run build` exit 0 (compiled 4.0 min, type-check 11.5 min, 348/348 static pages).
+- 2026-11-27: **P3 done in code.** `MOVE_PIECE` reducer action sharing one move routine with the measured split; `isMovableLine` / `pieceMoveTargets`; `nextPieceId`; hook `movePiece` / `pieceMoveBlock`; `ui/piece-move-menu.tsx` (menu, item-level hint, "today's price" note) on the cart line, cart piece rows and steps 2, 3, 4. i18n `newOrder/lines.json` EN/AR. No migration, no API change.
+  - Existing bugs fixed: (1) a piece id could repeat after removing a piece and adding one; (2) P2 split in Order Edit copied saved preference ids onto the new line, so the new line's preferences were not sent; (3) P2 split copied the whole preference charge to both lines (on-screen estimate only; the server prices from codes).
+  - Differences from DESIGN: (1) a moved piece gets a new id on its new line (the selection follows it) instead of keeping its id, so every id keeps its line prefix and stays unique; (2) a blocked menu entry is `aria-disabled`, not disabled, so keyboard users reach its reason; (3) the line-header shortcut is an icon menu with the same entries, not a text button; (4) the item-level hint shows in the expanded cart line whenever the server prices no pieces (also PIECE-level fallback lines); Order Edit has no breakdown, so no hint there; (5) the new line's price uses today's catalog price only when the product's category is loaded (code `shortcut:` note).
+  - Gates: `tsc` 0; eslint 0 on changed files; `check:ui` 0/0 on 8 UI files; `check:i18n` pass; jest orders + characterization: all pass except the 2 known environment failures and their payment suites (`Request is not defined`). New tests: `piece-move.test.tsx` (15), Edit adapter move (1). Build: next line.
+- 2026-11-27: P3 build: `npm run build` exit 0 (compiled 5.2 min, TypeScript 4.5 min, 347/347 static pages). `/cmx-ui-design-review`: 3 findings fixed (blocked entry's reason unreachable by keyboard; paragraph inside a definition list; move button stretched on the narrow preference card). Not seen in a browser.
+- 2026-11-27: **PF measured and step 3 applied.** `order-service.ts`: pieces inserted per line with `createManyAndReturn` (ids matched by `piece_seq`); all piece preference / condition / colour / note rows in one `createManyAndReturn`. No migration, one transaction as before.
+  - Parity: old and new code wrote identical item, piece, preference, discount, charge and header rows at ITEM and PIECE level (temporary DB test, removed after the run). The demo organization wrote no tax rows, so tax rows were not compared; that code did not change.
+  - Other checks: create/commercial unit tests 137/137; DB proofs `order-change-edit-parity`, `order-cancel-chain-flow`, `order-change-settlement-race` 5/5; `tsc` 0 (needs `--max-old-space-size=8192`); eslint 0. `npm run build` not run (server-only change).
+  - Re-measure: `PF_MEASURE=1 PF_RTT_MS=0,2 npx jest --config jest.db.config.js order-create-write-path`.
+- 2026-11-27: remaining-work check against DESIGN. Open before the program closes: (0) **P2 bug, not fixed yet:** `new-order-content.tsx` prefills the measure dialog from the product's first cart line when ADDING, so the button is Save and the §4.1 "add to line" choice never shows (dialog tests pass no `initial`, so they did not catch it); (1) §5.5 line number missing in the price-override, discount and measure dialogs; (2) §15 DB tests missing: two lines of one product with different price overrides priced separately at ITEM and PIECE level, and an Edit policy deny refusing the whole §4.5 three-change merge (the three-change merge itself is proved in `order-change-edit-parity.db.test.ts`); (3) PF owner decision; (4) owner QA P1–P3 + PF, commit P3 + PF; (5) P4, after QA.
+- 2026-11-28: owner: fix all bugs; PF target confirmed for now; P4 dropped (remove + add instead); HQ rules and QA steps moved into QA_TEST_GUIDE. Fixed:
+  - (P2) adding a measured product already in the cart prefilled the dialog from its first line, so the "add to line" choice never showed (`measureDialogInitial`).
+  - (Order Edit) a saved piece removed and a new one added on the same line sent **nothing** (or a refused quantity change). Now sends ADD_PIECE then REMOVE_PIECE; proved UI state → preview → apply at ITEM and PIECE level.
+  - (Order Edit) the cart's leave-page check always said "unsaved changes" (it compared an old payload shape); it now follows the workspace's own change count.
+  - Removing a line's only piece in step 2 left a priced line with no pieces; it now removes the line.
+  - §5.5 line number added to the price-override, line/piece discount and measure dialogs.
+  - New DB proof `order-cart-line-grouping.db.test.ts` (ITEM + PIECE): two lines of one product priced separately; a measured merge denied by policy is refused whole; swapped piece applies.
+  - Gates: eslint 0; `check:ui` 0/0; `check:i18n` pass; jest orders + characterization 747 pass / 2 known environment failures; DB parity + line-grouping pass. Build 2026-11-28: **failed** (exit 1). It compiled, then type-check stopped on 2 errors outside this feature, so `tsc` is not clean: `app/api/v1/public/customer/auth/login/route.ts:35` (TS2345) and `lib/services/customer-app-auth.service.ts:467` (TS2769, `customer_code` missing). No error is in a Line Grouping file. Re-run the build once those are fixed.
+- 2026-11-28 re-check after those errors were fixed (outside this feature): `npm run build` exit 0 (compiled 3.7 min, TypeScript 2.4 min, 345/345 static pages); `tsc` 0; jest orders + characterization 759 pass / 2 known environment failures (10 payment suites still can't start); DB `order-change*`, `order-cart-line-grouping`, `order-cancel-chain` 9/9 suites, 16 tests (the `customer_code` fixture failures above are gone).
+- Commit note: `new-order-content.tsx` and `measure-line-dialog.tsx` also hold another session's uncommitted measure entry-unit work (new files `model/measure-entry.ts`, `hooks/use-measure-entry-units.ts`); commit both sets together.
+  - Not from this work: DB suites `order-change-apply`, `-concurrency`, `-tenant-isolation`, `-settlement-race`, `-reviewed-snapshots` fail because their fixtures insert customers without `customer_code`, now required by another session's local migration.
+
+### PF results (local PostgreSQL, 10 runs, shared quoted-create path)
+
+Statements per create, and time of the create transaction (p50 / p95, ms) at about 1.7 ms per round trip:
+
+| Shape (lines / pieces) | Statements before → after | Before | After |
+|---|---|---|---|
+| small (5 / 10) | 50 → 45 | 129 / 249 | 135 / 347 |
+| typical-large (30 / 60) | 125 → 95 | 466 / 657 | 373 / 569 |
+| heavy (60 / 150, preferences + conditions) | 756 → 217 | 1,994 / 2,444 | 1,044 / 1,685 |
+
+With added latency (the runs got different round trips from the Windows timer, so compare per statement, not column to column):
+
+| Shape | Before, 31.5 ms round trip | After, 17 ms round trip |
+|---|---|---|
+| small | 1,517 / 2,455 | 1,142 / 2,204 |
+| typical-large | 3,659 / 3,825 | 2,284 / 2,513 |
+| heavy | 19,206 / 22,667 | 5,260 / 7,500 |
+
+Reading: time ≈ local time + statements × round trip. Against the proposed target (typical p95 ≤ 1.5 s, no transaction over 3 s) the old code met the heavy limit only below about 0.7 ms round trip; the new code meets both up to about 6 ms. The quote step adds about 0.5 s at 17 ms and was not changed.
+
+Not measured: the full submit API (auth, payments, response) and a production build.
+
+Whole-Submit speed work continues in [Order_Create_Performance](../Order_Create_Performance/PLAN.md) (2026-11-28). Next change if the deployed round trip is higher: insert all items in one statement (matched by `order_item_srno`), item preferences in the same preference statement, and all pieces in one. The statement count then stays about the same for any order size.

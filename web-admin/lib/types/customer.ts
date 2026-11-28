@@ -52,6 +52,8 @@ export interface CustomerPreferences {
 export interface Customer {
   // Identity
   id: string;
+  customerCode?: string | null;
+  sysCustomerId?: string | null;
   customerNumber: string | null;
 
   // Basic Info
@@ -125,6 +127,7 @@ export interface CustomerWithTenantData extends Customer {
  */
 export interface CustomerListItem {
   id: string;
+  customerCode?: string | null;
   customerNumber: string | null;
   displayName: string | null; 
   name: string | null;
@@ -207,17 +210,20 @@ export interface CreateGuestCustomerRequest {
 }
 
 /**
- * Create Stub Customer (phone required)
+ * Create Stub Customer (phone or email required)
  */
 export interface CreateStubCustomerRequest {
   type: 'stub';
   firstName: string;
   lastName?: string;
-  phone: string;
+  phone?: string;
+  email?: string;
   displayName?: string;
   name?: string;
   name2?: string;
   categoryId?: string;
+  /** Confirmed global sys_customers_mst.id when connecting an existing global identity */
+  connectSysCustomerId?: string;
 }
 
 /**
@@ -235,6 +241,9 @@ export interface CreateFullCustomerRequest {
   otpCode?: string; // Required for phone verification
   preferences?: CustomerPreferences;
   addresses?: CreateAddressRequest[];
+  categoryId?: string;
+  /** Confirmed global sys_customers_mst.id when connecting an existing global identity */
+  connectSysCustomerId?: string;
 }
 
 /**
@@ -340,6 +349,88 @@ export interface MergeCustomersRequest {
   sourceCustomerId: string; // Customer to merge from (will be deactivated)
   targetCustomerId: string; // Customer to merge into
   reason?: string;
+}
+
+// ==================================================================
+// LOOKUP-FIRST IDENTITY & CONNECT TYPES
+// ==================================================================
+
+export type CustomerLookupStatus =
+  | 'ALREADY_IN_TENANT'
+  | 'INACTIVE_IN_TENANT'
+  | 'GLOBAL_MATCH_FOUND'
+  | 'IDENTITY_CONFLICT'
+  | 'NOT_FOUND';
+
+export interface CustomerLookupRequest {
+  phone?: string;
+  email?: string;
+}
+
+export interface TenantCustomerLookupMatch {
+  id: string;
+  customerCode: string | null;
+  sysCustomerId: string | null;
+  firstName: string;
+  lastName: string | null;
+  displayName: string | null;
+  phone: string | null;
+  email: string | null;
+  type: CustomerType;
+  isActive: boolean;
+}
+
+export interface GlobalCustomerLookupPreview {
+  sysCustomerId: string;
+  customerCode: string;
+  firstName: string;
+  lastName: string | null;
+  displayName: string | null;
+  maskedPhone: string | null;
+  maskedEmail: string | null;
+  matchedBy: 'phone' | 'email' | 'both';
+}
+
+export interface CustomerLookupResponse {
+  status: CustomerLookupStatus;
+  normalizedPhone: string | null;
+  normalizedEmail: string | null;
+  tenantCustomer?: TenantCustomerLookupMatch;
+  globalCustomer?: GlobalCustomerLookupPreview;
+  conflictMessage?: string;
+}
+
+export type CustomerCreateActionResult =
+  | 'CREATED_NEW'
+  | 'CONNECTED_EXISTING'
+  | 'ALREADY_EXISTS'
+  | 'INACTIVE_EXISTS';
+
+export interface CustomerCreateOrConnectResult {
+  customer: Customer;
+  action: CustomerCreateActionResult;
+}
+
+export type OrgCustomerAuditActionType =
+  | 'CREATED'
+  | 'LINKED_FROM_SYS'
+  | 'REACTIVATED'
+  | 'PROFILE_UPDATED'
+  | 'COMMERCIAL_UPDATED'
+  | 'DEACTIVATED';
+
+export interface CustomerAuditEntry {
+  id: string;
+  orgCustomerId: string;
+  sysCustomerId: string | null;
+  actionType: OrgCustomerAuditActionType;
+  changedFields: string[];
+  oldValues: Record<string, unknown> | null;
+  newValues: Record<string, unknown> | null;
+  actorUserId: string | null;
+  sourceChannel: string;
+  notes: string | null;
+  changedAt: string;
 }
 
 // ==================================================================

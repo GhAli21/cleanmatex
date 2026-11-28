@@ -1,9 +1,14 @@
 # Order Cart Line Grouping — Resume Here
 
-**State (2026-11-27):** P1 and P2 done in code (P1 committed; P2 owner QA + commit left, STATUS.md log). Next: P3 (move a piece between lines of one product, ITEM-level hint), then PF, then P4 after QA.
+**State (2026-11-28):** P1–P3 + PF batching done, plus the 2026-11-28 bug fixes. P4 dropped by the owner. Left: owner QA (QA_TEST_GUIDE, setup first) and commit; PF closes when the owner says where the app runs relative to the database (second batching step in STATUS only if far). P5 only on demand.
 
 ## What this is
 Let one product have several lines in an order (New Order + Order Edit), so garments of the same product can get their own price, measure, and (at ITEM commercial level) speed or discount. No screen-wide switch: an add rule plus a "Move to a new line" action.
+
+## P3 facts
+- One routine (`movePiece` in `new-order-reducer.ts`) serves `MOVE_PIECE` and `SPLIT_MEASURED_SHARE`; a moved piece gets a new id on its new line.
+- The saved-piece refusal lives in the hook (`pieceMoveBlock`) and `splitMeasuredShare`; it stays (P4 dropped).
+- Copied preference rows must drop `persistedId` on a new line (`asNewPreferences`).
 
 ## P2 facts for P3
 - The add rule lives in `model/cart-line-grouping.ts`; the reducer never merges on its own (`ADD_ITEM` needs `mergeInto`).

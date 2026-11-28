@@ -29,6 +29,7 @@ import { CmxStatement, CmxStatementGroup, CmxStatementLine, CmxStatementLineList
 import { useFinMoney } from './order-fin-money';
 import { lineLabel, sectionTitle, type Translator } from './order-fin-labels';
 import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
+import { formatUnitPriceWithCode } from '@/lib/money/format-money';
 import { useDateValueFormatter } from '@ui/clock';
 
 const NOT_COUNTED_STATES = ['pending', 'failed', 'voided', 'reversed'] as const;
@@ -48,6 +49,7 @@ export function OrderFinStatement({ view, resolved, onRetry }: OrderFinStatement
   const locale = useLocale();
   const fmtDateValue = useDateValueFormatter();
   const money = useFinMoney(view);
+  const tUom = useTranslations('uom');
   const print = resolved.layout === 'print';
   const showEmpty = resolved.showEmptySections || resolved.preset === 'full' || resolved.preset === 'audit';
   const cap = print || resolved.preset === 'audit' ? 0 : (resolved.lineCap ?? 0);
@@ -64,7 +66,14 @@ export function OrderFinStatement({ view, resolved, onRetry }: OrderFinStatement
   const setAll = (value: boolean) => setOpen(Object.fromEntries(expandableKeys.map((k) => [k, value])));
 
   const line = (key: OrderFinSectionKey, l: OrderFinLine) => {
-    const qualifier = formatLineQualifier(l.qualifier, { locale: locale === 'ar' ? 'ar' : 'en' });
+    const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+    const qualifier = formatLineQualifier(l.qualifier, {
+      locale: moneyLocale,
+      t: tUom,
+      formatUnitPrice: (price) => formatUnitPriceWithCode(price, {
+        currencyCode: view.currency.code ?? '', decimalPlaces: view.currency.decimalPlaces, locale: moneyLocale,
+      }),
+    });
     const name = lineLabel(l, key, t, locale);
     const label = qualifier ? `${name} · ${qualifier}` : name;
     const meta = [fmtDateValue(l.meta?.dateIso), l.meta?.ref].filter(Boolean).join(' · ') || undefined;

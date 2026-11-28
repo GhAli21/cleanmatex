@@ -77,15 +77,15 @@ beforeAll(async () => {
     }
 
     const customerA = await prisma.$queryRaw<Array<{ id: string }>>`
-      INSERT INTO public.org_customers_mst (tenant_org_id, name)
-      VALUES (${DEMO_TENANT}::uuid, ${`RLS test A ${randomUUID()}`})
+      INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name)
+      VALUES (gen_random_uuid()::text, ${DEMO_TENANT}::uuid, ${`RLS test A ${randomUUID()}`})
       RETURNING id
     `;
     tenantACustomerId = customerA[0].id;
 
     const customerB = await prisma.$queryRaw<Array<{ id: string }>>`
-      INSERT INTO public.org_customers_mst (tenant_org_id, name)
-      VALUES (${otherTenantId}::uuid, ${`RLS test B ${randomUUID()}`})
+      INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name)
+      VALUES (gen_random_uuid()::text, ${otherTenantId}::uuid, ${`RLS test B ${randomUUID()}`})
       RETURNING id
     `;
     tenantBCustomerId = customerB[0].id;

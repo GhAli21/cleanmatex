@@ -14,6 +14,7 @@ import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
 import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { PlusCircle, Search, Settings2, ShoppingCart } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
+import { RunNowButton } from '@features/billing/ui/run-now-button';
 import { CmxInput } from '@ui/primitives';
 
 import { CmxDataTable } from '@ui/data-display';
@@ -151,7 +152,8 @@ export function GiftCardListScreen() {
       {/* Header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h2 className="text-xl font-semibold">{t('title')}</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <RunNowButton kind="giftCards" onDone={() => refetch()} />
           <CmxButton
             variant="outline"
             size="sm"

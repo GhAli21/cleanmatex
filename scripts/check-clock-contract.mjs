@@ -173,6 +173,7 @@ const ALLOWLIST = new Map([
   // New migrations write `public.fn_cmx_dt_now()` or mark the line `-- CLOCK-OK: <reason>`.
   ['0847_bg_jobs_file_purge.sql', 'applied 2026-11-27; now() only for updated_at (instant)'],
   ['0848_hq_nav_uom_config.sql', 'written 2026-11-27 outside the clock program; now() only for updated_at (instant)'],
+  ['0849_setup_health_measured_price.sql', 'written 2026-11-27 outside the clock program; NOW() only for updated_at (instant)'],
 ]);
 const ZONE_DOORS = /CREATE(?: OR REPLACE)? FUNCTION\s+(?:public\.)?(?:fn_ops_zone|fn_cmx_dt_zone|fn_tenant_tz_validate|fn_hq_gen_cfg_validate)\b/i;
 const NEW_SQL_BANS = [

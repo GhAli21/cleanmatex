@@ -43,6 +43,10 @@ export const FINANCE_PERMISSIONS = {
   STORED_VALUE_VIEW_BALANCES: 'stored_value:view_balances',
   STORED_VALUE_ISSUE_ADVANCE: 'stored_value:issue_advance',
   STORED_VALUE_ISSUE_CREDIT_NOTE: 'stored_value:issue_credit_note',
+  /** Background Jobs 6g (0851): expire this Organization's due credit notes now. */
+  STORED_VALUE_EXPIRE_CREDIT_NOTES: 'stored_value:expire_credit_notes',
+  /** Background Jobs 6g (0851): expire this Organization's due loyalty points now. */
+  LOYALTY_EXPIRE_POINTS: 'loyalty:expire_points',
   CUSTOMERS_RECEIPT_ALLOCATE: 'customers:receipt_allocate',
   // Cash
   CASH_DRAWER_VIEW: 'cash_drawer:view',

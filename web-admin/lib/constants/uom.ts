@@ -43,6 +43,33 @@ export const UOM_SYSTEM_BASE_UNITS: Readonly<Record<UomDimension, string>> = {
   TIME: 'HR',
 };
 
+/**
+ * The area units a product can be priced in, each with the length unit its length and width are typed and
+ * stored in (area = length × width in that unit). Mirrors the guards of migration 0859. Any other area
+ * unit, a custom one included, has no side unit and cannot price a product.
+ */
+export const UOM_AREA_SIDE_UNITS: Readonly<Record<string, string>> = {
+  SQM: 'M',
+  SQFT: 'FT',
+};
+
+/**
+ * @param areaUnitCode an area unit
+ * @returns the unit its length and width are measured in, or undefined when it cannot be measured
+ * @example areaSideUnit('SQFT'); // 'FT'
+ */
+export function areaSideUnit(areaUnitCode: string | null | undefined): string | undefined {
+  return areaUnitCode ? UOM_AREA_SIDE_UNITS[areaUnitCode] : undefined;
+}
+
+/**
+ * @param unit an Organization unit
+ * @returns whether a product may be priced in it (every unit but an area unit without a side unit)
+ */
+export function canBeProductUnit(unit: { code: string; dimension: string }): boolean {
+  return unit.dimension !== UOM_DIMENSIONS.AREA || areaSideUnit(unit.code) !== undefined;
+}
+
 /** Unit of a line with no product (a custom item): one piece (0814 fn_uom_item_snapshot). */
 export const UOM_DEFAULT_COUNT_CODE = 'PC';
 
@@ -103,6 +130,14 @@ export const UOM_ERROR_CODES = {
   MEASURE_REQUIRED: 'MEASURE_REQUIRED',
   /** A measure, minimum or billing step on a count unit. */
   MEASURE_NOT_ALLOWED: 'MEASURE_NOT_ALLOWED',
+  /** An area unit without a side unit cannot price a product (0859). */
+  UOM_AREA_UNSUPPORTED: 'UOM_AREA_UNSUPPORTED',
+  /** Application: the Organization already has a unit with this code. */
+  UOM_CODE_EXISTS: 'UOM_CODE_EXISTS',
+  /** Application: this pair already has a conversion (in either direction). */
+  UOM_CONV_EXISTS: 'UOM_CONV_EXISTS',
+  /** Application: a conversion copied from the system catalog is switched off, never deleted. */
+  UOM_CONV_SYSTEM: 'UOM_CONV_SYSTEM',
 } as const;
 /** Derived union of UoM error codes. */
 export type UomErrorCode = (typeof UOM_ERROR_CODES)[keyof typeof UOM_ERROR_CODES];

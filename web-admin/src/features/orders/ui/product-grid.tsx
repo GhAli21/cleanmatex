@@ -8,7 +8,10 @@
 
 import { memo, useRef } from 'react';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { UOM_DIMENSIONS } from '@/lib/constants/uom';
+import { uomSymbol } from '@/lib/uom/format';
+import type { UomUnit } from '@/lib/types/uom';
 import { ProductCard } from './product-card';
 import { PreferencesPanel } from './preferences-panel';
 import { Camera, Package, Plus, Search } from 'lucide-react';
@@ -25,6 +28,7 @@ interface Product {
   service_category_code: string | null;
   product_image?: string | null;
   product_icon?: string | null;
+  base_uom_code?: string | null;
 }
 
 interface OrderItem {
@@ -36,6 +40,8 @@ interface OrderItem {
 }
 
 interface ProductGridProps {
+  /** The Organization's units; a measured product's card says what its price is per. */
+  units?: readonly UomUnit[];
   products: Product[];
   items: OrderItem[];
   /** Shown on each card when the order speed adds a premium the cart prices (P5-03b). */
@@ -73,6 +79,7 @@ interface ProductGridProps {
 }
 
 export const ProductGrid = memo(function ProductGrid({
+  units,
   products,
   items,
   speedNote = null,
@@ -113,6 +120,12 @@ export const ProductGrid = memo(function ProductGrid({
 
   // The server's price at the order speed, else the catalog price with a note that the cart prices it.
   const getItemPrice = (product: Product): number => speedPrices?.get(product.id) ?? (product.default_sell_price || 0);
+  const uiLocale = useLocale() === 'ar' ? 'ar' : 'en';
+  /** The symbol of a measured product's unit; counted products need none. */
+  const perUnitSymbol = (product: Product) => {
+    const unit = units?.find((u) => u.code === product.base_uom_code);
+    return unit && unit.dimension !== UOM_DIMENSIONS.COUNT ? uomSymbol(unit, uiLocale) : undefined;
+  };
 
   const prefsPanelRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -295,6 +308,7 @@ export const ProductGrid = memo(function ProductGrid({
                     product={product}
                     quantity={quantity}
                     price={price}
+                    perUnitSymbol={perUnitSymbol(product)}
                     speedNote={speedPrices?.has(product.id) ? speedPricedNote : speedNote}
                     currencyCode={currencyCode}
                     categoryLabel={categoryLabel}

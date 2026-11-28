@@ -17,7 +17,8 @@
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
-import { CmxButton, type CmxButtonProps } from '@ui/primitives'
+// The button file itself: the primitives barrel would pull server-backed fields into every keypad user.
+import { CmxButton, type CmxButtonProps } from '@ui/primitives/cmx-button'
 
 /**
  *

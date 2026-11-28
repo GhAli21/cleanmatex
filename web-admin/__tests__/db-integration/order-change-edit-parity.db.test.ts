@@ -44,7 +44,8 @@ jest.mock('@/lib/supabase/server', () => ({ createClient: async () => ({}) }));
 jest.mock('@/lib/supabase/client', () => ({ createClient: () => ({}), supabase: {} }));
 jest.mock('@/lib/services/tenant-settings.service', () => ({
   ...jest.requireActual('@/lib/services/tenant-settings.service'),
-  createTenantSettingsService: () => ({ getCurrencyConfig: async () => ({ currencyCode: 'OMR', decimalPlaces: 3 }) }),
+  // An unset setting leaves later collection at its defaults (partial allowed).
+  createTenantSettingsService: () => ({ getCurrencyConfig: async () => ({ currencyCode: 'OMR', decimalPlaces: 3 }), getSettingValue: async () => null }),
 }));
 
 import { prisma } from '@/lib/db/prisma';
@@ -69,8 +70,16 @@ import { resolveOrderFinDisplayConfig } from '@/src/features/orders/order-fin-vi
 import { readEditReview } from '@/src/features/orders/order-change/edit-review-view';
 import { orderFinancialViewSchema } from '@/lib/validations/order-fin-view-schemas';
 import type { OrderFinancialView } from '@/lib/types/order-fin-view';
+import { collectPaymentTx } from '@/lib/services/order-settlement.service';
+import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config.service';
+import { PAYMENT_NATURE } from '@/lib/constants/order-financial';
+import { createTaxDocumentTx, issueTaxDocumentTx } from '@/lib/services/tax-document-write.service';
+import { getTaxDocumentPrintDetail } from '@/lib/services/tax-document-read.service';
+import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
 import type { z } from 'zod';
 import type { orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
+
+const uomMessages = jest.requireActual('@/messages/en/uom.json') as { line: Record<string, string> };
 
 type Operation = z.infer<typeof orderChangeRequestSchema>['operations'][number];
 const ROLLBACK = 'EDIT_PARITY_FIXTURE_ROLLBACK';
@@ -153,13 +162,14 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
           INSERT INTO public.org_oc_edit_policy_asg_cf(tenant_org_id, scope, edit_policy_id, gap_acknowledged)
           VALUES (${tenantId}::uuid, 'ORGANIZATION', ${policyId}::uuid, true)`;
         await tx.$executeRaw`
-          INSERT INTO public.org_customers_mst(id, tenant_org_id, name) VALUES (${customerId}::uuid, ${tenantId}::uuid, 'Edit parity fixture')`;
+          INSERT INTO public.org_customers_mst(id, tenant_org_id, name, customer_code)
+          VALUES (${customerId}::uuid, ${tenantId}::uuid, 'Edit parity fixture', ${`PAR-C-${customerId.slice(0, 8)}`})`;
         // Two products at fixed prices; the shirt has an EXPRESS rule (sell price 3.000, 6 hours).
         await tx.$executeRaw`
           INSERT INTO public.org_product_data_mst(id, tenant_org_id, product_code, product_name, service_category_code, price_type,
             default_sell_price, turnaround_hh, tax_category_code, is_active, rec_status)
-          VALUES (${shirt}::uuid, ${tenantId}::uuid, ${`PAR-S-${shirt.slice(0, 8)}`}, 'Parity shirt', 'WASH_AND_IRON', 'PER_PC', 2, 24, 'STANDARD', true, 1),
-                 (${trouser}::uuid, ${tenantId}::uuid, ${`PAR-T-${trouser.slice(0, 8)}`}, 'Parity trouser', 'WASH_AND_IRON', 'PER_PC', 5, 24, 'STANDARD', true, 1)`;
+          VALUES (${shirt}::uuid, ${tenantId}::uuid, ${`PAR-S-${shirt.slice(0, 8)}`}, 'Parity shirt', 'WASH_AND_IRON', 'PER_UNIT', 2, 24, 'STANDARD', true, 1),
+                 (${trouser}::uuid, ${tenantId}::uuid, ${`PAR-T-${trouser.slice(0, 8)}`}, 'Parity trouser', 'WASH_AND_IRON', 'PER_UNIT', 5, 24, 'STANDARD', true, 1)`;
         // A measured product (Measured Pricing P5): kg, minimum 3, billed in steps of 0.5, 5.000 per kg.
         await tx.$executeRaw`
           INSERT INTO public.org_product_data_mst(id, tenant_org_id, product_code, product_name, service_category_code, price_type,
@@ -498,6 +508,11 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
           SELECT uom_code, uom_symbol, measured_qty::text AS measured_qty, billed_qty::text AS billed_qty, total_price::text AS total_price
           FROM public.org_order_items_dtl WHERE tenant_org_id = ${tenantId}::uuid AND id = ${soapRef}::uuid AND rec_status = 1`)[0];
         await edit([{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: soapRef, productId: soap, quantity: 1, measure: { measuredQty: '3.2' } } }]);
+        // The stored review of the new line carries its measure, signed by Preview and Apply alike.
+        const addedMeasure = await tx.$queryRaw<Array<{ measured: string | null }>>`
+          SELECT after_values->>'measuredQty' AS measured FROM public.org_order_change_ops_dtl
+          WHERE tenant_org_id = ${tenantId}::uuid AND client_ref = ${soapRef}::uuid AND operation_code = 'ADD_ITEM'`;
+        expect(addedMeasure).toEqual([{ measured: '3.2' }]);
         // 3.2 kg in steps of 0.5 is billed 3.5 kg: 17.5.
         expect(await soapRow()).toMatchObject({ uom_code: 'KG', uom_symbol: 'kg', billed_qty: '3.500000' });
         expect(money((await soapRow()).total_price)).toBe(money(17.5));
@@ -535,6 +550,70 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
           FROM public.org_order_items_dtl WHERE tenant_org_id = ${tenantId}::uuid AND id = ${pieceSoapRef}::uuid AND rec_status = 1`)[0];
         expect(mergedRow).toMatchObject({ quantity: 2, measured_qty: '4.000000', billed_qty: '4.000000' });
         expect(money(mergedRow.total_price)).toBe(money(20));
+
+        // ─── 12c. A measured order end to end: create, pay, re-measure, settle the difference, invoice ──
+        const mainOrderId = orderId;
+        const laundryCheckout = await quoteCheckout({
+          db: tx as unknown as CommercialDb, tenantId, customerId,
+          items: [{ productId: soap, quantity: 1, measure: { measuredQty: '1.8' }, pieces: [{}] }],
+        });
+        const laundry = await createUnpaidOrderFromCheckoutTx(tx as never, {
+          tenantId, checkout: laundryCheckout, committedBy: null, issuedBy: customerId,
+          order: { customerId, orderTypeId: 'POS', userId: actorId, userName: 'Parity cashier', paymentTypeCode: 'PAY_ON_COLLECTION',
+            items: [{ productId: soap, quantity: 1, pricePerUnit: 0, totalPrice: 0, pieces: [{ pieceSeq: 1 }] }] },
+        });
+        orderId = laundry.order.id;
+        await tx.$executeRaw`
+          UPDATE public.org_orders_mst SET current_status = 'processing'
+          WHERE tenant_org_id = ${tenantId}::uuid AND id = ${orderId}::uuid`;
+        const laundryLine = (await items())[0];
+        // 1.8 kg is under the 3 kg minimum: 3 kg × 5.000 is charged.
+        expect(money(laundryLine.total_price)).toBe(money(15));
+
+        /** What a customer document says about the line, from the money view's own data. */
+        const wording = async () => {
+          const view = await getOrderFinancialView(tenantId, orderId, resolveOrderFinDisplayConfig({ preset: 'detailed' }));
+          const line = view.sections.items?.lines?.find((l) => l.id === laundryLine.id);
+          return formatLineQualifier(line?.qualifier, {
+            t: (key, values) => Object.entries(values).reduce((s, [k, v]) => s.replace(`{${k}}`, v), uomMessages.line[key.slice('line.'.length)]),
+            formatUnitPrice: (price) => Number(price).toFixed(3),
+          });
+        };
+        expect(await wording()).toBe('1.8 kg · billed 3 kg (minimum) × 5.000');
+
+        const method = (await listEffectivePaymentMethodConfigs({ tenantId })).find((m) => m.is_enabled && !m.is_platform_disabled
+          && m.payment_nature === PAYMENT_NATURE.REAL_PAYMENT && !m.requires_cash_drawer && !m.gateway_code
+          && !['CHECK', 'BANK_TRANSFER'].includes(m.payment_method_code));
+        if (!method) throw new Error('Measured flow proof requires one non-cash, non-gateway payment method');
+        const balance = async () => Number((await tx.$queryRaw<Array<{ outstanding_amount: string }>>`
+          SELECT outstanding_amount::text AS outstanding_amount FROM public.org_orders_mst
+          WHERE tenant_org_id = ${tenantId}::uuid AND id = ${orderId}::uuid`)[0].outstanding_amount);
+        const payBalance = async () => collectPaymentTx({
+          tenantId, orderId, collectedBy: actorId, idempotencyKey: `measured-${randomUUID()}`,
+          paymentLegs: [{ paymentMethodId: method.id, amount: await balance(), reference: 'MEASURED-PROOF' }],
+        });
+        const firstDue = await balance();
+        await payBalance();
+        expect(await balance()).toBe(0);
+
+        // Re-weighed at 4.2 kg: billed 4.5 kg (steps of 0.5) = 22.500; only the difference is due.
+        await edit([{ seq: 1, code: 'CHANGE_ITEM_MEASURE', target: { kind: 'PERSISTED_ITEM', id: laundryLine.id }, payload: { measure: { measuredQty: '4.2' } } }]);
+        expect(money((await items())[0].total_price)).toBe(money(22.5));
+        expect(money(await balance())).toBe(money((firstDue / 15) * 7.5));
+        expect(await wording()).toBe('4.2 kg · billed 4.5 kg (per 0.5 kg) × 5.000');
+        await payBalance();
+        expect(await balance()).toBe(0);
+
+        // The tax document invoices the billed measure in the unit's UN/ECE code.
+        const totals = await header();
+        const documentId = await createTaxDocumentTx(tx as never, {
+          tenantId, orderId, documentType: 'SIMPLIFIED_INVOICE', triggerEvent: 'ON_ORDER_SUBMIT',
+          totalAmount: Number(totals.total_amount), taxAmount: Number(totals.total_tax_amount), currencyCode: 'OMR',
+        });
+        await issueTaxDocumentTx(tx as never, documentId, tenantId, actorId);
+        const invoice = await getTaxDocumentPrintDetail(tenantId, orderId, documentId);
+        expect(invoice.items).toEqual([expect.objectContaining({ quantity: 4.5, uomCode: 'KG', uomUneceCode: 'KGM', pricePerUnit: 5 })]);
+        orderId = mainOrderId;
 
         // ─── 13. Price the cart showed (P6-02e): a stale price is listed, Apply charges today's ──
         const shownRef = randomUUID();

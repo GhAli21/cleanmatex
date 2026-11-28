@@ -25,6 +25,7 @@ export function pricedQty(item: Pick<OrderItem, 'quantity' | 'uom' | 'measure'>)
   try {
     return resolveBilledMeasure({
       dimension: item.uom.dimension,
+      uomCode: item.uom.code,
       qtyDecimals: item.uom.qtyDecimals,
       measuredQty: item.measure?.measuredQty || undefined,
       length: item.measure?.length || undefined,

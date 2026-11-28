@@ -14,8 +14,8 @@ import { CmxTabsPanel } from '@ui/navigation';
 import { Package, MapPin } from 'lucide-react';
 import { cmxMessage } from '@ui/feedback';
 import { CmxUomSelect } from '@ui/forms/cmx-uom-select';
+import { canBeProductUnit } from '@/lib/constants/uom';
 import { useUomUnits } from '@features/uom/hooks/use-uom-units';
-import { legacyUnitToUomCode } from '@/lib/uom/legacy';
 import { UOM_DEFAULT_COUNT_CODE } from '@/lib/constants/uom';
 import {
   updateInventoryItemAction,
@@ -58,7 +58,7 @@ export default function EditItemModal({
 
   const [productName, setProductName] = useState(item.product_name || '');
   const [productName2, setProductName2] = useState(item.product_name2 || '');
-  const [productUnit, setProductUnit] = useState<string>(item.base_uom_code ?? legacyUnitToUomCode(item.product_unit) ?? UOM_DEFAULT_COUNT_CODE);
+  const [productUnit, setProductUnit] = useState<string>(item.base_uom_code ?? UOM_DEFAULT_COUNT_CODE);
   const [reorderPoint, setReorderPoint] = useState(String(item.reorder_point || 0));
   const [productCost, setProductCost] = useState(String(item.product_cost || 0));
   const [sellPrice, setSellPrice] = useState(String(item.default_sell_price || 0));
@@ -187,7 +187,7 @@ export default function EditItemModal({
           <Label className="block text-sm font-medium text-foreground mb-1">
             {t('labels.unit')}
           </Label>
-          <CmxUomSelect units={units} value={productUnit} onChange={setProductUnit} />
+          <CmxUomSelect units={units.filter(canBeProductUnit)} value={productUnit} onChange={setProductUnit} />
         </div>
         <div>
           <Label className="block text-sm font-medium text-foreground mb-1">

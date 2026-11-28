@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import {
@@ -23,10 +23,15 @@ import { useRTL } from '@/lib/hooks/useRTL'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { CmxUomSelect } from '@ui/forms'
 import { useUomUnits } from '@features/uom/hooks/use-uom-units'
+import { ProductUnitsSection } from '@features/uom/ui/product-units-section'
 import { useTaxItemClassOptions } from '../hooks/use-tax-item-class-options'
+import { ProductBillingExample } from './product-billing-example'
+import { typedQtyText, isQtyScaleValid } from '@/lib/uom/scale'
+import { uomSymbol } from '@/lib/uom/format'
 import { ProductSpeedPricingSection } from './product-speed-pricing-section'
 
 import { CmxStatusBadge } from '@ui/feedback';
+import { canBeProductUnit, UOM_DIMENSIONS } from '@/lib/constants/uom'
 import { FileAttachments, useFileAttachments } from '@features/file-util'
 import { FILE_CATEGORIES, FILE_SOURCES } from '@/lib/constants/file-util'
 import { useHasPermission } from '@/lib/hooks/use-has-permission'
@@ -95,6 +100,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
   const t = useTranslations('catalog')
   const tCommon = useTranslations('common')
   const tUom = useTranslations('uom')
+  const uiLocale = useLocale() === 'ar' ? 'ar' : 'en'
   const isRtl = useRTL()
   const { decimalPlaces } = useTenantCurrency()
   const taxItemClassOptions = useTaxItemClassOptions()
@@ -104,6 +110,9 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null)
   const canUpdateProduct = useHasPermission('products', 'update')
+
+  const unitList = useUomUnits(true).data
+  const units = useMemo(() => unitList ?? [], [unitList])
 
   /** Validation schema mirrors the persisted product payload used by the API. */
   const productFormSchema = useMemo(
@@ -124,8 +133,18 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
         is_active: z.boolean().default(true),
         product_image: z.string().nullable().optional(),
         product_icon: z.string().nullable().optional(),
+      }).superRefine((values, ctx) => {
+        // Minimum and step follow the unit: positive, with no more decimals than it allows.
+        const unit = units.find((u) => u.code === values.base_uom_code)
+        if (!unit || unit.dimension === UOM_DIMENSIONS.COUNT) return
+        for (const field of ['min_billable_qty', 'billing_increment'] as const) {
+          const text = values[field]?.trim()
+          if (!text) continue
+          if (!(Number(text) > 0)) ctx.addIssue({ code: 'custom', path: [field], message: tUom('product.positive') })
+          else if (!isQtyScaleValid(text, unit.qtyDecimals)) ctx.addIssue({ code: 'custom', path: [field], message: tUom('errors.UOM_QTY_SCALE') })
+        }
       }),
-    [tCommon]
+    [tCommon, tUom, units]
   )
 
   const form = useForm<ProductFormValues>({
@@ -166,9 +185,9 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
     label: isRtl ? category.name2 || category.name : category.name,
   }))
 
-  const units = useUomUnits(true).data ?? []
   const pickedUnit = units.find((u) => u.code === currentValues.base_uom_code)
-  const isMeasured = !!pickedUnit && pickedUnit.dimension !== 'COUNT'
+  const isMeasured = !!pickedUnit && pickedUnit.dimension !== UOM_DIMENSIONS.COUNT
+  const unitSymbol = pickedUnit ? uomSymbol(pickedUnit, uiLocale) : ''
 
   useEffect(() => {
     let mounted = true
@@ -359,23 +378,30 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
             </CmxFormField>
 
             <CmxFormField name="base_uom_code" label={t('unit')} required>
-              {({ id, value, onChange }) => (
-                <CmxUomSelect id={id} units={units} value={String(value ?? '')} onChange={onChange} />
+              {({ id, describedBy, invalid, value, onChange }) => (
+                <CmxUomSelect
+                  id={id}
+                  units={units.filter((u) => canBeProductUnit(u) || u.code === value)}
+                  value={String(value ?? '')}
+                  onChange={onChange}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                />
               )}
             </CmxFormField>
 
             {isMeasured && (
               <>
-                <CmxFormField name="min_billable_qty" label={tUom('product.minBillable')} description={tUom('product.minBillableHelp')}>
+                <CmxFormField name="min_billable_qty" label={tUom('product.minBillable', { unit: unitSymbol })} description={tUom('product.minBillableHelp')}>
                   {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
                     <CmxInput id={id} name={name} ref={ref} dir="ltr" inputMode="decimal" value={String(value ?? '')}
-                      onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-describedby={describedBy} aria-invalid={invalid} />
+                      onChange={(event) => onChange(typedQtyText(event.target.value, pickedUnit?.qtyDecimals ?? 0))} onBlur={onBlur} aria-describedby={describedBy} aria-invalid={invalid} />
                   )}
                 </CmxFormField>
-                <CmxFormField name="billing_increment" label={tUom('product.billingIncrement')} description={tUom('product.billingIncrementHelp')}>
+                <CmxFormField name="billing_increment" label={tUom('product.billingIncrement', { unit: unitSymbol })} description={tUom('product.billingIncrementHelp')}>
                   {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
                     <CmxInput id={id} name={name} ref={ref} dir="ltr" inputMode="decimal" value={String(value ?? '')}
-                      onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-describedby={describedBy} aria-invalid={invalid} />
+                      onChange={(event) => onChange(typedQtyText(event.target.value, pickedUnit?.qtyDecimals ?? 0))} onBlur={onBlur} aria-describedby={describedBy} aria-invalid={invalid} />
                   )}
                 </CmxFormField>
               </>
@@ -403,7 +429,11 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
           </CmxFormSection>
 
           <CmxFormSection title={t('pricing')} description={t('priceRegular')} layout="twoColumn">
-            <CmxFormField name="default_sell_price" label={t('priceRegular')} required>
+            <CmxFormField
+              name="default_sell_price"
+              label={isMeasured ? tUom('product.pricePer', { unit: unitSymbol }) : t('priceRegular')}
+              required
+            >
               {({ id, describedBy, invalid, value, onChange, onBlur, ref }) => (
                 <CmxMoneyField
                   id={id}
@@ -422,7 +452,8 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
             </CmxFormField>
 
 
-            <CmxFormField
+            {/* A measured product has "Minimum billable" instead; one product never shows two minimums. */}
+            {!isMeasured && <CmxFormField
               name="min_quantity"
               label={t('minQuantity')}
               optionalLabel={tCommon('optional')}
@@ -442,7 +473,16 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
                   aria-invalid={invalid}
                 />
               )}
-            </CmxFormField>
+            </CmxFormField>}
+
+            {isMeasured && pickedUnit && (
+              <ProductBillingExample
+                unit={pickedUnit}
+                minBillableQty={currentValues.min_billable_qty}
+                billingIncrement={currentValues.billing_increment}
+                unitPrice={currentValues.default_sell_price}
+              />
+            )}
 
             <CmxFormField
               name="turnaround_hh"
@@ -569,6 +609,12 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
           />
         ) : (
           <p className="mt-5 text-sm text-muted-foreground">{t('speedPricing.product.saveFirst')}</p>
+        )}
+
+        {mode === 'edit' && currentValues.id ? (
+          <ProductUnitsSection productId={currentValues.id} />
+        ) : (
+          <p className="mt-2 text-sm text-muted-foreground">{tUom('conversions.productSaveFirst')}</p>
         )}
       </CmxCardContent>
     </CmxCard>

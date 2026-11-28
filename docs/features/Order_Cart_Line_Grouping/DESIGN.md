@@ -308,11 +308,15 @@ Each phase ends with: gates green (`npm run build`, `npx eslint . --quiet`, `npm
 | **P1 Line identity** | `lineKey` model, all actions/handlers/UI by `lineKey`, piece ids, `ensureLineKeys`, Edit projection. **No visible behaviour change.** | tenant | none |
 | **P2 Add rule** | `resolveCartAddTarget` + all add paths; §4.1 match-and-choose step with Edit prices (§4.4), `MERGE_MEASURED`; §4.3 exact one-share split; §4.5 combined Edit DB test + HQ rules; grid badge/LIFO; measure dialog modes (`ADD` / `REMEASURE`). **Depends on** Measured Pricing's §4.2 fix and §8.1 helper (§0) | tenant | none |
 | **P3 Move piece** | `MOVE_PIECE` reducer action, cart + steps menus, line numbering, ITEM-level hint, i18n EN/AR, Edit: unsaved pieces only, saved pieces disabled with reason, "New line uses today's price" note in Edit (§4.4) | tenant | none |
-| **P4 Move saved piece (Order Edit)** | see §9.1 | tenant (+ HQ owner adds a policy rule; no HQ code) | 1 migration: catalog rows |
+| ~~P4 Move saved piece (Order Edit)~~ | **Dropped** (owner 2026-11-27): staff remove the saved piece, add the product again and move the new piece | — | — |
 | **PF Create write-path check (required before the program closes)** | see §9.2 | tenant | none expected |
 | **P5 Product line mode (on demand)** | typed column `org_product_data_mst.cart_line_mode TEXT NULL CHECK IN ('MERGE','SEPARATE')` (NULL = rule default), product form field, feeds R1. Only if staff ask for "always separate" products (wedding dresses, carpets by count) | tenant (+ HQ template mirror if HQ seeds products) | 1 migration |
 
-### 9.1 P4 in detail (move a saved piece in Order Edit)
+### 9.1 P4 in detail (dropped 2026-11-27, kept for the record)
+
+**Not to be built.** Instead: remove the saved piece in Order Edit, add the product again, move the new (unsaved) piece with the P3 menu. The new piece has its own barcode, tag and workflow status.
+
+**How P5 would be chosen, if ever built:** a manager sets it once per product on the product setup screen ("In the cart: add to the same line / always a new line"). The cashier chooses nothing while selling; the add rule (§4, R1) reads it. Today a cashier gets a separate line with ⇄ "Move to a new line", or because a priced, discounted or own-speed line is closed.
 
 | Area | Work |
 |---|---|
@@ -360,7 +364,8 @@ So an order with L lines and P pieces makes up to about 3L + 5P database round t
 
 1. **Closed-line rule (§4):** ✅ approved. A line with its own override, discount or speed takes no automatic pieces.
 2. **Measured products:** ✅ approved. New line per tap; re-measure only from the cart (§7). **Owner addition:** when the entered measure matches an existing line of the same product and service category, offer "Add to line N" or "Add as a new line" (§4.1; AREA excluded, with the reason).
-3. **P4 (move saved pieces in Order Edit):** ✅ after P1–P3 QA.
+3. **P4 (move saved pieces in Order Edit):** ~~after P1–P3 QA~~ dropped by the owner on 2026-11-27 (remove and add again).
+4. **PF target (§9.2):** confirmed "for now" on 2026-11-27: typical-large p95 ≤ 1.5 s, no create transaction over 3 s.
 
 ## 12. Risks
 

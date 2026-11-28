@@ -92,6 +92,14 @@ export interface OrderItemServicePref {
   persistedId?: string;
 }
 
+/** Prices a piece move needs and the reducer does not hold. */
+export interface PieceMovePrices {
+  /** Today's catalog unit price for a new line, when the product is loaded. */
+  unitPrice?: number;
+  /** Packing surcharges by code, to re-estimate lines whose pieces carry packing codes. */
+  packingPriceByCode?: Map<string, number>;
+}
+
 /**
  * Pre-submission piece data (before order creation)
  */
@@ -394,7 +402,15 @@ export type NewOrderAction =
    */
   | { type: 'ADD_ITEM'; payload: OrderItem; mergeInto?: LineKey; mergedMeasure?: OrderItemMeasure }
   /** Splits one equal measure share and the line's last piece off into a new open line right after it (DESIGN §4.3). */
-  | { type: 'SPLIT_MEASURED_SHARE'; payload: { lineKey: LineKey; newLineKey: LineKey; share: string } }
+  | { type: 'SPLIT_MEASURED_SHARE'; payload: { lineKey: LineKey; newLineKey: LineKey; share: string } & PieceMovePrices }
+  /**
+   * Moves one piece (default: the last) to `toLineKey`, or to a new open line `newLineKey` right after the
+   * source (DESIGN §5). Count lines of one product only.
+   */
+  | {
+      type: 'MOVE_PIECE';
+      payload: { lineKey: LineKey; pieceId?: string; toLineKey?: LineKey; newLineKey: LineKey } & PieceMovePrices;
+    }
   | { type: 'REMOVE_ITEM'; payload: LineKey }
   | { type: 'UPDATE_ITEM_QUANTITY'; payload: { lineKey: LineKey; quantity: number } }
   | { type: 'UPDATE_ITEM_MEASURE'; payload: { lineKey: LineKey; measure: OrderItemMeasure } }

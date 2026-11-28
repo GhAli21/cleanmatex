@@ -853,3 +853,9 @@ The first concrete coding target should be:
 * `mobile_core`, `mobile_l10n`, and `mobile_ui` minimum viable foundations
 
 Do not begin customer feature screens before that foundation exists.
+
+## Status updates
+
+- 2026-11-27 (Measured Pricing P8): order detail shows the server's line qualifier (measure, own speed, ordinal), the billed quantity when it differs, and the line amount `lineTotalAmount`. Booking of measured products is not built (server hides them; owner decision pending). Details: `docs/features/Measured_Pricing/STATUS.md` in the repository root.
+- 2026-11-28 (Measured Pricing gap closure): the billed note says why (minimum or billing step) and the line shows the unit price. Item row widget test 6 pass, analyzer clean; device QA step 78 in the feature QA guide.
+

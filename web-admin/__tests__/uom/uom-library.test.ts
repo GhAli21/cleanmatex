@@ -2,6 +2,8 @@
  * UoM library — conversion resolver, decimals rule, formatting. The resolver cases
  * mirror the database function fn_uom_convert (0813) and its QA checks (QA_TEST_GUIDE §P1).
  */
+import { typedQtyText } from '@/lib/uom/scale';
+import { billingExamples } from '@/lib/commercial/measure';
 import {
   areRatesReciprocal,
   assertQtyScale,
@@ -128,5 +130,28 @@ describe('parseUomErrorCode', () => {
     expect(parseUomErrorCode('duplicate key value')).toBeNull();
     expect(parseUomErrorCode('UOM_SOMETHING_NEW: x')).toBeNull();
     expect(parseUomErrorCode(null)).toBeNull();
+  });
+});
+
+describe('typedQtyText', () => {
+  it('keeps only what the unit allows', () => {
+    expect(typedQtyText('2,3755 kg', 3)).toBe('2.375');
+    expect(typedQtyText('1.5', 0)).toBe('1');
+    expect(typedQtyText('1..25', 2)).toBe('1.25');
+    expect(typedQtyText('-4', 2)).toBe('4');
+    expect(typedQtyText('', 2)).toBe('');
+  });
+});
+
+describe('billingExamples', () => {
+  it('shows the minimum and the step the way the line will be billed', () => {
+    expect(billingExamples({ qtyDecimals: 3, minBillableQty: '3', billingIncrement: '0.5' }))
+      .toEqual([{ measuredQty: '2.4', billedQty: '3' }, { measuredQty: '3.2', billedQty: '3.5' }]);
+    expect(billingExamples({ qtyDecimals: 2, billingIncrement: '0.25' })).toEqual([{ measuredQty: '1.6', billedQty: '1.75' }]);
+  });
+  it('shows nothing when no rule changes the bill or a value is not usable yet', () => {
+    expect(billingExamples({ qtyDecimals: 3 })).toEqual([]);
+    expect(billingExamples({ qtyDecimals: 3, minBillableQty: '0', billingIncrement: '.' })).toEqual([]);
+    expect(billingExamples({ qtyDecimals: 0, billingIncrement: '1' })).toEqual([]);
   });
 });

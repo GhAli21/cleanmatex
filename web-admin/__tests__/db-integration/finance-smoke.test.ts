@@ -212,7 +212,7 @@ describe('F-T5 finance DB smoke — F-04 B2B statement payment detail constraint
 /** Creates a minimal customer + B2B statement for `tenantId` inside the given tx; returns the statement id. */
 async function seedStatement(tx: TxClient, tenantId: string): Promise<string> {
   const cust = await tx.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id) VALUES (${tenantId}::uuid) RETURNING id`;
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id) VALUES (gen_random_uuid()::text, ${tenantId}::uuid) RETURNING id`;
   const stmt = await tx.$queryRaw<Array<{ id: string }>>`
     INSERT INTO public.org_b2b_statements_mst (tenant_org_id, customer_id, statement_no)
     VALUES (${tenantId}::uuid, ${cust[0].id}::uuid, ${`FT5-${randomUUID()}`})

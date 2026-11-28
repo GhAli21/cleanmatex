@@ -651,6 +651,9 @@ export class OrderService {
             )?.id ?? null
           : null;
 
+      const piecePrefRows: Prisma.org_order_preferences_dtlCreateManyInput[] = [];
+      const piecePositions = new Map<string, { index: number; pieceIndex: number }>();
+
       for (let index = 0; index < items.length; index++) {
         const item = items[index];
         const createdItem = await tx.org_order_items_dtl.create({
@@ -746,22 +749,23 @@ export class OrderService {
         // Always create pieces for each order item
         if (item.quantity > 0) {
           const pricePerPiece = item.totalPrice / item.quantity;
+          const pieceInputs = Array.from({ length: item.quantity }, (_, i) => item.pieces?.[i]);
 
-          for (let i = 0; i < item.quantity; i++) {
-            const pieceInput = item.pieces?.[i];
-            const pieceColors = effectivePieceColorsForPersist(pieceInput);
-            const piecePrefs = pieceInput?.servicePrefs ?? [];
-            const servicePrefChargePiece = piecePrefs.reduce(
-              (s, p) => s + Number(p.extra_price ?? 0),
-              0
-            );
-            const piecePackingCode = pieceInput?.packingPrefCode;
-            const packingChargePiece = piecePackingCode
-              ? packingPriceMapPrisma.get(piecePackingCode) ?? 0
-              : 0;
+          // One statement per line (Cart Line Grouping PF): a round trip per piece made large orders slow.
+          const createdPieces = await tx.org_order_item_pieces_dtl.createManyAndReturn({
+            select: { id: true, piece_seq: true },
+            data: pieceInputs.map((pieceInput, i) => {
+              const pieceColors = effectivePieceColorsForPersist(pieceInput);
+              const servicePrefChargePiece = (pieceInput?.servicePrefs ?? []).reduce(
+                (s, p) => s + Number(p.extra_price ?? 0),
+                0
+              );
+              const piecePackingCode = pieceInput?.packingPrefCode;
+              const packingChargePiece = piecePackingCode
+                ? packingPriceMapPrisma.get(piecePackingCode) ?? 0
+                : 0;
 
-            const createdPiece = await tx.org_order_item_pieces_dtl.create({
-              data: {
+              return {
                 tenant_org_id: tenantId,
                 order_id: order.id,
                 order_item_id: createdItem.id,
@@ -787,136 +791,123 @@ export class OrderService {
                 service_pref_charge: servicePrefChargePiece + packingChargePiece,
                 // P5-02: the piece's own §6.1 columns (allocated from its item, or priced).
                 ...commercial.pieceColumns(index, i),
-              },
-            });
-            commercial.recordPiece(index, i, createdPiece.id);
+              };
+            }),
+          });
+          // Matched by piece_seq: Postgres does not promise the order of returned rows.
+          const pieceIdBySeq = new Map(createdPieces.map((row) => [row.piece_seq, row.id]));
 
-            // Save piece conditions to org_order_preferences_dtl
+          for (let i = 0; i < pieceInputs.length; i++) {
+            const pieceInput = pieceInputs[i];
+            const pieceId = pieceIdBySeq.get(i + 1);
+            if (!pieceId) throw new Error(`Order create: piece ${i + 1} of line ${index + 1} was not returned`);
+            commercial.recordPiece(index, i, pieceId);
+            piecePositions.set(pieceId, { index, pieceIndex: i });
+
+            const pieceColors = effectivePieceColorsForPersist(pieceInput);
+            const piecePrefs = pieceInput?.servicePrefs ?? [];
             const conditions = pieceInput?.conditions ?? [];
-            if (conditions.length > 0) {
-              await tx.org_order_preferences_dtl.createMany({
-                data: conditions.map((code, cidx) => {
-                  const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
-                  const prefCfId = conditionCfIdByCode.get(preference_code);
-                  return {
-                    tenant_org_id: tenantId,
-                    order_id: order.id,
-                    prefs_no: cidx + 1,
-                    prefs_level: 'PIECE',
-                    order_item_id: createdItem.id,
-                    order_item_piece_id: createdPiece.id,
-                    preference_code,
-                    preference_content: preference_code,
-                    preference_sys_kind,
-                    prefs_source: prefsSourceOnCreate,
-                    extra_price: 0,
-                    branch_id: branchId ?? null,
-                    created_by: userId,
-                    ...(prefCfId ? { preference_id: prefCfId } : {}),
-                  };
-                }),
+            const owner = {
+              tenant_org_id: tenantId,
+              order_id: order.id,
+              prefs_level: 'PIECE',
+              order_item_id: createdItem.id,
+              order_item_piece_id: pieceId,
+              branch_id: branchId ?? null,
+              created_by: userId,
+            };
+            let prefsNo = 0;
+
+            // Piece conditions
+            for (const code of conditions) {
+              const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
+              const prefCfId = conditionCfIdByCode.get(preference_code);
+              piecePrefRows.push({
+                ...owner,
+                prefs_no: ++prefsNo,
+                preference_code,
+                preference_content: preference_code,
+                preference_sys_kind,
+                prefs_source: prefsSourceOnCreate,
+                extra_price: 0,
+                ...(prefCfId ? { preference_id: prefCfId } : {}),
               });
             }
 
-            // Save piece-level service prefs to org_order_preferences_dtl
-            if (piecePrefs.length > 0) {
-              const createdPiecePrefs = await tx.org_order_preferences_dtl.createManyAndReturn({
-                select: { id: true, preference_code: true, preference_sys_kind: true },
-                data: piecePrefs.map((pref, pidx) => ({
-                  tenant_org_id: tenantId,
-                  order_id: order.id,
-                  prefs_no: conditions.length + pidx + 1,
-                  prefs_level: 'PIECE',
-                  order_item_id: createdItem.id,
-                  order_item_piece_id: createdPiece.id,
-                  preference_code: pref.preference_code,
-                  preference_content: pref.preference_code,
-                  preference_sys_kind: 'service_prefs',
-                  prefs_source: pref.source ?? 'manual',
-                  extra_price: prefPrice('service_prefs', pref.preference_code, pref.extra_price ?? 0),
-                  branch_id: branchId ?? null,
-                  created_by: userId,
-                  ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
-                })),
+            // Piece-level service prefs
+            for (const pref of piecePrefs) {
+              piecePrefRows.push({
+                ...owner,
+                prefs_no: ++prefsNo,
+                preference_code: pref.preference_code,
+                preference_content: pref.preference_code,
+                preference_sys_kind: 'service_prefs',
+                prefs_source: pref.source ?? 'manual',
+                extra_price: prefPrice('service_prefs', pref.preference_code, pref.extra_price ?? 0),
+                ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
               });
-              for (const row of createdPiecePrefs) {
-                commercial.recordPreference({ id: row.id, sysKind: row.preference_sys_kind ?? '', code: row.preference_code, index, pieceIndex: i });
-              }
             }
 
-            // Save piece packing pref to org_order_preferences_dtl (PIECE level)
+            // Piece packing pref
             if (pieceInput?.packingPrefCode) {
-              const createdPiecePacking = await tx.org_order_preferences_dtl.create({
-                select: { id: true },
-                data: {
-                  tenant_org_id: tenantId,
-                  order_id: order.id,
-                  prefs_no: conditions.length + piecePrefs.length + 1,
-                  prefs_level: 'PIECE',
-                  order_item_id: createdItem.id,
-                  order_item_piece_id: createdPiece.id,
-                  preference_code: pieceInput.packingPrefCode,
-                  preference_content: pieceInput.packingPrefCode,
-                  preference_sys_kind: 'packing_prefs',
-                  prefs_owner_type: 'SYSTEM',
-                  prefs_source: prefsSourceOnCreate,
-                  extra_price: prefPrice('packing_prefs', pieceInput.packingPrefCode, packingChargePiece),
-                  branch_id: branchId ?? null,
-                  created_by: userId,
-                  ...(pieceInput.packingCfId ? { preference_id: pieceInput.packingCfId } : {}),
-                },
-              });
-              commercial.recordPreference({ id: createdPiecePacking.id, sysKind: 'packing_prefs', code: pieceInput.packingPrefCode, index, pieceIndex: i });
-            }
-
-            const packingOffset = pieceInput?.packingPrefCode ? 1 : 0;
-
-            // Save piece color(s) to org_order_preferences_dtl (PIECE level)
-            if (pieceColors.codes.length > 0) {
-              await tx.org_order_preferences_dtl.createMany({
-                data: pieceColors.codes.map((code, ci) => ({
-                  tenant_org_id: tenantId,
-                  order_id: order.id,
-                  prefs_no: conditions.length + piecePrefs.length + packingOffset + ci + 1,
-                  prefs_level: 'PIECE',
-                  order_item_id: createdItem.id,
-                  order_item_piece_id: createdPiece.id,
-                  preference_code: code,
-                  preference_content: code,
-                  preference_sys_kind: 'color',
-                  prefs_source: prefsSourceOnCreate,
-                  extra_price: 0,
-                  branch_id: branchId ?? null,
-                  created_by: userId,
-                  ...(pieceColors.cfIds[ci]
-                    ? { preference_id: pieceColors.cfIds[ci] as string }
-                    : {}),
-                })),
+              piecePrefRows.push({
+                ...owner,
+                prefs_no: ++prefsNo,
+                preference_code: pieceInput.packingPrefCode,
+                preference_content: pieceInput.packingPrefCode,
+                preference_sys_kind: 'packing_prefs',
+                prefs_owner_type: 'SYSTEM',
+                prefs_source: prefsSourceOnCreate,
+                extra_price: prefPrice(
+                  'packing_prefs',
+                  pieceInput.packingPrefCode,
+                  packingPriceMapPrisma.get(pieceInput.packingPrefCode) ?? 0
+                ),
+                ...(pieceInput.packingCfId ? { preference_id: pieceInput.packingCfId } : {}),
               });
             }
 
-            const colorOffset = pieceColors.codes.length;
+            // Piece color(s)
+            pieceColors.codes.forEach((code, ci) => {
+              piecePrefRows.push({
+                ...owner,
+                prefs_no: ++prefsNo,
+                preference_code: code,
+                preference_content: code,
+                preference_sys_kind: 'color',
+                prefs_source: prefsSourceOnCreate,
+                extra_price: 0,
+                ...(pieceColors.cfIds[ci] ? { preference_id: pieceColors.cfIds[ci] as string } : {}),
+              });
+            });
 
-            // Save piece notes to org_order_preferences_dtl (PIECE level)
+            // Piece notes
             if (pieceInput?.notes) {
-              await tx.org_order_preferences_dtl.create({
-                data: {
-                  tenant_org_id: tenantId,
-                  order_id: order.id,
-                  prefs_no: conditions.length + piecePrefs.length + packingOffset + colorOffset + 1,
-                  prefs_level: 'PIECE',
-                  order_item_id: createdItem.id,
-                  order_item_piece_id: createdPiece.id,
-                  preference_code: pieceInput.notes,
-                  preference_content: pieceInput.notes,
-                  preference_sys_kind: 'note',
-                  prefs_source: prefsSourceOnCreate,
-                  extra_price: 0,
-                  branch_id: branchId ?? null,
-                  created_by: userId,
-                },
+              piecePrefRows.push({
+                ...owner,
+                prefs_no: ++prefsNo,
+                preference_code: pieceInput.notes,
+                preference_content: pieceInput.notes,
+                preference_sys_kind: 'note',
+                prefs_source: prefsSourceOnCreate,
+                extra_price: 0,
               });
             }
+          }
+        }
+      }
+
+      // Every piece's preference rows in one statement, once the pieces exist.
+      if (piecePrefRows.length > 0) {
+        const createdPiecePrefs = await tx.org_order_preferences_dtl.createManyAndReturn({
+          select: { id: true, preference_code: true, preference_sys_kind: true, order_item_piece_id: true },
+          data: piecePrefRows,
+        });
+        for (const row of createdPiecePrefs) {
+          const position = piecePositions.get(row.order_item_piece_id ?? '');
+          // The session keeps only the priced kinds, so a charge can point at the row.
+          if (position) {
+            commercial.recordPreference({ id: row.id, sysKind: row.preference_sys_kind ?? '', code: row.preference_code, ...position });
           }
         }
       }

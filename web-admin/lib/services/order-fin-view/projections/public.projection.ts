@@ -31,7 +31,7 @@ function publicLine(l: OrderFinLine): OrderFinLine {
     role: l.role,
     state: l.state,
     countsInTotal: l.countsInTotal,
-    // The qualifier is customer wording by design (measure, speed name, ordinal); no ids, no money.
+    // The qualifier is customer wording by design (measure, billing rule, unit price, speed name, ordinal); no ids.
     ...(l.qualifier ? { qualifier: l.qualifier } : {}),
   };
 }

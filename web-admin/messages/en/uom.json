@@ -37,6 +37,8 @@
     "symbolEn": "Symbol (English)",
     "symbolAr": "Symbol (Arabic)",
     "countWhole": "Count units are always whole numbers.",
+    "baseRate": "Size of one unit in {base}",
+    "baseRateHelp": "For a 5 kg basket, enter 5.",
     "unece": "UN/ECE code (e-invoice)",
     "nothingToAdd": "Every system unit is already in your list.",
     "addSelected": "{count, plural, one {Add # unit} other {Add # units}}",
@@ -47,7 +49,23 @@
     "emptyTitle": "No units yet",
     "emptyDescription": "Add units from the system catalog or create a custom unit.",
     "resetConfirmTitle": "Reset {code} to system values?",
-    "resetConfirmDescription": "Your custom names, symbols, and decimal settings for this unit will be replaced with the system defaults."
+    "resetConfirmDescription": "Your custom names, symbols, and decimal settings for this unit will be replaced with the system defaults.",
+    "search": "Search units",
+    "searchPlaceholder": "Code, name or symbol",
+    "filterDimension": "Measures",
+    "filterStatus": "Status",
+    "filterAll": "All",
+    "noMatchTitle": "No units match",
+    "noMatchDescription": "Change the search or the filters.",
+    "clearFilters": "Clear filters",
+    "shown": "{shown} of {total} units",
+    "inUse": "{count, plural, one {Used by # product. Move it to another unit first.} other {Used by # products. Move them to another unit first.}}",
+    "baseLocked": "The base unit of a measure stays on.",
+    "packaging": "Packaging unit",
+    "packagingHelp": "Its size differs per product, such as a box. It converts per product only.",
+    "displayOrder": "Display order",
+    "displayOrderHelp": "Lower numbers are listed first. Optional.",
+    "uneceHelp": "2 or 3 capital letters or digits. Optional."
   },
   "conversions": {
     "add": "New conversion",
@@ -69,7 +87,20 @@
     "emptyTitle": "No conversions yet",
     "emptyDescription": "Add a conversion pair to convert quantities between units.",
     "resetConfirmTitle": "Reset conversion {from} → {to} to system values?",
-    "resetConfirmDescription": "Your custom multiply and divide rates for this conversion will be replaced with the system defaults."
+    "resetConfirmDescription": "Your custom multiply and divide rates for this conversion will be replaced with the system defaults.",
+    "delete": "Delete conversion",
+    "deleted": "Conversion deleted",
+    "deleteConfirmTitle": "Delete conversion {from} → {to}?",
+    "deleteConfirmDescription": "New work can no longer convert between these units. Past orders keep their figures.",
+    "active": "Active",
+    "preview": "1 {from} = {rate} {to}",
+    "notReciprocal": "Multiply rate × divide rate must equal 1.",
+    "rateInvalid": "Enter a number greater than zero, with at most 12 decimals.",
+    "productTitle": "Units and packs",
+    "productDescription": "How units convert for this product only, such as 1 box = 12 pieces. These come before the Organization-wide conversions.",
+    "productEmptyTitle": "No conversions for this product",
+    "productEmptyDescription": "Add one when a pack or another unit has its own size for this product.",
+    "productSaveFirst": "Save the product first to set its units and packs."
   },
   "errors": {
     "GENERIC": "Something went wrong. Please try again.",
@@ -88,12 +119,21 @@
     "UOM_QTY_SCALE": "This unit allows fewer decimal places.",
     "UOM_FIXED_PRICE_MEASURED": "A fixed price cannot be used with a measured unit.",
     "MEASURE_REQUIRED": "Enter the measure for this item.",
-    "MEASURE_NOT_ALLOWED": "This unit does not take a measure."
+    "MEASURE_NOT_ALLOWED": "This unit does not take a measure.",
+    "UOM_CODE_EXISTS": "You already have a unit with this code.",
+    "UOM_CONV_EXISTS": "These two units already have a conversion.",
+    "UOM_CONV_SYSTEM": "A system conversion cannot be deleted. Switch it off instead.",
+    "UOM_AREA_UNSUPPORTED": "Only square metres and square feet can price a product. Choose one of them."
+  },
+  "line": {
+    "billed": "billed {qty}",
+    "billedMinimum": "billed {qty} (minimum)",
+    "billedStep": "billed {qty} (per {step})"
   },
   "measure": {
     "label": "Measure ({unit})",
-    "length": "Length (m)",
-    "width": "Width (m)",
+    "length": "Length ({unit})",
+    "width": "Width ({unit})",
     "billed": "Billed: {qty}",
     "dialogTitle": "Measure — {product}",
     "recheckNotice": "Pieces changed from {from} to {to}. Check the total measure.",
@@ -103,12 +143,28 @@
     "minimumApplied": "Raised to the minimum for this item.",
     "incrementApplied": "Rounded up to the billing step.",
     "lineNote": "measured {measured} · billed {billed}",
-    "edit": "Change measure"
+    "edit": "Change measure",
+    "metre": "m",
+    "keypad": "Keypad",
+    "keypadClose": "Close keypad",
+    "keypadDock": "Dock keypad at the bottom",
+    "keypadBackspace": "Delete last digit",
+    "enterIn": "Enter in",
+    "converted": "{entered} = {converted}",
+    "keypadDecimal": "Decimal point",
+    "side": {
+      "M": "m",
+      "FT": "ft"
+    }
   },
   "product": {
-    "minBillable": "Minimum billable",
+    "minBillable": "Minimum billable ({unit})",
     "minBillableHelp": "Smallest measure charged. Optional; leave empty for none.",
-    "billingIncrement": "Billing step",
-    "billingIncrementHelp": "Measure is rounded up to this step. Optional."
+    "billingIncrement": "Billing step ({unit})",
+    "billingIncrementHelp": "Measure is rounded up to this step. Optional.",
+    "pricePer": "Price per {unit}",
+    "positive": "Enter a number greater than zero.",
+    "example": "What will be charged",
+    "billedAsMeasured": "The measure is charged exactly as entered."
   }
 }

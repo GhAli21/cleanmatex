@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Wallet, RefreshCw } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
+import { RunNowButton } from '@features/billing/ui/run-now-button';
 import { CmxDataTable } from '@ui/data-display';
 import { cmxMessage } from '@ui/feedback';
 import { getAllStoredValueSummaries } from '@/app/actions/customers/stored-value-actions';
@@ -50,10 +51,13 @@ export function StoredValueHubClient() {
           <h1 className="text-2xl font-semibold">{t('hubTitle')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('hubDescription')}</p>
         </div>
-        <CmxButton variant="outline" size="sm" onClick={load} className="flex items-center gap-2">
-          <RefreshCw className="h-4 w-4" />
-          {tCommon('refresh')}
-        </CmxButton>
+        <div className="flex flex-wrap gap-2">
+          <RunNowButton kind="creditNotes" onDone={() => void load()} />
+          <CmxButton variant="outline" size="sm" onClick={load} className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            {tCommon('refresh')}
+          </CmxButton>
+        </div>
       </div>
 
       {/* Table */}

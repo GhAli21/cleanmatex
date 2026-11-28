@@ -10,7 +10,18 @@
   "moveOneShare": "Move one piece to a new line",
   "moveOneShareFor": "Move one piece of {item} to a new line",
   "shareNotExact": "This line's measure can't be divided into equal shares. Change the measure first.",
-  "savedPieceCannotMove": "Saved pieces can't be moved to another line yet.",
+  "savedPieceCannotMove": "A saved piece can't be moved. Remove it, add the product again, then move the new piece.",
   "moveBlocked": "The order's edit policy doesn't allow this change now.",
-  "movedToLine": "Moved to line {number}"
+  "movedToLine": "Moved to line {number}",
+  "moveToNewLine": "Move to a new line",
+  "moveToLine": "Move to line {number}",
+  "movePieceFor": "Move piece {piece} of {item}",
+  "leavesPrice": "Leaves line {number}'s price",
+  "leavesDiscount": "Leaves line {number}'s discount",
+  "leavesSpeed": "Leaves line {number}'s speed",
+  "takesPrice": "Takes line {number}'s price",
+  "takesDiscount": "Takes line {number}'s discount",
+  "takesSpeed": "Takes line {number}'s speed",
+  "newLineTodaysPrice": "A new line uses today's price.",
+  "itemLevelHint": "Need a different speed, price or discount for one piece? Move it to a new line."
 }

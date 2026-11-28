@@ -27,6 +27,7 @@ import type { MinimalCustomer } from '../model/new-order-types';
 import type { ServicePreferenceCode } from '@/lib/types/service-preferences';
 import type { Customer } from '@/lib/types/customer';
 import { useTranslations } from 'next-intl';
+import { productLineNumber } from '../model/cart-line-grouping';
 import { cmxMessage } from '@ui/feedback';
 import { CustomItemModal } from './components/custom-item-modal';
 import { CmxCameraCaptureDialog } from '@ui/overlays';
@@ -142,6 +143,7 @@ export function NewOrderModals() {
   });
   const { servicePrefs } = usePreferenceCatalog(state.state.branchId);
   const t = useTranslations('newOrder');
+  const tLines = useTranslations('newOrder.lines');
   const hasPriceOverridePermission = useHasAnyPermission(
     NEW_ORDER_ACCESS.actions?.priceOverride.requirement.permissions ?? []
   );
@@ -392,19 +394,20 @@ export function NewOrderModals() {
     if (!item) return null;
 
     const hasOverride = item.priceOverride !== null && item.priceOverride !== undefined;
+    const lineNumber = productLineNumber(state.state.items, item.lineKey);
 
     // Calculate the original price (before override)
     const originalPrice = item.defaultSellPrice || item.pricePerUnit;
 
     return {
       id: item.productId,
-      productName: item.productName || 'Unknown Product',
+      productName: `${item.productName || 'Unknown Product'}${lineNumber ? ` · ${tLines('lineNumber', { number: lineNumber })}` : ''}`,
       quantity: item.quantity,
       calculatedPrice: originalPrice,
       currentPrice: item.priceOverride ?? item.pricePerUnit,
       hasOverride,
     };
-  }, [state.state.priceOverrideItemId, state.state.items]);
+  }, [state.state.priceOverrideItemId, state.state.items, tLines]);
 
   // V4 is the only maintained payment modal. The V02_ENHANCED / V3 variants were
   // retired (files backed up as *.tsx.bak); any legacy stored version code renders V4.

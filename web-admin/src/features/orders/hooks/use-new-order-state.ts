@@ -6,7 +6,8 @@
 import type { LineKey, OrderItemLineDiscount } from '../model/new-order-types';
 import { useNewOrderContext } from '../ui/context/new-order-context';
 import { newCartLineKey } from '../model/cart-line-key';
-import { equalMeasureShare } from '../model/cart-line-grouping';
+import { equalMeasureShare, isMovableLine, productLineNumber } from '../model/cart-line-grouping';
+import { newOrderReducer } from '../ui/context/new-order-reducer';
 import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
 import { resolveEditControlCapability, resolveEditControlGroup } from '../order-change/edit-control-capability';
 import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
@@ -14,6 +15,9 @@ import { sameMeasure } from '@/lib/services/order-change/order-change-line-money
 import type { NewOrderAction, NewOrderState, MinimalCustomer, OrderItem, OrderItemMeasure, PreSubmissionPiece, OrderItemServicePref, ServiceCategory, Product, CustomerSnapshotOverride } from '../model/new-order-types';
 import type { OrderSourceCode } from '@/lib/constants/order-sources';
 import type { OrderTypeId } from '@/lib/constants/order-types';
+
+/** Why a piece can't move: a measured or custom line, a saved piece (Order Edit), or the Edit policy. */
+export type PieceMoveBlock = 'NOT_MOVABLE' | 'SAVED_PIECE' | 'BLOCKED';
 
 /**
  * Optional snapshot when setting customer (for org_orders_mst columns)
@@ -51,7 +55,20 @@ export interface UseNewOrderStateWithDispatchReturn {
    * Moves one equal measure share and the last piece of a measured line to a new line (DESIGN §4.3).
    * @returns `OK`, or why nothing changed
    */
-  splitMeasuredShare: (lineKey: LineKey) => 'OK' | 'NOT_EXACT' | 'SAVED_PIECE' | 'BLOCKED';
+  splitMeasuredShare: (lineKey: LineKey, packingPriceByCode?: Map<string, number>) => 'OK' | 'NOT_EXACT' | 'SAVED_PIECE' | 'BLOCKED';
+  /**
+   * Why a piece (default: the line's last) can't move to `toLineKey`, or to a new line when omitted.
+   * @returns null when the move is allowed
+   */
+  pieceMoveBlock: (lineKey: LineKey, pieceId?: string, toLineKey?: LineKey) => PieceMoveBlock | null;
+  /**
+   * Moves one piece between lines of a product (DESIGN §5).
+   * @returns the line that received it and the piece's new id, or why nothing changed
+   */
+  movePiece: (
+    lineKey: LineKey,
+    move?: { pieceId?: string; toLineKey?: LineKey; packingPriceByCode?: Map<string, number> },
+  ) => { status: 'OK'; lineKey: LineKey; lineNumber: number; pieceId?: string } | { status: PieceMoveBlock };
   removeItem: (lineKey: LineKey) => boolean;
   /** @returns false when the change was held for a measure check (measured line) or refused; true when applied. */
   updateItemQuantity: (lineKey: LineKey, quantity: number) => boolean;
@@ -141,6 +158,24 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     return true;
   };
 
+  /** Today's catalog price of a line's product, when that product is loaded. */
+  // shortcut: only the selected category's products are loaded; otherwise a line moved to new shows the source's
+  // price until the server prices it (quote on New Order, review on Order Edit). Fetch by id if staff report it.
+  const todaysPrice = (lineKey: LineKey): number | undefined => {
+    const productId = state.items.find((item) => item.lineKey === lineKey)?.productId;
+    return state.products?.find((product) => product.id === productId)?.default_sell_price ?? undefined;
+  };
+
+  const pieceMoveBlock = (lineKey: LineKey, pieceId?: string, toLineKey?: LineKey): PieceMoveBlock | null => {
+    const source = state.items.find((item) => item.lineKey === lineKey);
+    if (!source || !isMovableLine(source)) return 'NOT_MOVABLE';
+    const piece = pieceId ? source.pieces?.find((p) => p.id === pieceId) : source.pieces?.[source.pieces.length - 1];
+    // Order Edit: only a piece added during this edit can move; a saved piece keeps its line (DESIGN §5.3).
+    if (piece?.persistedId) return 'SAVED_PIECE';
+    if (groupBlocked(['CHANGE_ITEM_QUANTITY', 'ADD_PIECE', 'REMOVE_PIECE']) || (!toLineKey && blocked('ADD_ITEM'))) return 'BLOCKED';
+    return null;
+  };
+
   // Helper functions for common actions. An Edit session keeps committed commercial identity here.
   const actions = {
     setCustomer: (customer: typeof state.customer, customerName: string, snapshot?: SetCustomerSnapshot) => {
@@ -192,7 +227,34 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       return item.lineKey;
     },
 
-    splitMeasuredShare: (lineKey: LineKey) => {
+    pieceMoveBlock,
+
+    movePiece: (
+      lineKey: LineKey,
+      { pieceId, toLineKey, packingPriceByCode }: { pieceId?: string; toLineKey?: LineKey; packingPriceByCode?: Map<string, number> } = {},
+    ) => {
+      const refusal = pieceMoveBlock(lineKey, pieceId, toLineKey);
+      if (refusal) return { status: refusal };
+      const newLineKey = newCartLineKey();
+      const action: NewOrderAction = {
+        type: 'MOVE_PIECE',
+        payload: { lineKey, pieceId, toLineKey, newLineKey, unitPrice: todaysPrice(lineKey), packingPriceByCode },
+      };
+      // The reducer is pure: running it here tells the caller where the piece landed.
+      const next = newOrderReducer(state, action);
+      if (next === state) return { status: 'NOT_MOVABLE' as const };
+      dispatch(action);
+      const destination = toLineKey ?? newLineKey;
+      const pieces = next.items.find((item) => item.lineKey === destination)?.pieces;
+      return {
+        status: 'OK' as const,
+        lineKey: destination,
+        lineNumber: productLineNumber(next.items, destination) ?? 1,
+        pieceId: pieces?.[pieces.length - 1]?.id,
+      };
+    },
+
+    splitMeasuredShare: (lineKey: LineKey, packingPriceByCode?: Map<string, number>) => {
       const line = state.items.find((item) => item.lineKey === lineKey);
       const share = line ? equalMeasureShare(line) : null;
       if (!line || !share) return 'NOT_EXACT' as const;
@@ -201,7 +263,10 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       if (blocked('ADD_ITEM') || groupBlocked(['CHANGE_ITEM_QUANTITY', 'REMOVE_PIECE']) || blocked('CHANGE_ITEM_MEASURE', 'ITEM')) {
         return 'BLOCKED' as const;
       }
-      dispatch({ type: 'SPLIT_MEASURED_SHARE', payload: { lineKey, newLineKey: newCartLineKey(), share } });
+      dispatch({
+        type: 'SPLIT_MEASURED_SHARE',
+        payload: { lineKey, newLineKey: newCartLineKey(), share, unitPrice: todaysPrice(lineKey), packingPriceByCode },
+      });
       return 'OK' as const;
     },
 

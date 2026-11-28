@@ -165,7 +165,7 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
             <div className="p-3 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">{t('labels.currentQty')}</p>
               <p className="text-2xl font-semibold tabular-nums">
-                {item.qty_on_hand} <span className="text-sm font-normal text-muted-foreground">{item.base_uom_code ?? item.product_unit}</span>
+                {item.qty_on_hand} <span className="text-sm font-normal text-muted-foreground">{item.base_uom_code}</span>
               </p>
             </div>
 

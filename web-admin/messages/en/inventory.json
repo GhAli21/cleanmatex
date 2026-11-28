@@ -57,16 +57,6 @@
     "overstock": "Overstock",
     "negativeStock": "Negative Stock"
   },
-  "units": {
-    "piece": "Piece",
-    "liter": "Liter",
-    "kg": "Kilogram",
-    "gram": "Gram",
-    "box": "Box",
-    "bottle": "Bottle",
-    "pack": "Pack",
-    "roll": "Roll"
-  },
   "actions": {
     "addItem": "Add Item",
     "editItem": "Edit Item",

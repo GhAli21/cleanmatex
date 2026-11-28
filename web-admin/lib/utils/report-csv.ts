@@ -4,10 +4,11 @@
  * double-quote, or newline) and escapes embedded quotes per RFC 4180.
  */
 
-type CsvCell = string | number | boolean | null | undefined;
+type CsvCell = string | number | boolean | Date | null | undefined;
 
 function escapeCell(value: CsvCell): string {
-  const s = value == null ? '' : String(value);
+  // Instants always leave as ISO `Z` (S7, §7.15); `String(date)` would print the server zone.
+  const s = value == null ? '' : value instanceof Date ? (Number.isNaN(value.getTime()) ? '' : value.toISOString()) : String(value);
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

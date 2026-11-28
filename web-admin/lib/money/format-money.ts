@@ -3,6 +3,7 @@
  * Uses ISO currency + fraction digits from tenant settings (TENANT_CURRENCY, TENANT_DECIMAL_PLACES).
  */
 
+import { UNIT_PRICE_DECIMALS } from '@/lib/constants/uom';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import {
   DEFAULT_RESOLVED_EXTRA_CONFIG,
@@ -175,6 +176,26 @@ export function formatMoneyAmountWithCode(
     maximumFractionDigits: dp,
   }).format(coerceAmount(amount));
   // B15: no invented currency — a blank code renders the bare number.
+  return cc ? `${num} ${cc}` : num;
+}
+
+/**
+ * A price of one unit (per kg, per m²): at least the currency's decimals, up to the 6 a unit price
+ * may carry (`UNIT_PRICE` class), so 0.045125 is not shown as 0.045.
+ * @param amount the stored unit price
+ * @param options currency, its decimals, locale and numeral options
+ * @returns e.g. `1.200 OMR`, `0.045125 OMR`
+ */
+export function formatUnitPriceWithCode(amount: MoneyAmountInput, options: FormatMoneyOptions): string {
+  const cc = options.currencyCode?.trim() ?? '';
+  const dp = clampDecimalPlaces(options.decimalPlaces);
+  const num = formatNumberForLocale(amount, {
+    locale: options.locale,
+    numberScript: options.numberScript,
+    groupingLocale: options.groupingLocale,
+    minimumFractionDigits: dp,
+    maximumFractionDigits: Math.max(dp, UNIT_PRICE_DECIMALS),
+  });
   return cc ? `${num} ${cc}` : num;
 }
 

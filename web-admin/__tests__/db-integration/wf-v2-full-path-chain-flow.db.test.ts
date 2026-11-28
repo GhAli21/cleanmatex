@@ -66,8 +66,8 @@ interface ChainSeed {
 
 async function seedOrder(): Promise<ChainSeed> {
   const customer = await prisma.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id, name)
-    VALUES (${DEMO_TENANT}::uuid, ${`Full path chain DB test ${randomUUID()}`})
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name)
+    VALUES (gen_random_uuid()::text, ${DEMO_TENANT}::uuid, ${`Full path chain DB test ${randomUUID()}`})
     RETURNING id
   `;
   const order = await prisma.$queryRaw<Array<{ id: string }>>`

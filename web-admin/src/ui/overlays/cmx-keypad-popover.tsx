@@ -35,7 +35,8 @@ import { createPortal } from 'react-dom';
 import { GripVertical, PanelBottom, X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { CmxKeypad, type CmxKeypadKey, type CmxKeypadProps } from '@ui/utilities';
+// The keypad file itself: the utilities barrel also carries the money keypad and its dependencies.
+import { CmxKeypad, type CmxKeypadKey, type CmxKeypadProps } from '@ui/utilities/cmx-keypad';
 import {
   clampToViewport,
   defaultAnchorPosition,

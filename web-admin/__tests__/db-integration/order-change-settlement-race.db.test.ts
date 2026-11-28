@@ -35,7 +35,7 @@ afterAll(async () => {
 
 async function createOrder(db: Pick<typeof prisma, '$queryRaw'>): Promise<{ orderId: string; customerId: string }> {
   const cust = await db.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id, name) VALUES (${DEMO_TENANT}::uuid, ${`WP18-CON5 ${randomUUID()}`}) RETURNING id`;
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name) VALUES (gen_random_uuid()::text, ${DEMO_TENANT}::uuid, ${`WP18-CON5 ${randomUUID()}`}) RETURNING id`;
   const order = await db.$queryRaw<Array<{ id: string }>>`
     INSERT INTO public.org_orders_mst (tenant_org_id, customer_id, order_no, currency_code, payment_type_code, total_amount)
     VALUES (${DEMO_TENANT}::uuid, ${cust[0].id}::uuid, ${`WP18-CON5-${randomUUID()}`}, 'OMR', 'PAY_ON_COLLECTION', 10)

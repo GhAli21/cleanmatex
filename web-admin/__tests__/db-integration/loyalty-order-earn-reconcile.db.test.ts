@@ -66,7 +66,7 @@ describe('P1B-15 loyalty earn reconciliation (DB-level)', () => {
         VALUES (${t}::uuid, 'P1B-15 test', 2, true, 1)
         ON CONFLICT (tenant_org_id) DO UPDATE SET earn_rate_per_unit = 2, is_active = true, rec_status = 1`;
       const cust = await tx.$queryRaw<Array<{ id: string }>>`
-        INSERT INTO public.org_customers_mst (tenant_org_id) VALUES (${t}::uuid) RETURNING id`;
+        INSERT INTO public.org_customers_mst (customer_code, tenant_org_id) VALUES (gen_random_uuid()::text, ${t}::uuid) RETURNING id`;
       const order = await tx.$queryRaw<Array<{ id: string }>>`
         INSERT INTO public.org_orders_mst (tenant_org_id, customer_id, order_no, currency_code, total_amount, outstanding_amount, refunded_amount)
         VALUES (${t}::uuid, ${cust[0].id}::uuid, ${`LY-${randomUUID()}`}, 'OMR', 10, 10, 0)

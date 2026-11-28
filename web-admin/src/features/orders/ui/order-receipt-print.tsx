@@ -6,7 +6,7 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
 import type { ReadyOrder } from '@features/orders/model/ready-order-types';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { formatMoneyAmountWithCode, formatUnitPriceWithCode } from '@/lib/money/format-money';
 import { formatStoredClock } from '@/lib/utils/operational-time';
 import { sourceLabel } from '@/lib/db/order-discounts-types';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
@@ -77,11 +77,17 @@ export function OrderReceiptPrint({
   const tWorkflowReady = useTranslations('workflow.ready');
   const tWorkflowLabels = useTranslations('workflow.labels');
   const tCommon = useTranslations('common');
+  const tUom = useTranslations('uom');
   const isRTL = useRTL();
   const locale = useLocale();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
-  const qualifierLocale = moneyLocale;
+  const qualifierText = (qualifier: ReadyOrder['items'][number]['qualifier']) =>
+    formatLineQualifier(qualifier, {
+      locale: moneyLocale,
+      t: tUom,
+      formatUnitPrice: (price) => formatUnitPriceWithCode(price, { currencyCode, decimalPlaces, locale: moneyLocale }),
+    });
   const fmt = (n: number) =>
     formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale });
 
@@ -155,8 +161,8 @@ export function OrderReceiptPrint({
             <div key={item.id} className="flex justify-between">
               <div className="flex-1">
                 <div className="font-medium">{item.productName}</div>
-                {formatLineQualifier(item.qualifier, { locale: qualifierLocale }) && (
-                  <div className="text-muted-foreground">{formatLineQualifier(item.qualifier, { locale: qualifierLocale })}</div>
+                {item.qualifier && qualifierText(item.qualifier) && (
+                  <div className="text-muted-foreground">{qualifierText(item.qualifier)}</div>
                 )}
                 <div className="text-[11px] text-muted-foreground">
                   {tWorkflowReady('quantity')}: {item.quantity}

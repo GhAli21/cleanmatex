@@ -9,6 +9,7 @@ import { mapChangeContextToEditBaseline } from '@features/orders/order-change/ed
 import type { OrderChangeContext } from '@/lib/types/order-change';
 import type { EditOrderBaseline } from '@features/orders/order-change/edit-order-view-model';
 import type { LineKey } from '@features/orders/model/new-order-types';
+import { newOrderReducer, initialState } from '@features/orders/ui/context/new-order-reducer';
 
 const ORDER_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const ITEM_A = '11111111-1111-4111-8111-111111111111';
@@ -186,6 +187,55 @@ describe('shared edit workspace adapter', () => {
     };
     expect(visualHeaderChangeCount(loaded, { ...sameHeader, items: visual.items })).toBe(0);
     expect(visualHeaderChangeCount(loaded, { ...sameHeader, items: [kept, added] })).toBe(2);
+  });
+
+  it('P3: a piece added to a saved line and moved to a new line is sent as a new line with its own preferences', () => {
+    const preferenceId = '55555555-5555-4555-8555-555555555555';
+    const stored: OrderChangeContext = {
+      ...context(),
+      preferences: [{
+        id: '44444444-4444-4444-8444-444444444444', orderId: ORDER_ID, level: 'ITEM', orderItemId: ITEM_A, orderItemPieceId: null,
+        preferenceId, preferenceCode: 'STARCH', preferenceKind: null, preferenceCategory: null, preferenceContent: null,
+        extraPrice: '1.0000', processingConfirmed: false, active: true,
+      }],
+    };
+    const mapped = mapChangeContextToEditBaseline(stored);
+    if (!mapped.ok) throw new Error('baseline');
+    const lineKey = ITEM_A as LineKey;
+    const seeded = { ...initialState, items: projectEditVisualOrder(stored).items };
+    const added = newOrderReducer(seeded, { type: 'UPDATE_ITEM_QUANTITY', payload: { lineKey, quantity: 2 } });
+    const moved = newOrderReducer(added, { type: 'MOVE_PIECE', payload: { lineKey, newLineKey: 'line-new' as LineKey, unitPrice: 6 } });
+
+    const controller = createEditOrderController();
+    applyVisualDraftToController(controller, mapped.baseline, {
+      notes: 'original', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
+      items: moved.items,
+    });
+    const operations = controller.buildOperations();
+    // The saved line is back to what was stored, so only the new line changes.
+    expect(operations.map((operation) => operation.code)).toEqual(['ADD_ITEM', 'ADD_PIECE', 'ADD_PREFERENCE']);
+    expect(operations[0]).toMatchObject({ payload: { productId: PRODUCT, quantity: 1, confirmedUnitPrice: '6.0000' } });
+  });
+
+  it.each([
+    ['the only saved piece swapped for a new one', 1],
+    ['one of two saved pieces swapped for a new one', 2],
+  ])('%s is sent as a piece added and a piece removed, never dropped', (_name, quantity) => {
+    const pieceIds = [PIECE_A, '33333333-3333-4333-8333-333333333334'].slice(0, quantity);
+    const stored = { ...context(), items: [item(ITEM_A, quantity)] };
+    stored.pieces = pieceIds.map((id, i) => ({ ...context().pieces[0]!, id, pieceSeq: i + 1 }));
+    const mapped = mapChangeContextToEditBaseline(stored);
+    if (!mapped.ok) throw new Error('baseline');
+    const [line] = projectEditVisualOrder(stored).items;
+    if (!line) throw new Error('line');
+    const swapped = { ...line, pieces: [...line.pieces!.slice(1), { id: 'temp-new', itemId: line.lineKey, pieceSeq: quantity }] };
+    const header = { notes: 'original', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com' };
+
+    const controller = createEditOrderController();
+    applyVisualDraftToController(controller, mapped.baseline, { ...header, items: [swapped] });
+    // The new piece comes first: removing a line's last saved piece first would retire the line.
+    expect(controller.buildOperations().map((operation) => operation.code)).toEqual(['ADD_PIECE', 'REMOVE_PIECE']);
+    expect(visualHeaderChangeCount(mapped.baseline, { ...header, items: [swapped] })).toBe(2);
   });
 
   it('P6-02b: shows a line\'s own speed and turns cart speed choices into Edit operations', () => {

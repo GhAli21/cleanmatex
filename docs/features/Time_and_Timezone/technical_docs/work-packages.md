@@ -1,6 +1,6 @@
 # Work packages
 
-Live queue: [`../RESUME_CONTINUATION.md`](../RESUME_CONTINUATION.md). Read **Risks while implementing** in that file before editing. Refresh that file at the end of every slice. Current version is `0.1.47` (S1–S5 done, `0842`–`0846` applied; S6 done in code). The next step is S7 in [`../MASTER_PLAN_v2.md`](../MASTER_PLAN_v2.md), which maps the open packages to slices (WP6→S3/S4/S14, WP10/WP11→S6, WP16/WP17→S7, WP18→S8, WP19→S11, WP20→S12, WP21→S13, WP22→S14). Do not start again at WP1. Do not treat a route or screen named below as still open until you check `CHANGELOG.md`. `0828` through `0841` are already applied. Do not edit them. Only the user applies migrations (D17): the agent writes the SQL file and stops, as the "write the SQL and stop" line below says. SQL names in the master plan use `fn_cmx_dt_*` (the deployed `fn_ops_zone` is wrapped by `fn_cmx_dt_zone`); a package below that says `fn_ops_*` for new work means that family. `RESUME_CONTINUATION.md` wins when they disagree.
+Live queue: [`../RESUME_CONTINUATION.md`](../RESUME_CONTINUATION.md). Read **Risks while implementing** in that file before editing. Refresh that file at the end of every slice. Current version is `0.1.48` (S7 done in code; S1–S5 done, `0842`–`0846` applied; S6 done in code). The next step is S7 in [`../MASTER_PLAN_v2.md`](../MASTER_PLAN_v2.md), which maps the open packages to slices (WP6→S3/S4/S14, WP10/WP11→S6, WP16/WP17→S7, WP18→S8, WP19→S11, WP20→S12, WP21→S13, WP22→S14). Do not start again at WP1. Do not treat a route or screen named below as still open until you check `CHANGELOG.md`. `0828` through `0841` are already applied. Do not edit them. Only the user applies migrations (D17): the agent writes the SQL file and stops, as the "write the SQL and stop" line below says. SQL names in the master plan use `fn_cmx_dt_*` (the deployed `fn_ops_zone` is wrapped by `fn_cmx_dt_zone`); a package below that says `fn_ops_*` for new work means that family. `RESUME_CONTINUATION.md` wins when they disagree.
 
 Do the packages in order. A package that says "migration" produces a new SQL file and stops. It does not apply the file.
 
@@ -269,11 +269,15 @@ Refresh export and import routes. Starting routes: `app/api/v1/customers/export`
 
 **Close-out:** name the routes and one sample file that was rejected.
 
+**S7 (0.1.48):** helpers in `web-admin/lib/clock/api-output.ts`; routes/components: customers export (`toApiInstant`), report CSV `toCsv` (Date → `Z`), `CmxDataGrid` / `DataTable` (Date → `Z`, civil-day file name), price-history CSV (UTC, local, zone). `products/export`, `ar/invoices/export`, `pricing/export` already used civil-day names. FX import: civil `rate_date` only, `2026-01-01T10:00` is rejected by the date pattern.
+
 ## WP17 — Logs and audit screens
 
 Log formatters in `web-admin`, `cmx-api/src/common/utils/logger.ts`, `cmx-workers/src/log.ts`, and `cmx_mobile_apps/packages/mobile_core/lib/src/app_logger.dart` write UTC ISO-8601. A line about a civil decision adds the zone id. Audit screens format the stored instant with the operations zone. They do not display the naive column when a `timestamptz` twin exists. Log lines stay free of customer payloads.
 
 **Close-out:** name the four loggers and the audit screens.
+
+**S7 (0.1.48):** audit screens: `CmxAuditInfoCard` and `CmxAuditColumn` (all list/detail audit popovers) format in the screen clock zone or viewer zone, `—` without one. Health: `GET /api/v1/health/clock`. Loggers were already UTC (no change).
 
 ## WP18 — Jobs besides the notification outbox
 

@@ -182,6 +182,7 @@ ui_components:
   hex_color_field: "import { CmxHexColorField } from '@ui/forms'"
   quantity_measure_input: "import { CmxQuantityMeasureInput } from '@ui/forms'"
   uom_select: "import { CmxUomSelect } from '@ui/forms'"
+  combobox: "import { CmxCombobox } from '@ui/forms'  // searchable, grouped single choice"
   # ── Overlays ─────────────────────────────────────────────────────
   dialog: "import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'"
   camera_capture_dialog: "import { CmxCameraCaptureDialog } from '@ui/overlays'"

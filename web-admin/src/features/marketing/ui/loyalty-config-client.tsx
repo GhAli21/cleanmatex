@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { RunNowButton } from '@features/billing/ui/run-now-button';
 import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, Label } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import { cmxMessage } from '@ui/feedback';
@@ -183,9 +184,12 @@ export function LoyaltyConfigClient() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
+      <div className="flex items-start justify-between gap-2 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold">{t('title')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
+        </div>
+        <RunNowButton kind="loyalty" />
       </div>
 
       {/* Config Card */}

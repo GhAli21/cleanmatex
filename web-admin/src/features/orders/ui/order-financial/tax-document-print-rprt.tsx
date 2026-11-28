@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import type { TaxDocumentPrintDetail } from '@/lib/services/tax-document-read.service';
 import { useInstantFormatter } from '@ui/clock';
+import { UNIT_PRICE_DECIMALS, UOM_DEFAULT_COUNT_CODE } from '@/lib/constants/uom';
 
 interface TaxDocumentPrintRprtProps {
   detail: TaxDocumentPrintDetail;
@@ -14,12 +15,14 @@ interface TaxDocumentPrintRprtProps {
  * @param amount - Monetary amount already stored on the tax document.
  * @param currencyCode - Stored ISO currency code, if present.
  * @param locale - Active display locale.
+ * @param maxDigits - Most decimals to keep (a unit price may carry 6).
  * @returns Localized currency output or a plain decimal when the code is absent.
  */
 function formatCurrency(
   amount: number,
   currencyCode: string | null,
   locale: string,
+  maxDigits = 4,
 ) {
   const resolvedCurrencyCode = currencyCode?.trim();
   return new Intl.NumberFormat(locale === 'ar' ? 'ar' : 'en', {
@@ -27,7 +30,7 @@ function formatCurrency(
       ? { style: 'currency' as const, currency: resolvedCurrencyCode }
       : { style: 'decimal' as const }),
     minimumFractionDigits: 2,
-    maximumFractionDigits: 4,
+    maximumFractionDigits: maxDigits,
   }).format(amount);
 }
 
@@ -189,8 +192,12 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
                 <tr key={item.lineNo} className="border-t border-border">
                   <td className="px-3 py-2 text-muted-foreground">{item.lineNo}</td>
                   <td className="px-3 py-2 text-foreground">{(locale === 'ar' && item.productName2) || item.productName}</td>
-                  <td className="px-3 py-2 text-end tabular-nums">{item.quantity}</td>
-                  <td className="px-3 py-2 text-end tabular-nums">{formatCurrency(item.pricePerUnit, detail.currencyCode, locale)}</td>
+                  <td className="px-3 py-2 text-end tabular-nums">
+                    {item.quantity}
+                    {/* A measured line names the unit it is invoiced in (snapshot at issue). */}
+                    {item.uomCode !== UOM_DEFAULT_COUNT_CODE && <> <bdi dir="ltr">{item.uomCode}</bdi></>}
+                  </td>
+                  <td className="px-3 py-2 text-end tabular-nums">{formatCurrency(item.pricePerUnit, detail.currencyCode, locale, UNIT_PRICE_DECIMALS)}</td>
                   <td className="px-3 py-2 text-end tabular-nums">{item.discountAmount ? formatCurrency(item.discountAmount, detail.currencyCode, locale) : '—'}</td>
                   <td className="px-3 py-2 text-end tabular-nums">{formatCurrency(item.netAmount, detail.currencyCode, locale)}</td>
                   <td className="px-3 py-2 text-end tabular-nums">{formatCurrency(item.taxAmount, detail.currencyCode, locale)} ({item.taxRate}%)</td>

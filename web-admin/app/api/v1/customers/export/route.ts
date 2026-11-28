@@ -9,15 +9,15 @@ import { searchCustomers } from '@/lib/services/customers.service';
 import type { CustomerSearchParams } from '@/lib/types/customer';
 import { civilDateInZone } from '@/lib/utils/operational-time';
 import { resolveOperationalTimeZone } from '@/lib/utils/operational-zone.server';
+import { toApiInstant } from '@/lib/clock/api-output';
 
 /**
  * Convert customers to CSV format
  * @param customers
  */
+/** ISO `Z` cell; offset-less text is refused rather than read in the server zone (S7 `toApiInstant`). */
 function instantIso(value: string | Date | null | undefined): string {
-  if (!value) return '';
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+  return toApiInstant(value) ?? '';
 }
 
 function convertToCSV(customers: any[], zone: string | null): string {

@@ -54,8 +54,8 @@ async function seed(): Promise<Seed> {
   const actorId = actors[0]?.id;
   if (!tenantId || !actorId) throw new Error('NO_ELIGIBLE_ORDER');
   const customer = await prisma.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id, name)
-    VALUES (${tenantId}::uuid, ${`WP18 ${randomUUID()}`})
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name)
+    VALUES (gen_random_uuid()::text, ${tenantId}::uuid, ${`WP18 ${randomUUID()}`})
     RETURNING id`;
   const order = await prisma.$queryRaw<Array<{ id: string; state_version: number }>>`
     INSERT INTO public.org_orders_mst

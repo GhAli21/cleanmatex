@@ -4268,7 +4268,9 @@ export type Database = {
           floor: string | null
           id: string
           is_active: boolean
+          is_customer_app_enabled: boolean
           is_main: boolean | null
+          is_pos_enabled: boolean
           latitude: number | null
           longitude: number | null
           name: string | null
@@ -4308,7 +4310,9 @@ export type Database = {
           floor?: string | null
           id?: string
           is_active?: boolean
+          is_customer_app_enabled?: boolean
           is_main?: boolean | null
+          is_pos_enabled?: boolean
           latitude?: number | null
           longitude?: number | null
           name?: string | null
@@ -4348,7 +4352,9 @@ export type Database = {
           floor?: string | null
           id?: string
           is_active?: boolean
+          is_customer_app_enabled?: boolean
           is_main?: boolean | null
+          is_pos_enabled?: boolean
           latitude?: number | null
           longitude?: number | null
           name?: string | null
@@ -6600,6 +6606,87 @@ export type Database = {
           },
         ]
       }
+      org_customer_audit_dtl: {
+        Row: {
+          action_type: string
+          actor_user_id: string | null
+          changed_at: string
+          changed_fields: Json
+          id: string
+          new_values: Json | null
+          notes: string | null
+          old_values: Json | null
+          org_customer_id: string
+          source_channel: string
+          sys_customer_id: string | null
+          tenant_org_id: string
+        }
+        Insert: {
+          action_type: string
+          actor_user_id?: string | null
+          changed_at?: string
+          changed_fields?: Json
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+          org_customer_id: string
+          source_channel?: string
+          sys_customer_id?: string | null
+          tenant_org_id: string
+        }
+        Update: {
+          action_type?: string
+          actor_user_id?: string | null
+          changed_at?: string
+          changed_fields?: Json
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+          org_customer_id?: string
+          source_channel?: string
+          sys_customer_id?: string | null
+          tenant_org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_org_cust_aud_cust"
+            columns: ["org_customer_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_customers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_org_cust_aud_sys"
+            columns: ["sys_customer_id"]
+            isOneToOne: false
+            referencedRelation: "sys_customers_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_org_cust_aud_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_org_cust_aud_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_org_cust_aud_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_customer_category_cf: {
         Row: {
           code: string
@@ -7044,6 +7131,7 @@ export type Database = {
           created_info: string | null
           credit_limit: number | null
           customer_category_id: string | null
+          customer_code: string
           customer_id: string | null
           customer_source_type: string
           display_name: string | null
@@ -7053,6 +7141,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_credit_hold: boolean | null
+          is_hidden_by_customer: boolean
           last_name: string | null
           loyalty_points: number | null
           name: string | null
@@ -7089,6 +7178,7 @@ export type Database = {
           created_info?: string | null
           credit_limit?: number | null
           customer_category_id?: string | null
+          customer_code: string
           customer_id?: string | null
           customer_source_type?: string
           display_name?: string | null
@@ -7098,6 +7188,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_credit_hold?: boolean | null
+          is_hidden_by_customer?: boolean
           last_name?: string | null
           loyalty_points?: number | null
           name?: string | null
@@ -7134,6 +7225,7 @@ export type Database = {
           created_info?: string | null
           credit_limit?: number | null
           customer_category_id?: string | null
+          customer_code?: string
           customer_id?: string | null
           customer_source_type?: string
           display_name?: string | null
@@ -7143,6 +7235,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_credit_hold?: boolean | null
+          is_hidden_by_customer?: boolean
           last_name?: string | null
           loyalty_points?: number | null
           name?: string | null
@@ -19809,6 +19902,239 @@ export type Database = {
         }
         Relationships: []
       }
+      org_ord_request_lines_dtl: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          customer_notes: string | null
+          id: string
+          is_active: boolean
+          item_name: string
+          line_no: number
+          product_id: string | null
+          quantity: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          request_id: string
+          service_category_code: string | null
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          customer_notes?: string | null
+          id?: string
+          is_active?: boolean
+          item_name: string
+          line_no: number
+          product_id?: string | null
+          quantity: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          request_id: string
+          service_category_code?: string | null
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          customer_notes?: string | null
+          id?: string
+          is_active?: boolean
+          item_name?: string
+          line_no?: number
+          product_id?: string | null
+          quantity?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          request_id?: string
+          service_category_code?: string | null
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_orql_prod_tenant"
+            columns: ["tenant_org_id", "product_id"]
+            isOneToOne: false
+            referencedRelation: "org_product_data_mst"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
+          {
+            foreignKeyName: "fk_orql_req_tenant"
+            columns: ["request_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_ord_requests_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_orql_svc_cat_tnt"
+            columns: ["tenant_org_id", "service_category_code"]
+            isOneToOne: false
+            referencedRelation: "org_service_category_cf"
+            referencedColumns: ["tenant_org_id", "service_category_code"]
+          },
+        ]
+      }
+      org_ord_requests_mst: {
+        Row: {
+          branch_verification_status: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          collection_address_snapshot: Json
+          collection_method_code: string
+          converted_at: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          customer_id: string
+          customer_notes: string | null
+          estimated_total_pieces: number
+          id: string
+          is_active: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          request_no: string
+          request_source_code: string
+          request_status_code: string
+          request_type_code: string
+          requested_branch_id: string | null
+          return_delivery_requested: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
+          service_speed_code: string | null
+          submitted_at: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          branch_verification_status?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          collection_address_snapshot?: Json
+          collection_method_code?: string
+          converted_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          customer_id: string
+          customer_notes?: string | null
+          estimated_total_pieces?: number
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          request_no: string
+          request_source_code?: string
+          request_status_code?: string
+          request_type_code?: string
+          requested_branch_id?: string | null
+          return_delivery_requested?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          service_speed_code?: string | null
+          submitted_at?: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          branch_verification_status?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          collection_address_snapshot?: Json
+          collection_method_code?: string
+          converted_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          customer_id?: string
+          customer_notes?: string | null
+          estimated_total_pieces?: number
+          id?: string
+          is_active?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          request_no?: string
+          request_source_code?: string
+          request_status_code?: string
+          request_type_code?: string
+          requested_branch_id?: string | null
+          return_delivery_requested?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          service_speed_code?: string | null
+          submitted_at?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_orq_branch_tenant"
+            columns: ["requested_branch_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_branches_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_orq_cust_tenant"
+            columns: ["customer_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_customers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_orq_speed"
+            columns: ["service_speed_code"]
+            isOneToOne: false
+            referencedRelation: "sys_service_speed_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_orq_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_orq_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_orq_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_ord_screen_contracts_cf: {
         Row: {
           created_at: string | null
@@ -23044,6 +23370,8 @@ export type Database = {
           service_category_code: string | null
           service_charge_amount: number
           service_speed: string | null
+          source_request_id: string | null
+          source_request_no: string | null
           speed_premium_amount: number | null
           state_version: number
           status: string | null
@@ -23229,6 +23557,8 @@ export type Database = {
           service_category_code?: string | null
           service_charge_amount?: number
           service_speed?: string | null
+          source_request_id?: string | null
+          source_request_no?: string | null
           speed_premium_amount?: number | null
           state_version?: number
           status?: string | null
@@ -23414,6 +23744,8 @@ export type Database = {
           service_category_code?: string | null
           service_charge_amount?: number
           service_speed?: string | null
+          source_request_id?: string | null
+          source_request_no?: string | null
           speed_premium_amount?: number | null
           state_version?: number
           status?: string | null
@@ -23462,6 +23794,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_service_speed_cd"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_oom_src_req_tenant"
+            columns: ["source_request_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_ord_requests_mst"
+            referencedColumns: ["id", "tenant_org_id"]
           },
           {
             foreignKeyName: "fk_ord_crt_pos_ses"
@@ -25694,7 +26033,6 @@ export type Database = {
           product_name2: string | null
           product_order: number | null
           product_type: number | null
-          product_unit: string | null
           qty_on_hand: number | null
           rec_notes: string | null
           rec_order: number | null
@@ -25713,7 +26051,7 @@ export type Database = {
           updated_info: string | null
         }
         Insert: {
-          base_uom_code: string
+          base_uom_code?: string
           billing_increment?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -25734,7 +26072,7 @@ export type Database = {
           min_sell_price?: number | null
           min_stock_level?: number | null
           pieces_per_product?: number | null
-          price_type: string
+          price_type?: string
           product_code: string
           product_color1?: string | null
           product_color2?: string | null
@@ -25749,7 +26087,6 @@ export type Database = {
           product_name2?: string | null
           product_order?: number | null
           product_type?: number | null
-          product_unit?: string | null
           qty_on_hand?: number | null
           rec_notes?: string | null
           rec_order?: number | null
@@ -25804,7 +26141,6 @@ export type Database = {
           product_name2?: string | null
           product_order?: number | null
           product_type?: number | null
-          product_unit?: string | null
           qty_on_hand?: number | null
           rec_notes?: string | null
           rec_order?: number | null
@@ -34850,6 +35186,121 @@ export type Database = {
         }
         Relationships: []
       }
+      sys_cust_app_sessions_mst: {
+        Row: {
+          access_expires_at: string
+          access_token_hash: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          customer_id: string
+          id: string
+          last_seen_at: string
+          refresh_expires_at: string
+          refresh_token_hash: string
+          revoke_reason_code: string | null
+          revoked_at: string | null
+          session_version: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          access_expires_at: string
+          access_token_hash: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          customer_id: string
+          id?: string
+          last_seen_at?: string
+          refresh_expires_at: string
+          refresh_token_hash: string
+          revoke_reason_code?: string | null
+          revoked_at?: string | null
+          session_version: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          access_expires_at?: string
+          access_token_hash?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          customer_id?: string
+          id?: string
+          last_seen_at?: string
+          refresh_expires_at?: string
+          refresh_token_hash?: string
+          revoke_reason_code?: string | null
+          revoked_at?: string | null
+          session_version?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_scus_customer"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "sys_customers_mst"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sys_customer_audit_dtl: {
+        Row: {
+          action_type: string
+          actor_tenant_org_id: string | null
+          actor_user_id: string | null
+          changed_at: string
+          changed_fields: Json
+          id: string
+          new_values: Json | null
+          notes: string | null
+          old_values: Json | null
+          source_channel: string
+          sys_customer_id: string
+        }
+        Insert: {
+          action_type: string
+          actor_tenant_org_id?: string | null
+          actor_user_id?: string | null
+          changed_at?: string
+          changed_fields?: Json
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+          source_channel?: string
+          sys_customer_id: string
+        }
+        Update: {
+          action_type?: string
+          actor_tenant_org_id?: string | null
+          actor_user_id?: string | null
+          changed_at?: string
+          changed_fields?: Json
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+          source_channel?: string
+          sys_customer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sys_cust_aud_cust"
+            columns: ["sys_customer_id"]
+            isOneToOne: false
+            referencedRelation: "sys_customers_mst"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sys_customer_category_cd: {
         Row: {
           code: string
@@ -34916,22 +35367,33 @@ export type Database = {
       sys_customers_mst: {
         Row: {
           address: string | null
+          app_failed_sign_in_count: number
+          app_locked_until: string | null
+          app_password_changed_at: string | null
+          app_password_hash: string | null
+          app_password_must_change: boolean
+          app_session_version: number
+          app_temp_password_expires_at: string | null
           area: string | null
           avatar_url: string | null
           building: string | null
           created_at: string | null
           created_by: string | null
           created_info: string | null
+          customer_code: string
           customer_number: string | null
           customer_source_type: string
           display_name: string | null
           email: string | null
+          email_normalized: string | null
           email_verified: boolean | null
           first_name: string | null
           first_tenant_org_id: string | null
           floor: string | null
           id: string
+          is_active: boolean
           last_name: string | null
+          mobile_e164: string | null
           name: string | null
           name2: string | null
           phone: string | null
@@ -34945,22 +35407,33 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          app_failed_sign_in_count?: number
+          app_locked_until?: string | null
+          app_password_changed_at?: string | null
+          app_password_hash?: string | null
+          app_password_must_change?: boolean
+          app_session_version?: number
+          app_temp_password_expires_at?: string | null
           area?: string | null
           avatar_url?: string | null
           building?: string | null
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
+          customer_code: string
           customer_number?: string | null
           customer_source_type?: string
           display_name?: string | null
           email?: string | null
+          email_normalized?: string | null
           email_verified?: boolean | null
           first_name?: string | null
           first_tenant_org_id?: string | null
           floor?: string | null
           id?: string
+          is_active?: boolean
           last_name?: string | null
+          mobile_e164?: string | null
           name?: string | null
           name2?: string | null
           phone?: string | null
@@ -34974,22 +35447,33 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          app_failed_sign_in_count?: number
+          app_locked_until?: string | null
+          app_password_changed_at?: string | null
+          app_password_hash?: string | null
+          app_password_must_change?: boolean
+          app_session_version?: number
+          app_temp_password_expires_at?: string | null
           area?: string | null
           avatar_url?: string | null
           building?: string | null
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
+          customer_code?: string
           customer_number?: string | null
           customer_source_type?: string
           display_name?: string | null
           email?: string | null
+          email_normalized?: string | null
           email_verified?: boolean | null
           first_name?: string | null
           first_tenant_org_id?: string | null
           floor?: string | null
           id?: string
+          is_active?: boolean
           last_name?: string | null
+          mobile_e164?: string | null
           name?: string | null
           name2?: string | null
           phone?: string | null
@@ -37515,48 +37999,6 @@ export type Database = {
           updated_info?: string | null
           usage_cat_ver?: number
           version_no?: number
-        }
-        Relationships: []
-      }
-      sys_fin_job_run_log: {
-        Row: {
-          created_at: string
-          error_message: string | null
-          failed_count: number | null
-          finished_at: string | null
-          id: string
-          job_code: string
-          processed_count: number | null
-          started_at: string
-          status: string
-          trigger_source: string
-          triggered_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          error_message?: string | null
-          failed_count?: number | null
-          finished_at?: string | null
-          id?: string
-          job_code: string
-          processed_count?: number | null
-          started_at?: string
-          status?: string
-          trigger_source?: string
-          triggered_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          error_message?: string | null
-          failed_count?: number | null
-          finished_at?: string | null
-          id?: string
-          job_code?: string
-          processed_count?: number | null
-          started_at?: string
-          status?: string
-          trigger_source?: string
-          triggered_by?: string | null
         }
         Relationships: []
       }
@@ -43434,6 +43876,7 @@ export type Database = {
       }
       sys_ops_job_queue_cf: {
         Row: {
+          alert_ready_age_s: number | null
           consumer_app: string
           created_at: string
           created_by: string | null
@@ -43465,6 +43908,7 @@ export type Database = {
           updated_info: string | null
         }
         Insert: {
+          alert_ready_age_s?: number | null
           consumer_app: string
           created_at?: string
           created_by?: string | null
@@ -43496,6 +43940,7 @@ export type Database = {
           updated_info?: string | null
         }
         Update: {
+          alert_ready_age_s?: number | null
           consumer_app?: string
           created_at?: string
           created_by?: string | null
@@ -46528,13 +46973,10 @@ export type Database = {
           product_group3: string | null
           product_icon: string | null
           product_image: string | null
-          product_unit: string | null
           rec_notes: string | null
           rec_order: number | null
           rec_status: number | null
-          requires_dimensions: boolean | null
           requires_item_count: boolean | null
-          requires_weight: boolean | null
           seed_options: Json | null
           seed_priority: number | null
           service_category_code: string
@@ -46548,7 +46990,7 @@ export type Database = {
           updated_info: string | null
         }
         Insert: {
-          base_uom_code: string
+          base_uom_code?: string
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
@@ -46575,7 +47017,7 @@ export type Database = {
           name: string
           name2?: string | null
           pieces_per_product?: number | null
-          price_type: string
+          price_type?: string
           product_color1?: string | null
           product_color2?: string | null
           product_color3?: string | null
@@ -46585,13 +47027,10 @@ export type Database = {
           product_group3?: string | null
           product_icon?: string | null
           product_image?: string | null
-          product_unit?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
-          requires_dimensions?: boolean | null
           requires_item_count?: boolean | null
-          requires_weight?: boolean | null
           seed_options?: Json | null
           seed_priority?: number | null
           service_category_code: string
@@ -46642,13 +47081,10 @@ export type Database = {
           product_group3?: string | null
           product_icon?: string | null
           product_image?: string | null
-          product_unit?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
-          requires_dimensions?: boolean | null
           requires_item_count?: boolean | null
-          requires_weight?: boolean | null
           seed_options?: Json | null
           seed_priority?: number | null
           service_category_code?: string
@@ -52094,30 +52530,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      claim_outbox_batch: {
-        Args: { p_limit?: number; p_now?: string }
-        Returns: {
-          aggregate_id: string
-          aggregate_type: string
-          attempts: number
-          created_at: string
-          error_message: string | null
-          event_type: string
-          id: string
-          max_attempts: number
-          next_retry_at: string | null
-          payload: Json
-          processed_at: string | null
-          status: string
-          tenant_org_id: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "org_domain_events_outbox"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
       cleanup_expired_idempotency_keys: { Args: never; Returns: number }
       cleanup_expired_order_edit_locks: { Args: never; Returns: number }
       cleanup_expired_otp_codes: { Args: never; Returns: number }
@@ -52521,17 +52933,6 @@ export type Database = {
         }[]
       }
       extract_order_sequence: { Args: { p_order_no: string }; Returns: number }
-      fin_list_job_schedules: {
-        Args: never
-        Returns: {
-          cron_name: string
-          is_active: boolean
-          job_code: string
-          schedule: string
-        }[]
-      }
-      fin_trigger_job: { Args: { p_job_code: string }; Returns: undefined }
-      fin_trigger_outbox_proc: { Args: never; Returns: undefined }
       fix_order_data: {
         Args: {
           p_dry_run?: boolean
@@ -53221,16 +53622,19 @@ export type Database = {
         }
         Returns: string
       }
-      fn_fin_credit_note_expiry_run: { Args: never; Returns: Json }
+      fn_fin_credit_note_expiry_run: {
+        Args: { p_tenant_org_id?: string }
+        Returns: Json
+      }
       fn_fin_gift_card_exp_due: {
-        Args: { p_limit?: number }
+        Args: { p_limit?: number; p_tenant_org_id?: string }
         Returns: {
           gift_card_id: string
           tenant_org_id: string
         }[]
       }
       fn_fin_loyalty_exp_due: {
-        Args: { p_limit?: number }
+        Args: { p_limit?: number; p_tenant_org_id?: string }
         Returns: {
           account_id: string
           tenant_org_id: string
@@ -53523,77 +53927,6 @@ export type Database = {
           usage_date: string
         }[]
       }
-      fn_ntf_worker_claim_canary: {
-        Args: {
-          p_lease_seconds?: number
-          p_run_id: string
-          p_tenant_org_id: string
-          p_worker_id: string
-        }
-        Returns: {
-          channel_code: string
-          claim_token: string
-          event_code: string
-          id: string
-          max_retries: number
-          metadata: Json
-          recipient_address: string
-          recipient_user_id: string
-          rendered_body: string
-          rendered_subject: string
-          retry_count: number
-          source_entity_id: string
-          source_entity_type: string
-          tenant_org_id: string
-        }[]
-      }
-      fn_ntf_worker_claim_due: {
-        Args: {
-          p_lease_seconds?: number
-          p_limit?: number
-          p_tenant_org_id: string
-          p_worker_id: string
-        }
-        Returns: {
-          channel_code: string
-          claim_token: string
-          event_code: string
-          id: string
-          max_retries: number
-          metadata: Json
-          recipient_address: string
-          recipient_user_id: string
-          rendered_body: string
-          rendered_subject: string
-          retry_count: number
-          source_entity_id: string
-          source_entity_type: string
-          tenant_org_id: string
-        }[]
-      }
-      fn_ntf_worker_claim_due_global: {
-        Args: {
-          p_lease_seconds?: number
-          p_limit?: number
-          p_worker_id: string
-        }
-        Returns: {
-          channel_code: string
-          claim_token: string
-          event_code: string
-          id: string
-          max_retries: number
-          metadata: Json
-          recipient_address: string
-          recipient_user_id: string
-          rendered_body: string
-          rendered_subject: string
-          retry_count: number
-          source_entity_id: string
-          source_entity_type: string
-          tenant_org_id: string
-        }[]
-      }
       fn_ntf_worker_claim_one: {
         Args: {
           p_claim_token: string
@@ -53754,11 +54087,27 @@ export type Database = {
         Args: { p_actor: string; p_key: string; p_policy: string }
         Returns: Json
       }
-      fn_ops_job_capture_runs: { Args: never; Returns: number }
-      fn_ops_job_claim: {
-        Args: { p_job_code: string; p_worker: string }
-        Returns: Json
+      fn_ops_dead_letter_list: {
+        Args: { p_limit?: number; p_source_queue?: string }
+        Returns: {
+          attempts: number
+          dead_letter_id: string
+          dead_on: string
+          error: string
+          source_job_id: string
+          source_queue: string
+        }[]
       }
+      fn_ops_job_alerts: {
+        Args: never
+        Returns: {
+          detail: Json
+          rule_code: string
+          since: string
+          subject: string
+        }[]
+      }
+      fn_ops_job_capture_runs: { Args: never; Returns: number }
       fn_ops_job_finish: {
         Args: {
           p_message: string
@@ -53840,10 +54189,6 @@ export type Database = {
           sub_system: string
           superseded_by: string
         }[]
-      }
-      fn_ops_job_request_slot: {
-        Args: { p_job_code: string; p_slot: string; p_worker: string }
-        Returns: boolean
       }
       fn_ops_job_restore: {
         Args: { p_actor: string; p_job_code: string }
@@ -53934,9 +54279,54 @@ export type Database = {
         }
         Returns: Json
       }
-      fn_ops_worker_job_sync: {
-        Args: { p_job_code: string; p_worker: string }
-        Returns: Json
+      fn_ops_queue_recent: {
+        Args: { p_limit?: number; p_queue: string }
+        Returns: {
+          attempts: number
+          completed_on: string
+          created_on: string
+          job_id: string
+          result: string
+          started_on: string
+          state: string
+        }[]
+      }
+      fn_ops_queue_stats: {
+        Args: never
+        Returns: {
+          active: number
+          alert_ready_age_s: number
+          applied_at: string
+          applied_enabled: boolean
+          consumer_app: string
+          dead_letters: number
+          deferred: number
+          desired_enabled: boolean
+          failed: number
+          module: string
+          name: string
+          name2: string
+          policy: string
+          queue_name: string
+          queued: number
+          ready: number
+          ready_oldest_s: number
+          stats_on: string
+          total: number
+        }[]
+      }
+      fn_ops_worker_list: {
+        Args: never
+        Returns: {
+          heartbeat_on: string
+          instance_name: string
+          is_silent: boolean
+          node_version: string
+          queue_count: number
+          started_on: string
+          stopped_on: string
+          version: string
+        }[]
       }
       fn_ops_zone: {
         Args: { p_operation: string; p_scope: string; p_tenant: string }
@@ -54078,6 +54468,10 @@ export type Database = {
         Returns: Json
       }
       fn_shc_guard_tenant: { Args: { p_tenant: string }; Returns: undefined }
+      fn_shc_measured_no_price: {
+        Args: { p_branch: string; p_tenant: string }
+        Returns: Json
+      }
       fn_shc_speed_no_express: {
         Args: { p_branch: string; p_tenant: string }
         Returns: Json
@@ -54276,7 +54670,6 @@ export type Database = {
         Returns: number
       }
       fn_uom_in_sync: { Args: never; Returns: boolean }
-      fn_uom_legacy_code: { Args: { p_unit: string }; Returns: string }
       fn_uom_reset_conv: {
         Args: { p_conv_id: string; p_tenant_org_id: string; p_user?: string }
         Returns: undefined
@@ -54302,6 +54695,8 @@ export type Database = {
           valid_count: number
         }[]
       }
+      gen_org_local_cust_code: { Args: { p_prefix?: string }; Returns: string }
+      gen_sys_customer_code: { Args: never; Returns: string }
       generate_cash_drawer_sess_no: {
         Args: { p_tenant_org_id: string }
         Returns: string
@@ -54649,14 +55044,6 @@ export type Database = {
       }
       is_operator: { Args: never; Returns: boolean }
       is_tenant_admin: { Args: { p_user_id?: string }; Returns: boolean }
-      list_retryable_posting_exceptions: {
-        Args: { p_max_age_hours?: number }
-        Returns: {
-          exception_id: string
-          posting_log_id: string
-          tenant_org_id: string
-        }[]
-      }
       log_audit_event: {
         Args: {
           p_action: string
@@ -54745,6 +55132,55 @@ export type Database = {
       order_has_action: {
         Args: { p_action_type: string; p_order_id: string }
         Returns: boolean
+      }
+      org_cust_create_or_connect: {
+        Args: {
+          p_actor_user_id?: string
+          p_address?: string
+          p_area?: string
+          p_building?: string
+          p_company_name?: string
+          p_company_name2?: string
+          p_connect_sys_customer_id?: string
+          p_cost_center_code?: string
+          p_cr_id?: string
+          p_credit_limit?: number
+          p_customer_category_id?: string
+          p_display_name?: string
+          p_email_norm?: string
+          p_first_name?: string
+          p_floor?: string
+          p_last_name?: string
+          p_name?: string
+          p_name2?: string
+          p_payment_terms_days?: number
+          p_phone_e164?: string
+          p_preferences?: Json
+          p_source_channel?: string
+          p_tax_id?: string
+          p_tenant_org_id: string
+          p_type?: string
+        }
+        Returns: {
+          action_result: string
+          customer_code: string
+          org_customer_id: string
+          sys_customer_id: string
+        }[]
+      }
+      org_cust_update_and_sync: {
+        Args: {
+          p_actor_user_id?: string
+          p_org_customer_id: string
+          p_patch: Json
+          p_source_channel?: string
+          p_tenant_org_id: string
+        }
+        Returns: {
+          org_customer_id: string
+          synced_sys: boolean
+          sys_customer_id: string
+        }[]
       }
       org_ord_append_notes_followup: {
         Args: {

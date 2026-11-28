@@ -78,7 +78,7 @@ function dbit(name: string, fn: () => Promise<void>): void {
 /** Seeds a minimal customer + PAY_ON_COLLECTION order for `tenantId`; returns ids. */
 async function seedOrder(tx: TxClient, tenantId: string): Promise<{ orderId: string; customerId: string }> {
   const cust = await tx.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id) VALUES (${tenantId}::uuid) RETURNING id`;
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id) VALUES (gen_random_uuid()::text, ${tenantId}::uuid) RETURNING id`;
   const order = await tx.$queryRaw<Array<{ id: string }>>`
     INSERT INTO public.org_orders_mst (tenant_org_id, customer_id, order_no, currency_code)
     VALUES (${tenantId}::uuid, ${cust[0].id}::uuid, ${`CI-${randomUUID()}`}, 'OMR')

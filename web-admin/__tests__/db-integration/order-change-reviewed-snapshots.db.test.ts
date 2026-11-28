@@ -100,8 +100,8 @@ describe('signed operation snapshots on local PostgreSQL', () => {
         INSERT INTO public.org_oc_edit_policy_asg_cf(tenant_org_id, scope, edit_policy_id, gap_acknowledged)
         VALUES (${tenantId}::uuid, 'ORGANIZATION', ${policyId}::uuid, true)`;
       await tx.$executeRaw`
-        INSERT INTO public.org_customers_mst(id, tenant_org_id, name)
-        VALUES (${customerId}::uuid, ${tenantId}::uuid, 'Reviewed snapshot fixture')`;
+        INSERT INTO public.org_customers_mst(customer_code, id, tenant_org_id, name)
+        VALUES (gen_random_uuid()::text, ${customerId}::uuid, ${tenantId}::uuid, 'Reviewed snapshot fixture')`;
       await tx.$executeRaw`
         INSERT INTO public.org_orders_mst(id, tenant_org_id, customer_id, order_no, currency_code, payment_type_code,
           edit_state_version, committed_at, committed_by, current_status, internal_notes, priority, service_speed, total_amount, total_tax_amount,
@@ -198,7 +198,7 @@ describe('signed operation snapshots on local PostgreSQL', () => {
         SELECT quantity, total_price::text AS total_price, net_amount::text AS net_amount,
           line_total_amount::text AS line_total_amount, list_unit_price::text AS list_unit_price
         FROM public.org_order_items_dtl WHERE tenant_org_id = ${tenantId}::uuid AND order_id = ${orderId}::uuid AND id = ${itemId}::uuid`;
-      expect(storedItem[0]).toMatchObject({ quantity: 2, total_price: '20.0000', net_amount: '20.0000', line_total_amount: '20.0000', list_unit_price: '10.0000' });
+      expect(storedItem[0]).toMatchObject({ quantity: 2, total_price: '20.0000', net_amount: '20.0000', line_total_amount: '20.0000', list_unit_price: '10.000000' });
       const storedHeader = await tx.$queryRaw<Array<{ total_amount: string }>>`
         SELECT total_amount::text AS total_amount FROM public.org_orders_mst WHERE tenant_org_id = ${tenantId}::uuid AND id = ${orderId}::uuid`;
       expect(Number(storedHeader[0].total_amount)).toBe(20);

@@ -51,6 +51,18 @@
   "starchLevel": "Starch Level",
   "accountInfo": "Account Information",
   "customerType": "Customer Type",
+  "customerAppCredential": {
+    "issueAction": "Create or reset app password",
+    "confirmTitle": "Create a new Customer App password?",
+    "confirmDescription": "This invalidates the customer's existing app sessions and requires them to choose a new password after signing in.",
+    "issued": "The temporary Customer App password is ready.",
+    "issueFailed": "Could not create the Customer App password. Check the customer's mobile number or email and try again.",
+    "issuedTitle": "Share this temporary password",
+    "issuedDescription": "Give it to the customer through an approved channel. They must replace it when they sign in.",
+    "oneTimeWarning": "This password is shown only now and expires in 24 hours.",
+    "temporaryPassword": "Temporary password",
+    "expiresIn24Hours": "The customer must use it within 24 hours."
+  },
   "errors": {
     "loadFailed": "Failed to load customers",
     "exportFailed": "Failed to export customers"
@@ -138,6 +150,49 @@
   "phoneNumber": "Phone Number",
   "emailOptional": "Email (Optional)",
   "required": "Required",
+  "lookup": {
+    "customerCode": "Customer Code",
+    "stepLookupTitle": "Check Mobile Number or Email",
+    "stepLookupHint": "Search first to avoid duplicates or connect an existing CleanMateX customer to this branch.",
+    "searchAction": "Check Customer",
+    "searching": "Checking...",
+    "changeContact": "Change Contact",
+    "phoneOrEmailRequired": "Enter a mobile number or email address to continue.",
+    "alreadyInTenantTitle": "Customer already exists in this organization",
+    "alreadyInTenantDesc": "Select or open this existing customer instead of creating a duplicate.",
+    "selectExisting": "Select Customer",
+    "openExisting": "Open Customer",
+    "inactiveInTenantTitle": "Inactive customer found in this organization",
+    "inactiveInTenantDesc": "Reactivate this customer account to use it again.",
+    "reactivateAction": "Reactivate Customer",
+    "reactivating": "Reactivating...",
+    "reactivatedSuccess": "Customer reactivated successfully",
+    "globalMatchTitle": "Existing CleanMateX customer found",
+    "globalMatchDesc": "Connect this customer to your organization. Their global customer code will be linked while keeping balances and orders separate.",
+    "connectAction": "Connect to This Branch",
+    "connecting": "Connecting...",
+    "connectedSuccess": "Customer connected to this organization",
+    "createdSuccess": "Customer created successfully",
+    "conflictTitle": "Conflicting customer records",
+    "conflictDesc": "The mobile number and email belong to two different customer profiles. Please check which one belongs to this customer.",
+    "notFoundBadge": "New customer — enter details below"
+  },
+  "audit": {
+    "tabLabel": "Audit History",
+    "title": "Audit History",
+    "subtitle": "Chronological log of customer creation, global linking, and profile changes in this organization.",
+    "loadFailed": "Failed to load audit history",
+    "emptyTitle": "No audit entries yet",
+    "emptyDescription": "Changes made to this customer profile will appear here.",
+    "actions": {
+      "CREATED": "Created",
+      "LINKED_FROM_SYS": "Connected from Global Directory",
+      "REACTIVATED": "Reactivated",
+      "PROFILE_UPDATED": "Profile Updated",
+      "COMMERCIAL_UPDATED": "Commercial Details Updated",
+      "DEACTIVATED": "Deactivated"
+    }
+  },
   "otp": {
     "verifyPhoneNumber": "Verify Phone Number",
     "enterPhoneForCode": "Enter your phone number to receive a verification code",

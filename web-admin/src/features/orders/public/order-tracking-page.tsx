@@ -5,7 +5,7 @@ import type { OrderFinancialView as OrderFinancialViewModel } from '@/lib/types/
 import { OrderFinancialView } from '@/src/features/orders/order-fin-view/ui/order-financial-view';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { formatMoneyAmountWithCode, formatUnitPriceWithCode } from '@/lib/money/format-money';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
 import type { LineQualifier } from '@/lib/orders/line-qualifier';
 import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
@@ -122,8 +122,19 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
         [moneyConfigFromApi, ctxCurrencyCode, ctxDecimalPlaces, moneyLocale],
     );
     const t = useTranslations('publicOrderTracking');
+    const tUom = useTranslations('uom');
     const tCommon = useTranslations('common');
     const tOrders = useTranslations('orders');
+    const qualifierText = (qualifier: LineQualifier) =>
+        formatLineQualifier(qualifier, {
+            locale: moneyLocale,
+            t: tUom,
+            formatUnitPrice: (price) => formatUnitPriceWithCode(price, {
+                currencyCode: moneyConfigFromApi?.currencyCode ?? ctxCurrencyCode,
+                decimalPlaces: moneyConfigFromApi?.decimalPlaces ?? ctxDecimalPlaces,
+                locale: moneyLocale,
+            }),
+        });
 
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
@@ -509,9 +520,9 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
                                                 {item.name2}
                                             </span>
                                         )}
-                                        {formatLineQualifier(item.qualifier, { locale: locale === 'ar' ? 'ar' : 'en' }) && (
+                                        {item.qualifier && qualifierText(item.qualifier) && (
                                             <span className="text-xs text-muted-foreground tabular-nums">
-                                                {formatLineQualifier(item.qualifier, { locale: locale === 'ar' ? 'ar' : 'en' })}
+                                                {qualifierText(item.qualifier)}
                                             </span>
                                         )}
                                     </div>

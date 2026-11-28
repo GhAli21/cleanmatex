@@ -6,7 +6,7 @@
  * Fetches and caches navigation items from the database menu API.
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { NavigationSection } from '@/config/navigation'
 import {
@@ -17,19 +17,94 @@ import {
 } from '@/lib/cache/permission-cache-client'
 import { getIcon } from '@/lib/utils/icon-registry'
 
+type NavigationFetchResult =
+  | { status: 'ok'; sections: unknown[] }
+  | { status: 'unauthorized' }
+  | { status: 'non_json' }
+
+// Deduplicates concurrent GET /api/navigation calls across layout consumers
+// (CmxSidebar, DashboardTopBar, DashboardBrowserTitle).
+const inFlightNavigationRequests = new Map<string, Promise<NavigationFetchResult>>()
+
+async function fetchNavigationShared(cacheKey: string): Promise<NavigationFetchResult> {
+  const existing = inFlightNavigationRequests.get(cacheKey)
+  if (existing) {
+    return existing
+  }
+
+  const requestPromise = (async (): Promise<NavigationFetchResult> => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => {
+      controller.abort()
+    }, 60000)
+
+    let response: Response
+    try {
+      response = await fetch('/api/navigation', {
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+    } catch (fetchError: unknown) {
+      clearTimeout(timeoutId)
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        throw new Error('Navigation API request timed out')
+      }
+      throw fetchError
+    }
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        return { status: 'unauthorized' }
+      }
+      throw new Error(`Failed to fetch navigation: ${response.statusText}`)
+    }
+
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      console.warn('Navigation API returned non-JSON response, clearing navigation')
+      return { status: 'non_json' }
+    }
+
+    const data = (await response.json()) as { sections?: unknown[]; source?: string; error?: string }
+    const sections = Array.isArray(data.sections) ? data.sections : []
+    if (sections.length === 0) {
+      console.warn('No navigation sections returned from API', {
+        source: data.source,
+        error: data.error,
+      })
+    }
+    return { status: 'ok', sections }
+  })().finally(() => {
+    inFlightNavigationRequests.delete(cacheKey)
+  })
+
+  inFlightNavigationRequests.set(cacheKey, requestPromise)
+  return requestPromise
+}
+
 /**
- *
+ * Fetches and caches tenant-scoped navigation sections with stale-while-revalidate.
  */
 export function useNavigation() {
   const { permissions, currentTenant, isLoading: authLoading, isAuthenticated } = useAuth()
   const [navigation, setNavigation] = useState<NavigationSection[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reloadTick, setReloadTick] = useState(0)
+
+  const loadedTenantIdRef = useRef<string | null>(null)
+  const hasItemsRef = useRef(false)
+
+  const tenantId = currentTenant?.tenant_id ?? ''
 
   // Generate permissions hash for cache key
   const permissionsHash = useMemo(() => {
-    return hashPermissions([currentTenant?.tenant_id ?? '', ...(permissions || [])])
-  }, [currentTenant?.tenant_id, permissions])
+    return hashPermissions([tenantId, ...(permissions || [])])
+  }, [tenantId, permissions])
+
+  const retry = useCallback(() => {
+    setReloadTick((prev) => prev + 1)
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -42,6 +117,8 @@ export function useNavigation() {
       // Clear navigation if user is not authenticated
       if (!isAuthenticated) {
         if (isMounted) {
+          loadedTenantIdRef.current = null
+          hasItemsRef.current = false
           setNavigation([])
           setIsLoading(false)
           setError(null)
@@ -49,108 +126,83 @@ export function useNavigation() {
         return
       }
 
-      if (isMounted) {
-        setIsLoading(true)
-        setError(null)
+      const tenantChanged = loadedTenantIdRef.current !== null && loadedTenantIdRef.current !== tenantId
+      if (tenantChanged) {
+        hasItemsRef.current = false
       }
 
-      try {
-        // Check cache first - but only use it if it has items
-        const cached = getCachedNavigation(permissionsHash)
-        if (cached && Array.isArray(cached) && cached.length > 0) {
-          // Transform icon strings to components
-          const transformedCached = transformNavigationIcons(cached)
-          if (isMounted) {
-            setNavigation(transformedCached)
-          }
-        } else if (cached && cached.length === 0) {
-          // Cache has empty array - clear it and fetch fresh
+      // Hydrate from cache immediately so refreshes never blank out the sidebar
+      let hydratedFromCache = false
+      const cached = getCachedNavigation(permissionsHash)
+      if (cached && Array.isArray(cached) && cached.length > 0) {
+        const transformedCached = transformNavigationIcons(cached)
+        if (isMounted) {
+          loadedTenantIdRef.current = tenantId
+          hasItemsRef.current = true
+          hydratedFromCache = true
+          setNavigation(transformedCached)
+          setIsLoading(false)
+          setError(null)
+        }
+      } else {
+        if (cached && cached.length === 0) {
           console.warn('Cache has empty navigation array, clearing cache and fetching fresh')
           invalidateNavigationCache()
         }
-
-        // Fetch from API with timeout
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => {
-          controller.abort()
-        }, 60000) // 60 second timeout
-
-        let response: Response
-        try {
-          response = await fetch('/api/navigation', {
-            signal: controller.signal,
-          })
-          clearTimeout(timeoutId)
-        } catch (fetchError: any) {
-          clearTimeout(timeoutId)
-          if (fetchError.name === 'AbortError') {
-            throw new Error('Navigation API request timed out')
-          }
-          throw fetchError
-        }
-
-        // Check if response is OK
-        if (!response.ok) {
-          // Handle authentication errors gracefully
-          if (response.status === 401 || response.status === 403) {
-            // User is not authenticated or unauthorized - clear navigation
-            if (isMounted) {
-              setNavigation([])
-              setIsLoading(false)
-            }
-            return
-          }
-          throw new Error(`Failed to fetch navigation: ${response.statusText}`)
-        }
-
-        // Check Content-Type to ensure we're getting JSON, not HTML
-        const contentType = response.headers.get('content-type')
-        if (!contentType || !contentType.includes('application/json')) {
-          // Response is not JSON (likely HTML redirect page)
-          console.warn('Navigation API returned non-JSON response, clearing navigation')
-          if (isMounted) {
+        // Only show loading state when we have no valid items for the current tenant yet
+        if (isMounted && (!hasItemsRef.current || tenantChanged)) {
+          if (tenantChanged) {
             setNavigation([])
-            setIsLoading(false)
           }
+          setIsLoading(true)
+          setError(null)
+        }
+      }
+
+      try {
+        const result = await fetchNavigationShared(permissionsHash)
+
+        if (!isMounted) return
+
+        if (result.status === 'unauthorized' || result.status === 'non_json') {
+          loadedTenantIdRef.current = null
+          hasItemsRef.current = false
+          setNavigation([])
+          setIsLoading(false)
           return
         }
 
-        const data = await response.json()
-        const sections = data.sections as any[]
+        const sections = result.sections
 
-        if (sections && sections.length > 0) {
-          // Transform icon strings to components
+        if (sections.length > 0) {
           const transformedSections = transformNavigationIcons(sections)
-          if (isMounted) {
-            setNavigation(transformedSections)
-          }
+          loadedTenantIdRef.current = tenantId
+          hasItemsRef.current = true
+          setNavigation(transformedSections)
+          setError(null)
           // Cache the result (with icon strings, not components) - only cache non-empty arrays
           setCachedNavigation(permissionsHash, sections)
         } else {
           // No navigation items found - user has no permissions
-          console.warn('No navigation sections returned from API', {
-            source: data.source,
-            error: data.error,
-          })
-          if (isMounted) {
-            setNavigation([])
-          }
-          // Don't cache empty arrays - clear any existing cache
+          loadedTenantIdRef.current = tenantId
+          hasItemsRef.current = false
+          setNavigation([])
           invalidateNavigationCache()
         }
       } catch (err) {
-        // Handle JSON parsing errors specifically
+        if (!isMounted) return
+
         if (err instanceof SyntaxError && err.message.includes('JSON')) {
           console.warn('Failed to parse navigation response as JSON, clearing navigation')
-          if (isMounted) {
+          if (!hydratedFromCache && !hasItemsRef.current) {
             setNavigation([])
-            setError(null) // Don't show error for logout scenarios
           }
+          setError(null) // Don't show error for logout scenarios
         } else {
           console.error('Error loading navigation:', err)
-          if (isMounted) {
+          // Keep hydrated cached items visible on transient refresh errors
+          if (!hydratedFromCache && !hasItemsRef.current) {
             setError(err instanceof Error ? err.message : 'Failed to load navigation')
-            // Return empty navigation on error (no default fallback)
             setNavigation([])
           }
         }
@@ -166,12 +218,13 @@ export function useNavigation() {
     return () => {
       isMounted = false
     }
-  }, [permissionsHash, currentTenant?.tenant_id, authLoading, isAuthenticated])
+  }, [permissionsHash, tenantId, authLoading, isAuthenticated, reloadTick])
 
   return {
     navigation,
     isLoading,
     error,
+    retry,
   }
 }
 

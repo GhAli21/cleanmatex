@@ -183,14 +183,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // The unit is `base_uom_code` (an Organization unit; the database checks it exists and is on);
-    // the legacy `product_unit` text still works until Migration B.
-    const unitOk = body.base_uom_code !== undefined
-      ? uomCodeSchema.safeParse(body.base_uom_code).success
-      : body.product_unit !== undefined && ['piece', 'kg', 'item'].includes(body.product_unit);
-    if (!unitOk) {
+    // The unit is an Organization unit; the database checks it exists and is on.
+    if (!uomCodeSchema.safeParse(body.base_uom_code).success) {
       return NextResponse.json(
-        { error: 'base_uom_code must be a unit code (or product_unit piece, kg, item)' },
+        { error: 'base_uom_code must be a unit code' },
         { status: 400 }
       );
     }

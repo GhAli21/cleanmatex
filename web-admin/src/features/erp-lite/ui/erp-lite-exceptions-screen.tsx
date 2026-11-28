@@ -8,6 +8,7 @@ import type { ErpLiteOpenExceptionRow } from '@/lib/types/erp-lite-ops'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives'
 import { CmxButton } from '@ui/primitives/cmx-button'
+import { RunNowButton } from '@features/billing/ui/run-now-button'
 import { retryExceptionAction } from '@/app/actions/erp-lite/ops-actions'
 
 const RETRYABLE_STATUSES = new Set(['NEW', 'OPEN', 'RETRY_PENDING'])
@@ -147,9 +148,12 @@ export function ErpLiteExceptionsScreen({ rows }: ErpLiteExceptionsScreenProps) 
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">{t('title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
+      <div className="flex items-start justify-between gap-2 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold">{t('title')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
+        </div>
+        <RunNowButton kind="erpRetry" />
       </div>
 
       {grouped.map(([type, groupRows]) => (

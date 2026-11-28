@@ -434,6 +434,14 @@ export function buildOrderChangeOperationAudit(input: {
         if (operation.code === 'ADD_ITEM') result.overrideReason = read(row, 'override_reason');
         else result.preferenceCharge = amount(row.service_pref_charge);
       }
+      // A new measured line shows what was measured. Taken from the request, which Preview and Apply share, so
+      // the signed snapshot cannot differ between them; a count line keeps its earlier snapshot shape.
+      if (operation.code === 'ADD_ITEM' && operation.payload.measure) {
+        const { measuredQty, length, width } = operation.payload.measure;
+        result.measuredQty = qty(measuredQty);
+        result.measureLength = qty(length);
+        result.measureWidth = qty(width);
+      }
       // A new line's cashier discount (P6-02c); a line without one keeps its earlier snapshot shape.
       if (operation.code === 'ADD_ITEM' && row.line_disc_type != null) lineDiscountSnapshot(row);
       // The price the cart showed (P6-02e), from the request so Preview and Apply agree; Review compares it with pricePerUnit.

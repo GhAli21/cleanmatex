@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
   const body = await parseBody(request, convertPreviewSchema);
   if ('response' in body) return body.response;
+  const { quantity, fromCode, toCode, productId } = body.data;
   try {
-    const { quantity, fromCode, toCode, productId } = body.data;
-    const uom = await loadUomResolver(auth.tenantId);
+    const uom = await loadUomResolver(auth.tenantId, productId);
     const result = uom.convert(quantity, fromCode, toCode, { productId }).toDecimalPlaces(QUANTITY_DECIMALS);
     return NextResponse.json({ success: true, data: { quantity: result.toString(), rate: uom.rate(fromCode, toCode, productId)?.toString() ?? null } });
   } catch (e) { return uomErrorResponse(e, 'convert'); }

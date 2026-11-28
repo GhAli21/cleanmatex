@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-23T23:37:48.292Z",
+  "extractedAt": "2026-11-27T23:20:57.295Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -15,7 +15,7 @@
       "route": "/dashboard/catalog/services",
       "permission": "products:create",
       "component": "useHasPermissionCode",
-      "line": 54,
+      "line": 78,
       "surface": "service"
     },
     {
@@ -23,7 +23,7 @@
       "route": "/dashboard/catalog/services",
       "permission": "products:export",
       "component": "useHasPermissionCode",
-      "line": 55,
+      "line": 79,
       "surface": "service"
     },
     {
@@ -31,7 +31,7 @@
       "route": "/dashboard/customers/[id]",
       "permission": "customers:update",
       "component": "useHasPermission",
-      "line": 75,
+      "line": 77,
       "surface": "screen"
     },
     {
@@ -39,7 +39,7 @@
       "route": "/dashboard/orders/[id]/order-detail-client.tsx",
       "permission": "orders:update",
       "component": "useHasPermission",
-      "line": 145,
+      "line": 149,
       "surface": "screen"
     },
     {
@@ -63,7 +63,7 @@
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "permission": "invoices:update",
       "component": "useHasPermission",
-      "line": 66,
+      "line": 65,
       "surface": "screen"
     },
     {
@@ -71,7 +71,7 @@
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "permission": "invoices:issue",
       "component": "useHasPermission",
-      "line": 67,
+      "line": 66,
       "surface": "screen"
     },
     {
@@ -79,7 +79,7 @@
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "permission": "invoices:approve_sensitive",
       "component": "useHasPermission",
-      "line": 68,
+      "line": 67,
       "surface": "screen"
     },
     {
@@ -87,7 +87,7 @@
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "permission": "invoices:allocate_payment",
       "component": "useHasPermission",
-      "line": 69,
+      "line": 68,
       "surface": "screen"
     },
     {
@@ -95,7 +95,7 @@
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "permission": "invoices:credit_note",
       "component": "useHasPermission",
-      "line": 70,
+      "line": 69,
       "surface": "screen"
     },
     {
@@ -103,7 +103,7 @@
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "permission": "invoices:debit_note",
       "component": "useHasPermission",
-      "line": 71,
+      "line": 70,
       "surface": "screen"
     },
     {
@@ -111,7 +111,7 @@
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "permission": "invoices:write_off",
       "component": "useHasPermission",
-      "line": 72,
+      "line": 71,
       "surface": "screen"
     },
     {
@@ -119,7 +119,7 @@
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "permission": "invoices:void",
       "component": "useHasPermission",
-      "line": 73,
+      "line": 72,
       "surface": "screen"
     },
     {
@@ -127,7 +127,7 @@
       "route": "src/features/ar/ui/ar-invoice-detail-actions.tsx",
       "permission": "invoices:print",
       "component": "useHasPermission",
-      "line": 74,
+      "line": 73,
       "surface": "screen"
     },
     {
@@ -171,27 +171,11 @@
       "surface": "screen"
     },
     {
-      "file": "src/features/billing/ui/finance-jobs-section.tsx",
-      "route": "src/features/billing/ui/finance-jobs-section.tsx",
-      "permission": "finance_jobs:view",
-      "component": "useHasPermissionCode",
-      "line": 127,
-      "surface": "screen"
-    },
-    {
-      "file": "src/features/billing/ui/finance-jobs-section.tsx",
-      "route": "src/features/billing/ui/finance-jobs-section.tsx",
-      "permission": "finance_jobs:run",
-      "component": "useHasPermissionCode",
-      "line": 128,
-      "surface": "screen"
-    },
-    {
       "file": "src/features/billing/ui/outbox-monitor-page.tsx",
       "route": "src/features/billing/ui/outbox-monitor-page.tsx",
       "permission": "finance_outbox:retry",
       "component": "useHasPermissionCode",
-      "line": 96,
+      "line": 97,
       "surface": "screen"
     },
     {
@@ -239,7 +223,7 @@
       "route": "src/features/billing/ui/refunds-list-client.tsx",
       "permission": "orders:approve_refund",
       "component": "useHasPermission",
-      "line": 164,
+      "line": 162,
       "surface": "screen"
     },
     {
@@ -247,7 +231,7 @@
       "route": "src/features/billing/ui/refunds-list-client.tsx",
       "permission": "orders:process_refund",
       "component": "useHasPermission",
-      "line": 165,
+      "line": 163,
       "surface": "screen"
     },
     {
@@ -271,7 +255,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-follow-up-screen.tsx",
       "permission": "cash_drawer:post_close_update",
       "component": "useHasPermissionCode",
-      "line": 45,
+      "line": 46,
       "surface": "screen"
     },
     {
@@ -279,7 +263,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
       "permission": "cash_drawer:count",
       "component": "useHasPermissionCode",
-      "line": 228,
+      "line": 232,
       "surface": "screen"
     },
     {
@@ -287,7 +271,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
       "permission": "cash_drawer:transfer",
       "component": "useHasPermissionCode",
-      "line": 229,
+      "line": 233,
       "surface": "screen"
     },
     {
@@ -295,7 +279,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
       "permission": "cash_drawer:open_session",
       "component": "useHasPermissionCode",
-      "line": 230,
+      "line": 234,
       "surface": "screen"
     },
     {
@@ -303,7 +287,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
       "permission": "cash_drawer:record_movement",
       "component": "useHasPermissionCode",
-      "line": 231,
+      "line": 235,
       "surface": "screen"
     },
     {
@@ -311,7 +295,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-overview-screen.tsx",
       "permission": "cash_drawer:close_session",
       "component": "useHasPermissionCode",
-      "line": 232,
+      "line": 236,
       "surface": "screen"
     },
     {
@@ -327,7 +311,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-session-closure-section.tsx",
       "permission": "cash_drawer:post_close_update",
       "component": "useHasPermissionCode",
-      "line": 47,
+      "line": 55,
       "surface": "screen"
     },
     {
@@ -335,7 +319,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx",
       "permission": "cash_drawer:approve_variance",
       "component": "useHasPermissionCode",
-      "line": 56,
+      "line": 61,
       "surface": "screen"
     },
     {
@@ -343,7 +327,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-session-detail-screen.tsx",
       "permission": "cash_drawer:close_session",
       "component": "useHasPermissionCode",
-      "line": 57,
+      "line": 62,
       "surface": "screen"
     },
     {
@@ -367,7 +351,7 @@
       "route": "src/features/cash-drawers/ui/cash-drawer-variance-queue-screen.tsx",
       "permission": "cash_drawer:approve_variance",
       "component": "useHasPermissionCode",
-      "line": 44,
+      "line": 45,
       "surface": "screen"
     },
     {
@@ -375,7 +359,7 @@
       "route": "src/features/cash-drawers/ui/cash-transit-screen.tsx",
       "permission": "cash_drawer:transfer",
       "component": "useHasPermissionCode",
-      "line": 53,
+      "line": 54,
       "surface": "screen"
     },
     {
@@ -383,7 +367,7 @@
       "route": "src/features/cash-drawers/ui/cash-transit-screen.tsx",
       "permission": "cash_drawer:receive_transfer",
       "component": "useHasPermissionCode",
-      "line": 54,
+      "line": 55,
       "surface": "screen"
     },
     {
@@ -391,7 +375,7 @@
       "route": "src/features/catalog/ui/product-form.tsx",
       "permission": "products:update",
       "component": "useHasPermission",
-      "line": 98,
+      "line": 112,
       "surface": "screen"
     },
     {
@@ -415,7 +399,7 @@
       "route": "src/features/customers/ui/customer-stored-value-tab.tsx",
       "permission": "stored_value:issue_wallet_credit",
       "component": "useHasPermissionCode",
-      "line": 111,
+      "line": 115,
       "surface": "screen"
     },
     {
@@ -423,7 +407,7 @@
       "route": "src/features/customers/ui/customer-stored-value-tab.tsx",
       "permission": "stored_value:issue_advance",
       "component": "useHasPermissionCode",
-      "line": 112,
+      "line": 116,
       "surface": "screen"
     },
     {
@@ -439,7 +423,7 @@
       "route": "src/features/delivery/ui/delivery-list-screen.tsx",
       "permission": "drivers:read",
       "component": "useHasPermissionCode",
-      "line": 128,
+      "line": 133,
       "surface": "screen"
     },
     {
@@ -447,7 +431,7 @@
       "route": "src/features/delivery/ui/delivery-list-screen.tsx",
       "permission": "orders:collect_payment",
       "component": "useHasPermissionCode",
-      "line": 129,
+      "line": 134,
       "surface": "screen"
     },
     {
@@ -463,7 +447,7 @@
       "route": "src/features/drivers/ui/delivery-route-planning-screen.tsx",
       "permission": "delivery:routes",
       "component": "useHasPermissionCode",
-      "line": 101,
+      "line": 99,
       "surface": "screen"
     },
     {
@@ -471,7 +455,7 @@
       "route": "src/features/drivers/ui/delivery-route-planning-screen.tsx",
       "permission": "delivery:assign",
       "component": "useHasPermissionCode",
-      "line": 102,
+      "line": 100,
       "surface": "screen"
     },
     {
@@ -559,7 +543,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:verify_payment",
       "component": "useHasPermission",
-      "line": 76,
+      "line": 77,
       "surface": "screen"
     },
     {
@@ -567,7 +551,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:cancel_payment",
       "component": "useHasPermission",
-      "line": 78,
+      "line": 79,
       "surface": "screen"
     },
     {
@@ -575,7 +559,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:fail_payment",
       "component": "useHasPermission",
-      "line": 79,
+      "line": 80,
       "surface": "screen"
     },
     {
@@ -583,7 +567,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:void_payment",
       "component": "useHasPermission",
-      "line": 82,
+      "line": 83,
       "surface": "screen"
     },
     {
@@ -591,7 +575,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:reverse_payment",
       "component": "useHasPermission",
-      "line": 83,
+      "line": 84,
       "surface": "screen"
     },
     {
@@ -599,7 +583,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:verify_payment",
       "component": "useHasPermission",
-      "line": 86,
+      "line": 87,
       "surface": "screen"
     },
     {
@@ -607,7 +591,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:process_refund",
       "component": "useHasPermission",
-      "line": 92,
+      "line": 93,
       "surface": "screen"
     },
     {
@@ -687,7 +671,7 @@
       "route": "src/features/pickup/ui/ready-list-screen.tsx",
       "permission": "orders:collect_payment",
       "component": "useHasPermissionCode",
-      "line": 89,
+      "line": 90,
       "surface": "screen"
     },
     {
@@ -911,7 +895,7 @@
       "route": "src/features/workflow/ui/processing-modal.tsx",
       "permission": "orders:split",
       "component": "useHasPermissionCode",
-      "line": 191,
+      "line": 207,
       "surface": "screen"
     },
     {
@@ -919,7 +903,7 @@
       "route": "src/features/workflow/ui/simple-processing-dialog.tsx",
       "permission": "orders:split",
       "component": "useHasPermissionCode",
-      "line": 132,
+      "line": 135,
       "surface": "screen"
     },
     {
@@ -1257,7 +1241,7 @@
       "method": "GET",
       "route": "/api/v1/ar/invoices/export",
       "permission": "invoices:export",
-      "line": 12,
+      "line": 14,
       "surface": "api"
     },
     {
@@ -1497,7 +1481,7 @@
       "method": "POST",
       "route": "/api/v1/b2b/run-dunning-actions",
       "permission": "b2b_statements:create",
-      "line": 52,
+      "line": 37,
       "surface": "api"
     },
     {
@@ -1721,7 +1705,7 @@
       "method": "POST",
       "route": "/api/v1/cash-drawers/trx",
       "permission": "cash_drawer:transfer",
-      "line": 26,
+      "line": 27,
       "surface": "api"
     },
     {
@@ -1729,7 +1713,7 @@
       "method": "POST",
       "route": "/api/v1/cash-drawers/trx",
       "permission": "cash_drawer:transfer",
-      "line": 62,
+      "line": 63,
       "surface": "api"
     },
     {
@@ -1753,7 +1737,7 @@
       "method": "GET",
       "route": "/api/v1/cash-drawers/variance-report",
       "permission": "cash_drawer:view_reports",
-      "line": 30,
+      "line": 32,
       "surface": "api"
     },
     {
@@ -2157,6 +2141,22 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/customers/link/route.ts",
+      "method": "POST",
+      "route": "/api/v1/customers/link",
+      "permission": "customers:create",
+      "line": 19,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/lookup/route.ts",
+      "method": "POST",
+      "route": "/api/v1/customers/lookup",
+      "permission": "customers:read",
+      "line": 19,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/customers/route.ts",
       "method": "POST",
       "route": "/api/v1/customers",
@@ -2181,11 +2181,19 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/customers/[id]/audit/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]/audit",
+      "permission": "customers:read",
+      "line": 17,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/customers/[id]/credit-note/issue/route.ts",
       "method": "POST",
       "route": "/api/v1/customers/[id]/credit-note/issue",
       "permission": "stored_value:issue_credit_note",
-      "line": 28,
+      "line": 29,
       "surface": "api"
     },
     {
@@ -2194,6 +2202,14 @@
       "route": "/api/v1/customers/[id]/credit-notes",
       "permission": "stored_value:view",
       "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/customer-app-password/route.ts",
+      "method": "POST",
+      "route": "/api/v1/customers/[id]/customer-app-password",
+      "permission": "customers:manage_credentials",
+      "line": 25,
       "surface": "api"
     },
     {
@@ -2226,6 +2242,14 @@
       "route": "/api/v1/customers/[id]/open-balances",
       "permission": "orders:overpayment_allocate",
       "line": 15,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/reactivate/route.ts",
+      "method": "POST",
+      "route": "/api/v1/customers/[id]/reactivate",
+      "permission": "customers:update",
+      "line": 21,
       "surface": "api"
     },
     {
@@ -2321,7 +2345,7 @@
       "method": "GET",
       "route": "/api/v1/delivery/routes",
       "permission": "drivers:read",
-      "line": 23,
+      "line": 24,
       "surface": "api"
     },
     {
@@ -2329,7 +2353,7 @@
       "method": "GET",
       "route": "/api/v1/delivery/routes",
       "permission": "delivery:routes",
-      "line": 57,
+      "line": 58,
       "surface": "api"
     },
     {
@@ -2365,30 +2389,6 @@
       "surface": "api"
     },
     {
-      "file": "app/api/v1/finance/jobs/route.ts",
-      "method": "GET",
-      "route": "/api/v1/finance/jobs",
-      "permission": "finance_jobs:view",
-      "line": 13,
-      "surface": "api"
-    },
-    {
-      "file": "app/api/v1/finance/jobs/[jobCode]/run/route.ts",
-      "method": "POST",
-      "route": "/api/v1/finance/jobs/[jobCode]/run",
-      "permission": "finance_jobs:run",
-      "line": 24,
-      "surface": "api"
-    },
-    {
-      "file": "app/api/v1/finance/jobs/[jobCode]/runs/route.ts",
-      "method": "GET",
-      "route": "/api/v1/finance/jobs/[jobCode]/runs",
-      "permission": "finance_jobs:view",
-      "line": 19,
-      "surface": "api"
-    },
-    {
       "file": "app/api/v1/finance/outbox/retry-bulk/route.ts",
       "method": "POST",
       "route": "/api/v1/finance/outbox/retry-bulk",
@@ -2401,7 +2401,7 @@
       "method": "GET",
       "route": "/api/v1/finance/outbox",
       "permission": "finance_outbox:view",
-      "line": 26,
+      "line": 23,
       "surface": "api"
     },
     {
@@ -2441,7 +2441,7 @@
       "method": "GET",
       "route": "/api/v1/finance/reconciliation/runs",
       "permission": "reconciliation:view",
-      "line": 12,
+      "line": 14,
       "surface": "api"
     },
     {
@@ -2449,7 +2449,7 @@
       "method": "GET",
       "route": "/api/v1/finance/reconciliation/runs",
       "permission": "reconciliation:run",
-      "line": 43,
+      "line": 45,
       "surface": "api"
     },
     {
@@ -2473,7 +2473,7 @@
       "method": "GET",
       "route": "/api/v1/finance/reports/orders-summary",
       "permission": "finance_reports:view",
-      "line": 16,
+      "line": 20,
       "surface": "api"
     },
     {
@@ -2481,7 +2481,7 @@
       "method": "GET",
       "route": "/api/v1/finance/reports/payments-breakdown",
       "permission": "finance_reports:view",
-      "line": 11,
+      "line": 15,
       "surface": "api"
     },
     {
@@ -2521,7 +2521,7 @@
       "method": "GET",
       "route": "/api/v1/finance/reports/tax-report",
       "permission": "finance_reports:view",
-      "line": 12,
+      "line": 16,
       "surface": "api"
     },
     {
@@ -2689,7 +2689,7 @@
       "method": "GET",
       "route": "/api/v1/marketing/promotions",
       "permission": "promotions:view",
-      "line": 12,
+      "line": 13,
       "surface": "api"
     },
     {
@@ -2697,7 +2697,7 @@
       "method": "GET",
       "route": "/api/v1/marketing/promotions",
       "permission": "promotions:manage",
-      "line": 50,
+      "line": 51,
       "surface": "api"
     },
     {
@@ -2713,39 +2713,47 @@
       "method": "GET",
       "route": "/api/v1/marketing/promotions/[promoId]",
       "permission": "promotions:view",
+      "line": 20,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/marketing/promotions/[promoId]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/marketing/promotions/[promoId]",
+      "permission": "promotions:manage",
+      "line": 62,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/marketing/promotions/[promoId]/route.ts",
+      "method": "GET",
+      "route": "/api/v1/marketing/promotions/[promoId]",
+      "permission": "promotions:manage",
+      "line": 110,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/campaigns/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/campaigns",
+      "permission": "notifications:manage",
+      "line": 66,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/campaigns/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/campaigns",
+      "permission": "notifications:manage",
+      "line": 124,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/notifications/campaigns/whatsapp-templates/route.ts",
+      "method": "GET",
+      "route": "/api/v1/notifications/campaigns/whatsapp-templates",
+      "permission": "notifications:manage",
       "line": 19,
-      "surface": "api"
-    },
-    {
-      "file": "app/api/v1/marketing/promotions/[promoId]/route.ts",
-      "method": "GET",
-      "route": "/api/v1/marketing/promotions/[promoId]",
-      "permission": "promotions:manage",
-      "line": 61,
-      "surface": "api"
-    },
-    {
-      "file": "app/api/v1/marketing/promotions/[promoId]/route.ts",
-      "method": "GET",
-      "route": "/api/v1/marketing/promotions/[promoId]",
-      "permission": "promotions:manage",
-      "line": 109,
-      "surface": "api"
-    },
-    {
-      "file": "app/api/v1/notifications/campaigns/route.ts",
-      "method": "GET",
-      "route": "/api/v1/notifications/campaigns",
-      "permission": "notifications:manage",
-      "line": 63,
-      "surface": "api"
-    },
-    {
-      "file": "app/api/v1/notifications/campaigns/route.ts",
-      "method": "GET",
-      "route": "/api/v1/notifications/campaigns",
-      "permission": "notifications:manage",
-      "line": 121,
       "surface": "api"
     },
     {
@@ -2761,7 +2769,7 @@
       "method": "PATCH",
       "route": "/api/v1/notifications/campaigns/[id]/status",
       "permission": "notifications:manage",
-      "line": 70,
+      "line": 78,
       "surface": "api"
     },
     {
@@ -2769,7 +2777,7 @@
       "method": "PATCH",
       "route": "/api/v1/notifications/campaigns/[id]/status",
       "permission": "notifications:configure",
-      "line": 130,
+      "line": 138,
       "surface": "api"
     },
     {
@@ -2777,7 +2785,7 @@
       "method": "POST",
       "route": "/api/v1/notifications/campaigns/[id]/test",
       "permission": "notifications:manage",
-      "line": 64,
+      "line": 35,
       "surface": "api"
     },
     {
@@ -2921,7 +2929,7 @@
       "method": "PUT",
       "route": "/api/v1/orders/pieces/[pieceId]/external-tag",
       "permission": "orders:update",
-      "line": 29,
+      "line": 36,
       "surface": "api"
     },
     {
@@ -2969,7 +2977,7 @@
       "method": "GET",
       "route": "/api/v1/orders",
       "permission": "orders:read",
-      "line": 86,
+      "line": 87,
       "surface": "api"
     },
     {
@@ -2977,7 +2985,7 @@
       "method": "POST",
       "route": "/api/v1/orders/submit-order",
       "permission": "orders:create",
-      "line": 93,
+      "line": 94,
       "surface": "api"
     },
     {
@@ -3009,7 +3017,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/batch-update",
       "permission": "orders:update",
-      "line": 55,
+      "line": 60,
       "surface": "api"
     },
     {
@@ -3389,6 +3397,22 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/orders/[id]/notes-followup/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/notes-followup",
+      "permission": "orders:read",
+      "line": 55,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/notes-followup/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/notes-followup",
+      "permission": "orders:update",
+      "line": 90,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/orders/[id]/payments/route.ts",
       "method": "POST",
       "route": "/api/v1/orders/[id]/payments",
@@ -3410,6 +3434,14 @@
       "route": "/api/v1/orders/[id]/pieces",
       "permission": "orders:read",
       "line": 29,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/orders/[id]/processing-transactions/route.ts",
+      "method": "GET",
+      "route": "/api/v1/orders/[id]/processing-transactions",
+      "permission": "orders:read",
+      "line": 24,
       "surface": "api"
     },
     {
@@ -3457,7 +3489,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/report/payments-rprt",
       "permission": "orders:read",
-      "line": 44,
+      "line": 48,
       "surface": "api"
     },
     {
@@ -3473,7 +3505,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/state",
       "permission": "orders:read",
-      "line": 100,
+      "line": 118,
       "surface": "api"
     },
     {
@@ -3649,7 +3681,7 @@
       "method": "GET",
       "route": "/api/v1/price-lists",
       "permission": "pricing:read",
-      "line": 35,
+      "line": 43,
       "surface": "api"
     },
     {
@@ -3657,7 +3689,7 @@
       "method": "GET",
       "route": "/api/v1/price-lists",
       "permission": "pricing:create",
-      "line": 76,
+      "line": 84,
       "surface": "api"
     },
     {
@@ -3689,7 +3721,7 @@
       "method": "GET",
       "route": "/api/v1/price-lists/[id]",
       "permission": "pricing:read",
-      "line": 35,
+      "line": 43,
       "surface": "api"
     },
     {
@@ -3697,7 +3729,7 @@
       "method": "GET",
       "route": "/api/v1/price-lists/[id]",
       "permission": "pricing:update",
-      "line": 87,
+      "line": 95,
       "surface": "api"
     },
     {
@@ -3713,7 +3745,7 @@
       "method": "GET",
       "route": "/api/v1/products/export",
       "permission": "products:export",
-      "line": 28,
+      "line": 35,
       "surface": "api"
     },
     {
@@ -3793,7 +3825,7 @@
       "method": "GET",
       "route": "/api/v1/settings/general",
       "permission": "settings:read",
-      "line": 84,
+      "line": 78,
       "surface": "api"
     },
     {
@@ -3801,7 +3833,7 @@
       "method": "GET",
       "route": "/api/v1/settings/general",
       "permission": "settings:organization",
-      "line": 116,
+      "line": 110,
       "surface": "api"
     },
     {
@@ -3873,7 +3905,7 @@
       "method": "GET",
       "route": "/api/v1/settings/tax/exemptions",
       "permission": "tax:view_config",
-      "line": 13,
+      "line": 14,
       "surface": "api"
     },
     {
@@ -3881,7 +3913,7 @@
       "method": "GET",
       "route": "/api/v1/settings/tax/exemptions",
       "permission": "tax:manage_config",
-      "line": 55,
+      "line": 56,
       "surface": "api"
     },
     {
@@ -4081,7 +4113,15 @@
       "method": "PATCH",
       "route": "/api/v1/uom/conversions/[id]",
       "permission": "uom:manage",
-      "line": 14,
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/uom/conversions/[id]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/uom/conversions/[id]",
+      "permission": "uom:manage",
+      "line": 30,
       "surface": "api"
     },
     {
@@ -4097,7 +4137,7 @@
       "method": "GET",
       "route": "/api/v1/uom/units",
       "permission": "uom:view",
-      "line": 16,
+      "line": 17,
       "surface": "api"
     },
     {
@@ -4105,7 +4145,7 @@
       "method": "GET",
       "route": "/api/v1/uom/units",
       "permission": "uom:manage",
-      "line": 26,
+      "line": 31,
       "surface": "api"
     },
     {

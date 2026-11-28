@@ -132,8 +132,8 @@ type SeedIds = { customerId: string; orderId: string; paymentId: string };
 /** Seeds a real, fully-paid, cancelled order with one real COMPLETED payment. */
 async function seedCancelledPaidOrder(): Promise<SeedIds> {
   const customer = await prisma.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id, name)
-    VALUES (${DEMO_TENANT}::uuid, ${'B28 cancel-chain test customer'})
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name)
+    VALUES (gen_random_uuid()::text, ${DEMO_TENANT}::uuid, ${'B28 cancel-chain test customer'})
     RETURNING id`;
   const customerId = customer[0].id;
 

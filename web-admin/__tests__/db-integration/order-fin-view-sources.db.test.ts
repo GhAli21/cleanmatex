@@ -97,7 +97,7 @@ describe('Order Fin View sources (DB-level)', () => {
     await runRollback(async (tx) => {
       const t = tenantA;
       const cust = await tx.$queryRaw<Array<{ id: string }>>`
-        INSERT INTO public.org_customers_mst (tenant_org_id) VALUES (${t}::uuid) RETURNING id`;
+        INSERT INTO public.org_customers_mst (customer_code, tenant_org_id) VALUES (gen_random_uuid()::text, ${t}::uuid) RETURNING id`;
       const order = await tx.$queryRaw<Array<{ id: string }>>`
         INSERT INTO public.org_orders_mst (tenant_org_id, customer_id, order_no, currency_code, total_amount, outstanding_amount)
         VALUES (${t}::uuid, ${cust[0].id}::uuid, ${`FV-${randomUUID()}`}, 'OMR', 11.475, 2.475)
@@ -147,7 +147,7 @@ describe('Order Fin View sources (DB-level)', () => {
     await runRollback(async (tx) => {
       const t = tenantA;
       const cust = await tx.$queryRaw<Array<{ id: string }>>`
-        INSERT INTO public.org_customers_mst (tenant_org_id) VALUES (${t}::uuid) RETURNING id`;
+        INSERT INTO public.org_customers_mst (customer_code, tenant_org_id) VALUES (gen_random_uuid()::text, ${t}::uuid) RETURNING id`;
       // A written snapshot (engine version set), pay on collection, partly paid.
       const order = await tx.$queryRaw<Array<{ id: string }>>`
         INSERT INTO public.org_orders_mst (tenant_org_id, customer_id, order_no, currency_code, payment_type_code,
@@ -180,7 +180,7 @@ describe('Order Fin View sources (DB-level)', () => {
     await runRollback(async (tx) => {
       const t = tenantA;
       const cust = await tx.$queryRaw<Array<{ id: string }>>`
-        INSERT INTO public.org_customers_mst (tenant_org_id) VALUES (${t}::uuid) RETURNING id`;
+        INSERT INTO public.org_customers_mst (customer_code, tenant_org_id) VALUES (gen_random_uuid()::text, ${t}::uuid) RETURNING id`;
       const order = await tx.$queryRaw<Array<{ id: string }>>`
         INSERT INTO public.org_orders_mst (tenant_org_id, customer_id, order_no, currency_code, payment_type_code, tax_pricing_mode)
         VALUES (${t}::uuid, ${cust[0].id}::uuid, ${`FV-${randomUUID()}`}, 'OMR', 'PAY_ON_COLLECTION', 'TAX_EXCLUSIVE')
@@ -275,7 +275,7 @@ describe('Order Fin View sources (DB-level)', () => {
     await runRollback(async (tx) => {
       const t = tenantA;
       const cust = await tx.$queryRaw<Array<{ id: string }>>`
-        INSERT INTO public.org_customers_mst (tenant_org_id) VALUES (${t}::uuid) RETURNING id`;
+        INSERT INTO public.org_customers_mst (customer_code, tenant_org_id) VALUES (gen_random_uuid()::text, ${t}::uuid) RETURNING id`;
       const order = await tx.$queryRaw<Array<{ id: string }>>`
         INSERT INTO public.org_orders_mst (tenant_org_id, customer_id, order_no, currency_code, total_amount, commercial_calc_version)
         VALUES (${t}::uuid, ${cust[0].id}::uuid, ${`FV-${randomUUID()}`}, 'OMR', 10.08, 1) RETURNING id`;
@@ -306,7 +306,7 @@ describe('Order Fin View sources (DB-level)', () => {
     await runRollback(async (tx) => {
       const t = tenantA;
       const cust = await tx.$queryRaw<Array<{ id: string }>>`
-        INSERT INTO public.org_customers_mst (tenant_org_id) VALUES (${t}::uuid) RETURNING id`;
+        INSERT INTO public.org_customers_mst (customer_code, tenant_org_id) VALUES (gen_random_uuid()::text, ${t}::uuid) RETURNING id`;
       // Older order: no tax_pricing_mode column value; the snapshot writer recorded TAX_INCLUSIVE.
       // 10 + 1 − 0.5 (+ tax inside) − 0.05 rounding = 10.45.
       const json = JSON.stringify({ version: 5, taxPricingModeAtCalculation: 'TAX_INCLUSIVE' });
@@ -340,7 +340,7 @@ describe('Order Fin View sources (DB-level)', () => {
     await runRollback(async (tx) => {
       const t = tenantA;
       const cust = await tx.$queryRaw<Array<{ id: string }>>`
-        INSERT INTO public.org_customers_mst (tenant_org_id) VALUES (${t}::uuid) RETURNING id`;
+        INSERT INTO public.org_customers_mst (customer_code, tenant_org_id) VALUES (gen_random_uuid()::text, ${t}::uuid) RETURNING id`;
       const make = async (calcVersion: number | null) => {
         const o = await tx.$queryRaw<Array<{ id: string }>>`
           INSERT INTO public.org_orders_mst (tenant_org_id, customer_id, order_no, currency_code, payment_type_code,
@@ -387,7 +387,7 @@ describe('Order Fin View sources (DB-level)', () => {
     await runRollback(async (tx) => {
       const t = tenantA;
       const cust = await tx.$queryRaw<Array<{ id: string }>>`
-        INSERT INTO public.org_customers_mst (tenant_org_id) VALUES (${t}::uuid) RETURNING id`;
+        INSERT INTO public.org_customers_mst (customer_code, tenant_org_id) VALUES (gen_random_uuid()::text, ${t}::uuid) RETURNING id`;
       const written = await tx.$queryRaw<Array<{ id: string }>>`
         INSERT INTO public.org_orders_mst (tenant_org_id, customer_id, order_no, currency_code, payment_type_code,
           total_amount, total_paid_amount, outstanding_amount, financial_engine_version, financial_snapshot_status)

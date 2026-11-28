@@ -802,7 +802,6 @@
     "description": "Financial domain-event outbox — inspect payloads, recover stuck events, and jump to the related order, invoice, or voucher.",
     "refresh": "Refresh",
     "autoRefresh": "Auto-refresh",
-    "jumpToJobs": "Scheduled jobs",
     "allStatuses": "All statuses",
     "allEventTypes": "All event types",
     "allAggregates": "All aggregates",
@@ -996,87 +995,34 @@
       }
     }
   },
-  "financeJobs": {
-    "title": "Scheduled Jobs",
-    "description": "Run history, cron health, and on-demand trigger for finance maintenance jobs. Cross-tenant sweeps — treat Run Now as an operations action.",
-    "refresh": "Refresh",
-    "loading": "Loading…",
-    "neverRun": "Never run",
-    "runNow": "Run Now",
-    "running": "Running…",
-    "runSuccess": "Job run completed",
-    "runFailed": "Job run failed",
-    "alreadyRunning": "This job is already running. Wait for it to finish.",
-    "confirmRunTitle": "Run this job now?",
-    "confirmRunDescription": "Start an on-demand run of {job}. If a run is already in progress, this request is rejected.",
-    "history": "History",
-    "historyTitle": "{job} run history",
-    "historyDescription": "Recent runs for this job. Idle every-minute processor ticks are omitted except the latest heartbeat.",
-    "historyEmpty": "No runs recorded yet",
-    "durationMs": "{ms} ms",
-    "durationSec": "{sec}s",
-    "outcome": "{processed} processed, {failed} failed",
-    "columns": {
-      "job": "Job",
-      "schedule": "Schedule",
-      "nextRun": "Next run",
-      "cron": "Cron",
-      "lastRun": "Last run",
-      "trigger": "Trigger",
-      "status": "Status",
-      "outcome": "Outcome",
-      "lastError": "Last error"
+  "runNow": {
+    "forbidden": "You do not have permission to run this.",
+    "failed": "The run could not finish. Try again in a few minutes.",
+    "failedCount": "{count, plural, one {# could not be processed and will be tried again tonight.} other {# could not be processed and will be tried again tonight.}}",
+    "more": "More are waiting: run it again to continue.",
+    "giftCards": {
+      "label": "Expire due cards now",
+      "confirmTitle": "Expire due gift cards now?",
+      "confirmDescription": "Gift cards of this Organization that are past their expiry date are expired now: their remaining balance is written off and posted to the ledger. The nightly run does the same; use this before closing a period. This cannot be undone.",
+      "result": "{count, plural, =0 {No gift cards were due.} one {# gift card expired.} other {# gift cards expired.}}"
     },
-    "historyColumns": {
-      "started": "Started",
-      "duration": "Duration"
+    "creditNotes": {
+      "label": "Expire due credit notes now",
+      "confirmTitle": "Expire due credit notes now?",
+      "confirmDescription": "Credit notes of this Organization that are past their expiry date are expired now and their remaining balance is set to zero. The nightly run does the same; use this before closing a period. This cannot be undone.",
+      "result": "{count, plural, =0 {No credit notes were due.} one {# credit note expired.} other {# credit notes expired.}}"
     },
-    "cron": {
-      "active": "Active",
-      "inactive": "Inactive",
-      "unknown": "Unknown"
+    "loyalty": {
+      "label": "Expire due points now",
+      "confirmTitle": "Expire due loyalty points now?",
+      "confirmDescription": "Loyalty points of this Organization older than the program's expiry period are expired now. The nightly run does the same; use this before closing a period. This cannot be undone.",
+      "result": "{count, plural, =0 {No points were due.} one {Points expired on # customer account.} other {Points expired on # customer accounts.}}"
     },
-    "triggerLabels": {
-      "SCHEDULE": "Schedule",
-      "MANUAL": "Manual"
-    },
-    "jobNames": {
-      "gift_card_expiry": "Gift-Card Expiry",
-      "credit_note_expiry": "Credit-Note Expiry",
-      "loyalty_points_expiry": "Loyalty Points Expiry",
-      "idempotency_cleanup": "Idempotency-Key Cleanup",
-      "erp_posting_retry": "ERP Posting Retry",
-      "pos_session_rollover": "POS Session Rollover"
-    },
-    "schedules": {
-      "gift_card_expiry": "02:00 daily",
-      "credit_note_expiry": "02:05 daily",
-      "loyalty_points_expiry": "02:10 daily",
-      "idempotency_cleanup": "03:00 daily",
-      "erp_posting_retry": "Hourly at :15",
-      "pos_session_rollover": "Every 15 minutes"
-    },
-    "relatedLinks": {
-      "gift_card_expiry": "Gift cards",
-      "credit_note_expiry": "Stored value",
-      "loyalty_points_expiry": "Loyalty program",
-      "erp_posting_retry": "ERP exceptions",
-      "pos_session_rollover": "POS sessions"
-    },
-    "statusLabels": {
-      "RUNNING": "Running",
-      "SUCCESS": "Success",
-      "FAILED": "Failed"
-    },
-    "health": {
-      "title": "Job health",
-      "secretMissing": "FINANCE_OUTBOX_SECRET is not configured — scheduled finance jobs cannot authenticate.",
-      "cronInactive": "{job} cron is inactive or missing. Apply migration 0505 and confirm pg_cron.",
-      "lastFailed": "{job} last run failed."
-    },
-    "viewError": "View full error",
-    "copyError": "Copy error",
-    "copyErrorFailed": "Could not copy the error message",
-    "errorDetailTitle": "Error details"
+    "erpRetry": {
+      "label": "Retry all system errors",
+      "confirmTitle": "Retry all system errors?",
+      "confirmDescription": "Every open exception of type System error in this Organization is retried now, up to 50 at a time, the same as pressing Retry on each. Other exception types need their cause fixed first and are not retried.",
+      "result": "{count, plural, =0 {Nothing was posted.} one {# exception retried and posted.} other {# exceptions retried and posted.}}"
+    }
   }
 }

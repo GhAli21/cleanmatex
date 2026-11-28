@@ -250,6 +250,7 @@ body {
   --cmx-sb-search-fg: #0f172a;
   --cmx-sb-search-ph: #475569;
   --cmx-sb-search-kbd: #ffffff;
+  --cmx-sb-skeleton: rgba(15, 23, 42, 0.10);
 }
 [data-mode="DARK"] [data-sidebar-theme="OCEAN"] {
   --cmx-sb-search-bg: #1e293b;
@@ -257,6 +258,7 @@ body {
   --cmx-sb-search-fg: #f8fafc;
   --cmx-sb-search-ph: #cbd5e1;
   --cmx-sb-search-kbd: #0f172a;
+  --cmx-sb-skeleton: rgba(248, 250, 252, 0.14);
 }
 
 [data-sidebar-theme="MIDNIGHT"] {
@@ -273,6 +275,7 @@ body {
   --cmx-sb-search-fg: #ffffff;
   --cmx-sb-search-ph: #cbd5e1;
   --cmx-sb-search-kbd: rgba(15, 23, 42, 0.80);
+  --cmx-sb-skeleton: rgba(255, 255, 255, 0.14);
 }
 [data-mode="DARK"] [data-sidebar-theme="MIDNIGHT"] {
   --cmx-sb-bg: linear-gradient(180deg, #090e1a 0%, #0f172a 100%);
@@ -293,6 +296,7 @@ body {
   --cmx-sb-search-fg: #0f2926;
   --cmx-sb-search-ph: #4b6e68;
   --cmx-sb-search-kbd: #f0fdfa;
+  --cmx-sb-skeleton: rgba(13, 148, 136, 0.16);
 }
 [data-mode="DARK"] [data-sidebar-theme="EMERALD"] {
   --cmx-sb-bg: #0a1917;
@@ -308,6 +312,7 @@ body {
   --cmx-sb-search-fg: #ecfdf5;
   --cmx-sb-search-ph: #99f6e4;
   --cmx-sb-search-kbd: #071413;
+  --cmx-sb-skeleton: rgba(94, 234, 212, 0.16);
 }
 
 [data-sidebar-theme="INDIGO"] {
@@ -324,6 +329,7 @@ body {
   --cmx-sb-search-fg: #ffffff;
   --cmx-sb-search-ph: #ddd6fe;
   --cmx-sb-search-kbd: rgba(30, 27, 75, 0.80);
+  --cmx-sb-skeleton: rgba(255, 255, 255, 0.15);
 }
 [data-mode="DARK"] [data-sidebar-theme="INDIGO"] {
   --cmx-sb-bg: linear-gradient(180deg, #110e26 0%, #1a1538 100%);
@@ -344,6 +350,7 @@ body {
   --cmx-sb-search-fg: #292118;
   --cmx-sb-search-ph: #756554;
   --cmx-sb-search-kbd: #faf5ef;
+  --cmx-sb-skeleton: rgba(180, 83, 9, 0.15);
 }
 [data-mode="DARK"] [data-sidebar-theme="SAND"] {
   --cmx-sb-bg: #17130f;
@@ -359,6 +366,7 @@ body {
   --cmx-sb-search-fg: #faf5ef;
   --cmx-sb-search-ph: #fde68a;
   --cmx-sb-search-kbd: #17130f;
+  --cmx-sb-skeleton: rgba(253, 230, 138, 0.14);
 }
 
 .cmx-sb-surface {
@@ -369,6 +377,7 @@ body {
 .cmx-sb-border { border-color: var(--cmx-sb-border); }
 .cmx-sb-fg { color: var(--cmx-sb-fg); }
 .cmx-sb-muted-fg { color: var(--cmx-sb-muted-fg); }
+.cmx-sb-skeleton { background: var(--cmx-sb-skeleton); }
 .cmx-sb-item { color: var(--cmx-sb-muted-fg); }
 .cmx-sb-item:hover { background: var(--cmx-sb-hover); color: var(--cmx-sb-fg); }
 .cmx-sb-item-active { background: var(--cmx-sb-active-bg); color: var(--cmx-sb-active-fg); font-weight: 600; }

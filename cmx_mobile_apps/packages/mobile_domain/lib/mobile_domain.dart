@@ -15,6 +15,7 @@ export 'src/order_booking_draft_model.dart';
 export 'src/order_detail_model.dart';
 export 'src/order_financial_statement_model.dart';
 export 'src/order_item_model.dart';
+export 'src/order_line_qualifier_model.dart';
 export 'src/order_model.dart';
 export 'src/order_summary_model.dart';
 export 'src/order_timeline_step_model.dart';

@@ -62,7 +62,7 @@ async function seedOrderWithBases(
   bases: { taxable: number; exempt: number; zeroRated: number; outOfScope: number },
 ): Promise<string> {
   const cust = await tx.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id) VALUES (${tenantA}::uuid) RETURNING id`;
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id) VALUES (gen_random_uuid()::text, ${tenantA}::uuid) RETURNING id`;
   const order = await tx.$queryRaw<Array<{ id: string }>>`
     INSERT INTO public.org_orders_mst
       (tenant_org_id, customer_id, order_no, currency_code,

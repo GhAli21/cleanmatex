@@ -39,7 +39,6 @@ export interface InventoryItem {
   is_retail_item: boolean;
   item_type_code: string | null;
   service_category_code: string | null;
-  product_unit: string | null;
   product_cost: number | null;
   default_sell_price: number | null;
   id_sku: string | null;
@@ -68,7 +67,6 @@ export interface InventoryItemListItem {
   product_name: string | null;
   product_name2: string | null;
   item_type_code: string | null;
-  product_unit: string | null;
   base_uom_code?: string | null;
   product_cost: number | null;
   default_sell_price: number | null;
@@ -127,7 +125,6 @@ export interface CreateInventoryItemRequest {
   product_name2?: string;
   hint_text?: string;
   item_type_code?: string;
-  product_unit?: string;
   /** The unit the item is stocked and sold in (an `org_uom_cf` code); default PC. */
   base_uom_code?: string;
   product_cost?: number;
@@ -171,7 +168,6 @@ export interface UpdateInventoryItemRequest {
   product_name2?: string;
   hint_text?: string;
   item_type_code?: string;
-  product_unit?: string;
   /** The unit the item is stocked and sold in (an `org_uom_cf` code); default PC. */
   base_uom_code?: string;
   product_cost?: number;

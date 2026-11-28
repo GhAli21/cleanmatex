@@ -58,6 +58,8 @@ import { CmxEmptyState } from "../data-display/cmx-empty-state"
 
 import { Tooltip } from "./tooltip"
 import { cn } from "@/lib/utils"
+import { useClockCivilToday } from "@ui/clock/clock-provider"
+import { exportFileDay, toApiInstant } from "@/lib/clock/api-output"
 
 import { CmxStatusBadge } from '@ui/feedback/cmx-status-badge';
 // Custom debounce hook
@@ -331,6 +333,7 @@ export function DataTable<TData, TValue>({
     }
   }
 
+  const civilToday = useClockCivilToday()
   const handleExport = (format: "csv" | "excel") => {
     if (onExport) {
       onExport(format)
@@ -347,6 +350,7 @@ export function DataTable<TData, TValue>({
           .filter((col) => col.id !== "actions" && col.id !== "select")
           .map((col) => {
             const value = row.getValue(col.id || "")
+            if (value instanceof Date) return toApiInstant(value) ?? ""
             return typeof value === "string" ? `"${value.replace(/"/g, '""')}"` : value
           })
           .join(",")
@@ -357,7 +361,7 @@ export function DataTable<TData, TValue>({
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `export-${new Date().toISOString().split("T")[0]}.csv`
+      a.download = `export-${exportFileDay(civilToday, "data")}.csv`
       a.click()
       URL.revokeObjectURL(url)
     }

@@ -38,7 +38,7 @@ jest.mock('@/lib/supabase/server', () => ({
       };
       chain.then = (resolve: (v: unknown) => void) =>
         resolve(table === 'org_product_data_mst'
-          ? { data: [{ id: 'p1', product_code: 'A', product_name: 'Shirt', service_category_code: 'DRY', default_sell_price: 2, product_unit: 'piece', tax_category_code: 'EXEMPT', is_active: true }], error: null }
+          ? { data: [{ id: 'p1', product_code: 'A', product_name: 'Shirt', service_category_code: 'DRY', default_sell_price: 2, base_uom_code: 'PC', tax_category_code: 'EXEMPT', is_active: true }], error: null }
           : { data: [], error: null });
       return chain;
     },

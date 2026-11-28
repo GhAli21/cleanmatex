@@ -70,6 +70,9 @@ interface PublicOrderItemRow {
   uom_qty_decimals?: number | null;
   measured_qty?: number | string | null;
   billed_qty?: number | string | null;
+  min_billable_qty?: number | string | null;
+  billing_increment?: number | string | null;
+  price_per_unit?: number | string | null;
   service_speed?: string | null;
   product_name?: string | null;
   product_name2?: string | null;
@@ -401,6 +404,9 @@ export async function getPublicOrderTrackingResponse(
             uom_qty_decimals,
             measured_qty,
             billed_qty,
+            min_billable_qty,
+            billing_increment,
+            price_per_unit,
             service_speed,
             org_product_data_mst(
               id,

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.48 — 2026-11-27
+
+- **S7 (no migration).** New `web-admin/lib/clock/api-output.ts`: `toApiInstant` / `withApiInstants` (instants out as `...Z`, offset-less text refused), `exportLocalText` (named zone, `en`, Latin digits, 24h), `exportDateValue`, `exportZoneHeader`, `exportFileDay` (screen-zone civil day, never the device day).
+- Exports: `CmxDataGrid` and `DataTable` file names use the screen-zone civil day and write `Date` cells as `Z`; `toCsv` (report CSV) writes `Date` as `Z`; customers export uses `toApiInstant`; price-history CSV has `Changed At (UTC)`, `Changed At (Local)` and `Time Zone` columns.
+- D20 second list: catalog price history (`ViewZoneProvider` `price-history`, `CmxViewZoneToggle`), times in the endpoint `clock` zone (fail closed), `<bdi>`.
+- Audit (WP17): `CmxAuditInfoCard` (and `CmxAuditColumn` through it) formats instants in the screen clock zone or the viewer zone; `—` without a zone (was the device zone).
+- `GET /api/v1/health/clock` (`setup_health:view`, session tenant): Node tz/ICU, app vs `fn_cmx_dt_now()` skew (`CLOCK_DB_SKEW` > 2 s), three recent-rule vectors in SQL and TS (`CLOCK_TZDB_SKEW`), `fn_cmx_dt_health` findings (incl. `CLOCK_FAKE_ENV`), `status`.
+- T15: FX import takes civil `rate_date` only (`YYYY-MM-DD`), a datetime row is already rejected; no change.
+- Rules: `docs/dev/rules/time-and-timezone.md` gains "Clock program rules in force (S1–S7)"; `.cursor/rules/time-and-timezone.mdc` rules 13–16.
+- Guard 224 → 221 (baseline lowered). The user's `0849_setup_health_measured_price.sql` (`updated_at = NOW()`) allowlisted by name; S8 projected `0850`.
+- Tests: `clock-s7.test.ts`, `health-clock.route.test.ts`, audit card test (zone + fail closed); 74/74 under `America/Los_Angeles` and `Asia/Kathmandu`.
+
 ## 0.1.47 — 2026-11-27
 
 - **S5 closed:** the user applied `0846` (local and remote) and regenerated types and the Prisma schema; `clock_s5_current_date.test.sql` PASS 1–7 (the two `CLOCK_ZONE_MISSING` warnings in section 6 are expected).

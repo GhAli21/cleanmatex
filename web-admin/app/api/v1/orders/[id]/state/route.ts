@@ -81,6 +81,8 @@ const ORDER_ITEM_STATE_SELECT = `
   uom_qty_decimals,
   measured_qty,
   billed_qty,
+  min_billable_qty,
+  billing_increment,
   ready_by_at,
   barcode,
   item_last_step,

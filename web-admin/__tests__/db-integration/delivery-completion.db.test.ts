@@ -124,8 +124,8 @@ async function seedDelivery(options?: {
   const stopStatus = options?.stopStatus ?? 'in_transit';
   const orderStatus = options?.orderStatus ?? 'out_for_delivery';
   const customer = await prisma.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id, name)
-    VALUES (${DEMO_TENANT}::uuid, ${`Delivery DB test ${randomUUID()}`})
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name)
+    VALUES (gen_random_uuid()::text, ${DEMO_TENANT}::uuid, ${`Delivery DB test ${randomUUID()}`})
     RETURNING id
   `;
   const order = await prisma.$queryRaw<Array<{ id: string }>>`

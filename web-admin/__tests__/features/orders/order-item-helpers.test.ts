@@ -194,7 +194,7 @@ describe('Order Item Helpers', () => {
       measure: { measuredQty: '3.2', length: '', width: '' },
     };
     const area: OrderItem = {
-      ...kg, uom: { ...kg.uom!, code: 'M2', dimension: 'AREA', minBillableQty: null, billingIncrement: null },
+      ...kg, uom: { ...kg.uom!, code: 'SQM', dimension: 'AREA', minBillableQty: null, billingIncrement: null },
       measure: { measuredQty: '', length: '2', width: '1.5' },
     };
 

@@ -28,7 +28,7 @@ jest.mock('next-intl', () => {
 import { MeasureLineDialog } from '@features/orders/ui/measure-line-dialog'
 
 const KG = { code: 'KG', dimension: 'MASS', qtyDecimals: 3, symbol: 'kg', symbol2: null, minBillableQty: '3', billingIncrement: '0.5' }
-const M2 = { code: 'M2', dimension: 'AREA', qtyDecimals: 3, symbol: 'm²', symbol2: null, minBillableQty: null, billingIncrement: null }
+const M2 = { code: 'SQM', dimension: 'AREA', qtyDecimals: 3, symbol: 'm²', symbol2: null, minBillableQty: null, billingIncrement: null }
 
 function setup(uom = KG, initial?: { measuredQty: string; length: string; width: string }) {
   const onConfirm = jest.fn()
@@ -114,3 +114,100 @@ describe('MeasureLineDialog', () => {
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ measuredQty: '3.5' }))
   })
 })
+
+describe('MeasureLineDialog: another unit and the keypad', () => {
+  const KG_UNITS = [
+    { code: 'KG', symbol: 'kg', symbol2: null, qtyDecimals: 3, rate: '1' },
+    { code: 'LB', symbol: 'lb', symbol2: null, qtyDecimals: 3, rate: '0.45359237' },
+  ]
+  const METRES = [
+    { code: 'M', symbol: 'm', symbol2: null, qtyDecimals: 2, rate: '1' },
+    { code: 'FT', symbol: 'ft', symbol2: null, qtyDecimals: 3, rate: '0.3048' },
+  ]
+
+  it('converts pounds into the product unit, shows both, and saves the product unit', () => {
+    const onConfirm = jest.fn()
+    render(<MeasureLineDialog open productName="Wash" uom={KG} entryUnits={KG_UNITS} onConfirm={onConfirm} onClose={jest.fn()} />)
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'LB' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Measure (lb)' }), { target: { value: '10' } })
+    expect(screen.getByText('10 lb = 4.536 kg')).toBeInTheDocument()
+    expect(screen.getByText('Billed: 5 kg')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onConfirm).toHaveBeenCalledWith({ measuredQty: '4.536', length: '', width: '' })
+  })
+
+  it('changing the unit clears the typed figure instead of rereading it', () => {
+    render(<MeasureLineDialog open productName="Wash" uom={KG} entryUnits={KG_UNITS} onConfirm={jest.fn()} onClose={jest.fn()} />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '5' } })
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'LB' } })
+    expect(screen.getByRole('textbox')).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
+  })
+
+  it('takes a rug in feet and saves metres', () => {
+    const onConfirm = jest.fn()
+    render(<MeasureLineDialog open productName="Rug" uom={M2} entryUnits={METRES} onConfirm={onConfirm} onClose={jest.fn()} />)
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'FT' } })
+    const [length, width] = screen.getAllByRole('textbox')
+    fireEvent.change(length, { target: { value: '8' } })
+    fireEvent.change(width, { target: { value: '10' } })
+    expect(screen.getByText('8 ft × 10 ft = 2.4384 m × 3.048 m')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onConfirm).toHaveBeenCalledWith({ measuredQty: '', length: '2.4384', width: '3.048' })
+  })
+
+  it('hides the unit choice when there is only the product unit', () => {
+    render(<MeasureLineDialog open productName="Wash" uom={KG} entryUnits={[KG_UNITS[0]]} onConfirm={jest.fn()} onClose={jest.fn()} />)
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+  })
+
+  it('types with the on-screen keypad', () => {
+    const onConfirm = jest.fn()
+    render(<MeasureLineDialog open productName="Wash" uom={KG} onConfirm={onConfirm} onClose={jest.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Keypad' }))
+    for (const key of ['4', 'Decimal point', '2']) fireEvent.click(screen.getByRole('button', { name: key }))
+    expect(screen.getByRole('textbox')).toHaveValue('4.2')
+    fireEvent.click(screen.getByRole('button', { name: 'Delete last digit' }))
+    expect(screen.getByRole('textbox')).toHaveValue('4.')
+  })
+})
+
+describe('MeasureLineDialog: square feet', () => {
+  const SQFT = { code: 'SQFT', dimension: 'AREA', qtyDecimals: 2, symbol: 'ft²', symbol2: null, minBillableQty: null, billingIncrement: null }
+
+  it('asks for feet even before the units load, and bills square feet', () => {
+    const onConfirm = jest.fn()
+    render(<MeasureLineDialog open productName="Rug" uom={SQFT} onConfirm={onConfirm} onClose={jest.fn()} />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Length (ft)' }), { target: { value: '8' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Width (ft)' }), { target: { value: '10' } })
+    expect(screen.getByText('Billed: 80 ft²')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onConfirm).toHaveBeenCalledWith({ measuredQty: '', length: '8', width: '10' })
+  })
+
+  it('takes metres on a square-foot product and saves feet', () => {
+    const onConfirm = jest.fn()
+    const units = [
+      { code: 'FT', symbol: 'ft', symbol2: null, qtyDecimals: 2, rate: '1' },
+      { code: 'M', symbol: 'm', symbol2: null, qtyDecimals: 2, rate: '3.280839895013' },
+    ]
+    render(<MeasureLineDialog open productName="Rug" uom={SQFT} entryUnits={units} onConfirm={onConfirm} onClose={jest.fn()} />)
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'M' } })
+    const [length, width] = screen.getAllByRole('textbox')
+    fireEvent.change(length, { target: { value: '2' } })
+    fireEvent.change(width, { target: { value: '3' } })
+    expect(screen.getByText('2 m × 3 m = 6.5617 ft × 9.8425 ft')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onConfirm).toHaveBeenCalledWith({ measuredQty: '', length: '6.5617', width: '9.8425' })
+  })
+
+  it('refuses an area unit it cannot measure', () => {
+    render(<MeasureLineDialog open productName="Rug" uom={{ ...SQFT, code: 'BLOCK' }} onConfirm={jest.fn()} onClose={jest.fn()} />)
+    const [length, width] = screen.getAllByRole('textbox')
+    fireEvent.change(length, { target: { value: '1' } })
+    fireEvent.change(width, { target: { value: '1' } })
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
+    expect(screen.getByRole('alert')).toHaveTextContent('Only square metres and square feet')
+  })
+})
+

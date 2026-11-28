@@ -264,8 +264,7 @@ export async function createProduct(
       is_retail_item: request.is_retail_item || false,
       product_type: request.product_type || null,
       price_type: request.price_type || PRODUCT_PRICE_TYPES.PER_UNIT,
-      product_unit: request.product_unit ?? request.base_uom_code ?? null,
-      base_uom_code: request.base_uom_code ?? legacyUnitToUomCode(request.product_unit) ?? UOM_DEFAULT_COUNT_CODE,
+      base_uom_code: request.base_uom_code ?? UOM_DEFAULT_COUNT_CODE,
       min_billable_qty: request.min_billable_qty != null ? Number(request.min_billable_qty) : null,
       billing_increment: request.billing_increment != null ? Number(request.billing_increment) : null,
       default_sell_price: request.default_sell_price,
@@ -331,8 +330,6 @@ export async function updateProduct(
   if (request.is_retail_item !== undefined) updateData.is_retail_item = request.is_retail_item;
   if (request.product_type !== undefined) updateData.product_type = request.product_type;
   if (request.price_type !== undefined) updateData.price_type = request.price_type;
-  if (request.product_unit !== undefined) updateData.product_unit = request.product_unit;
-  else if (request.base_uom_code !== undefined) updateData.product_unit = request.base_uom_code;
   if (request.base_uom_code !== undefined) updateData.base_uom_code = request.base_uom_code;
   if (request.min_billable_qty !== undefined) updateData.min_billable_qty = request.min_billable_qty != null ? Number(request.min_billable_qty) : null;
   if (request.billing_increment !== undefined) updateData.billing_increment = request.billing_increment != null ? Number(request.billing_increment) : null;
@@ -522,7 +519,6 @@ export async function searchProducts(
     category_name: item.service_category_code, // Use code for now
     category_name2: item.service_category_code,
     default_sell_price: item.default_sell_price,
-    product_unit: item.product_unit,
     base_uom_code: item.base_uom_code ?? null,
     min_billable_qty: item.min_billable_qty != null ? String(item.min_billable_qty) : null,
     billing_increment: item.billing_increment != null ? String(item.billing_increment) : null,
@@ -913,11 +909,12 @@ function validateCSVRow(
     });
   }
 
-  if (!data.unit || !['piece', 'kg', 'item'].includes(data.unit)) {
+  // A unit code, as the export writes it, or a legacy word; the database checks the Organization has it.
+  if (!data.unit || !legacyUnitToUomCode(data.unit)) {
     errors.push({
       row: rowNumber,
       field: 'unit',
-      message: 'Unit must be piece, kg, or item',
+      message: 'Unit must be a unit code such as PC or KG',
       value: data.unit,
     });
   }
@@ -996,7 +993,7 @@ export async function bulkImportProducts(
         product_name: data.product_name,
         product_name2: data.product_name_ar || '',
         service_category_code: data.category_code,
-        product_unit: data.unit,
+        base_uom_code: legacyUnitToUomCode(data.unit) ?? undefined,
         default_sell_price: parseFloat(data.price || data.price_regular),
         min_quantity: data.min_qty ? parseInt(data.min_qty, 10) : undefined,
         turnaround_hh: data.turnaround_hh ? parseFloat(data.turnaround_hh) : undefined,
@@ -1070,7 +1067,7 @@ export async function exportProducts(
         product.product_name2 || '',
         product.service_category_code || '',
         product.default_sell_price || '',
-        product.product_unit || '',
+        product.base_uom_code || '',
       ].join(',')
     );
     return [headers, ...rows].join('\n');
@@ -1089,7 +1086,7 @@ export async function exportProducts(
         product.default_sell_price || '',
         express?.sellPrice ?? '',
         express?.multiplier ?? '',
-        product.product_unit || '',
+        product.base_uom_code || '',
         product.min_quantity || '',
         product.turnaround_hh || '',
         express?.turnaroundHours ?? '',

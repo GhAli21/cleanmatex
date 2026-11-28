@@ -58,7 +58,7 @@ async function seedOrder(tx: Tx, committed: boolean) {
   const t = DEMO_TENANT;
   const actor = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM auth.users LIMIT 1`;
   const cust = await tx.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id, name) VALUES (${t}::uuid, ${`Guard ${randomUUID()}`}) RETURNING id`;
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name) VALUES (gen_random_uuid()::text, ${t}::uuid, ${`Guard ${randomUUID()}`}) RETURNING id`;
   const order = await tx.$queryRaw<Array<{ id: string }>>`
     INSERT INTO public.org_orders_mst (tenant_org_id, customer_id, order_no, currency_code, payment_type_code, total_amount)
     VALUES (${t}::uuid, ${cust[0].id}::uuid, ${`GUARD-${randomUUID()}`}, 'OMR', 'PAY_ON_COLLECTION', 10)

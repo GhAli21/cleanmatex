@@ -1,5 +1,7 @@
 # ADR — I11 Background Execution Boundary
 
+> **SUPERSEDED (28 Nov 2026, Background Jobs step 9).** Historical record only; do not follow it. The current design is [docs/features/Background_Jobs/DESIGN.md](../../features/Background_Jobs/DESIGN.md). The pg-boss redesign replaced this runtime (platform-workers and the HQ worker claims were deleted in step 8).
+
 **Status:** Target boundary approved 17 Nov 2026; **runtime architecture amended and Owner-approved 20 Nov 2026** ([expert replan](I11_background_execution_EXPERT_REPLAN.md) D1–D8); **D19 central work platform** added 21 Nov 2026. Notification delivery stays disabled until WP0–WP4 gates.
 **Approved_By_Jh:** 20 Nov 2026 (D1–D8); D19 recorded 21 Nov 2026 from Owner direction to centralize work calls.
 **Scope:** `cleanmatex` database and tenant legacy routes; `cleanmatexsaas` HQ `platform-api`, `platform-web`; Render `platform-workers` is transitional until WP2.

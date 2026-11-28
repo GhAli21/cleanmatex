@@ -6,6 +6,7 @@ const units = [
   { code: 'PC', name: 'Piece', name2: 'قطعة', symbol: 'pc', symbol2: 'قطعة', dimension: 'COUNT', isActive: true },
   { code: 'KG', name: 'Kilogram', name2: 'كيلوغرام', symbol: 'kg', symbol2: 'كجم', dimension: 'MASS', isActive: true },
   { code: 'LB', name: 'Pound', name2: 'رطل', symbol: 'lb', symbol2: 'رطل', dimension: 'MASS', isActive: false },
+  { code: 'BASKET', name: 'Basket', name2: 'سلة', symbol: 'bsk', symbol2: 'سلة', dimension: 'COUNT', isActive: true, origin: 'CUSTOM' },
 ] as const
 
 const meta = {
@@ -16,7 +17,7 @@ const meta = {
   args: { units: [...units], value: 'KG', onChange: () => {} },
   render: (args) => {
     const [value, setValue] = useState(args.value)
-    return <div className="w-[320px]"><CmxUomSelect {...args} value={value} onChange={setValue} /></div>
+    return <div className="h-[24rem] w-[320px]"><CmxUomSelect {...args} value={value} onChange={setValue} /></div>
   },
 } satisfies Meta<typeof CmxUomSelect>
 

@@ -1,5 +1,6 @@
 /**
- * GET  /api/v1/uom/units  — the Organization's units (?active_only=false includes switched-off)
+ * GET  /api/v1/uom/units  — the Organization's units (?active_only=false includes switched-off,
+ *                           ?with_counts=true adds the products on each unit)
  * POST /api/v1/uom/units  — new custom unit, or { kind:'system', codes } to add system units
  */
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,8 +17,12 @@ export async function GET(request: NextRequest) {
   const auth = await requirePermission('uom:view')(request);
   if (auth instanceof NextResponse) return auth;
   try {
-    const activeOnly = new URL(request.url).searchParams.get('active_only') !== 'false';
-    return NextResponse.json({ success: true, data: await listUnits(auth.tenantId, { activeOnly }) });
+    const params = new URL(request.url).searchParams;
+    const options = {
+      activeOnly: params.get('active_only') !== 'false',
+      withProductCounts: params.get('with_counts') === 'true',
+    };
+    return NextResponse.json({ success: true, data: await listUnits(auth.tenantId, options) });
   } catch (e) { return uomErrorResponse(e, 'list-units'); }
 }
 

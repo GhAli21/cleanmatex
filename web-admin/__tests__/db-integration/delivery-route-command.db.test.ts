@@ -84,8 +84,8 @@ async function seedOrder(opts?: {
   withAddress?: boolean;
 }): Promise<SeededOrder> {
   const customer = await prisma.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id, name, phone)
-    VALUES (${DEMO_TENANT}::uuid, ${`Route DB test ${randomUUID()}`}, '99999999')
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name, phone)
+    VALUES (gen_random_uuid()::text, ${DEMO_TENANT}::uuid, ${`Route DB test ${randomUUID()}`}, ${`9${Math.floor(Math.random() * 1e7).toString().padStart(7, '0')}`})
     RETURNING id
   `;
   if (opts?.withAddress !== false) {

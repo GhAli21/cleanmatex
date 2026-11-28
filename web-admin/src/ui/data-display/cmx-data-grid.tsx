@@ -67,6 +67,8 @@ import {
 import { useMessage } from '@ui/feedback';
 import { cn } from '@/lib/utils';
 import { useCmxAuditColumn, type CmxAuditConfig } from './cmx-audit-column';
+import { useClockCivilToday } from '@ui/clock/clock-provider';
+import { exportFileDay, toApiInstant } from '@/lib/clock/api-output';
 
 const FILTER_DEBOUNCE_MS = 300;
 const GLOBAL_SEARCH_DEBOUNCE_MS = 300;
@@ -433,7 +435,9 @@ function buildCsvFromTable<TData>(table: Table<TData>): string {
     cols
       .map((c) => {
         const val = row.getValue(c.id);
-        const s = val == null ? '' : String(val).replace(/"/g, '""');
+        // Instants leave as ISO `Z` (S7); String(date) would print the device zone.
+        const text = val instanceof Date ? (toApiInstant(val) ?? '') : val == null ? '' : String(val);
+        const s = text.replace(/"/g, '""');
         return `"${s}"`;
       })
       .join(',')
@@ -749,6 +753,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
     setGoToInput(String(clamped));
   }, [goToInput, pageCount, table]);
 
+  const civilToday = useClockCivilToday();
   const handleExport = React.useCallback(() => {
     const csv = buildCsvFromTable(table);
     if (onExportCsv) {
@@ -759,10 +764,11 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${exportFileName}-${new Date().toISOString().slice(0, 10)}.csv`;
+    // File day is the screen-zone civil day; without a zone the name carries no day (never the device day).
+    a.download = `${exportFileName}-${exportFileDay(civilToday)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [exportFileName, onExportCsv, table]);
+  }, [civilToday, exportFileName, onExportCsv, table]);
 
   const headerGroup = table.getHeaderGroups()[0];
   const colCount = headerGroup?.headers.length ?? columns.length;

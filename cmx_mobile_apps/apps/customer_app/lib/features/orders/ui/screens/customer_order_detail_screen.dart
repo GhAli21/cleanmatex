@@ -11,6 +11,7 @@ import '../../providers/customer_order_detail_provider.dart';
 import '../../providers/customer_order_statement_provider.dart';
 import '../cards/customer_order_statement_card.dart';
 import '../cards/customer_order_timeline_step_card.dart';
+import '../widgets/customer_order_item_row_vw.dart';
 
 class CustomerOrderDetailScreen extends ConsumerWidget {
   const CustomerOrderDetailScreen({
@@ -150,6 +151,23 @@ class _OrderDetailBody extends StatelessWidget {
         : formatted;
   }
 
+  /// A unit price keeps the decimals it carries (up to 6), never fewer than the
+  /// currency's, so a small price per gram is not rounded away.
+  String? _formatUnitPrice(
+    BuildContext context,
+    double? price,
+    String? currency,
+    int decimals,
+  ) {
+    if (price == null) return null;
+    var digits = decimals;
+    while (digits < 6 &&
+        (price - double.parse(price.toStringAsFixed(digits))).abs() > 1e-9) {
+      digits++;
+    }
+    return _formatAmount(context, price, currency, digits);
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -243,26 +261,20 @@ class _OrderDetailBody extends StatelessWidget {
                   ...order.items.map(
                     (item) => Padding(
                       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${item.quantity}× ${item.name}',
-                              style: textTheme.bodyMedium,
-                            ),
-                          ),
-                          Text(
-                            _formatAmount(
-                              context,
-                              item.totalPrice,
-                              currency,
-                              decimals,
-                            ),
-                            style: textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                      child: CustomerOrderItemRowVw(
+                        item: item,
+                        unitPrice: _formatUnitPrice(
+                          context,
+                          item.qualifier?.measure?.unitPrice,
+                          currency,
+                          decimals,
+                        ),
+                        amount: _formatAmount(
+                          context,
+                          item.totalPrice,
+                          currency,
+                          decimals,
+                        ),
                       ),
                     ),
                   ),

@@ -48,6 +48,8 @@ export const COMMERCIAL_ERROR_CODES = {
   MEASURE_NOT_ALLOWED: 'MEASURE_NOT_ALLOWED',
   /** A measure has more decimals than its unit allows. */
   UOM_QTY_SCALE: 'UOM_QTY_SCALE',
+  /** An area line in a unit whose length and width cannot be measured. Same code as UOM_ERROR_CODES. */
+  UOM_AREA_UNSUPPORTED: 'UOM_AREA_UNSUPPORTED',
   /** An output breaks a money invariant I1–I6 (PLAN.md §5.2); nothing is written. */
   COMMERCIAL_INVARIANT_FAILED: 'COMMERCIAL_INVARIANT_FAILED',
 } as const;

@@ -9,10 +9,12 @@
 import { useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives/cmx-button';
+import { CmxSelect } from '@ui/primitives/cmx-select';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays/cmx-dialog';
 import { CmxQuantityMeasureInput, type MeasureValue } from '@ui/forms/cmx-quantity-measure-input';
 import { resolveBilledMeasure } from '@/lib/commercial/measure';
-import type { UomDimension } from '@/lib/constants/uom';
+import { convertMeasure, type MeasureEntryUnit } from '../model/measure-entry';
+import { areaSideUnit, UOM_DIMENSIONS, type UomDimension } from '@/lib/constants/uom';
 import type { OrderItemMeasure, OrderItemUom } from '../model/new-order-types';
 
 const EMPTY: OrderItemMeasure = { measuredQty: '', length: '', width: '' };
@@ -23,8 +25,10 @@ export interface MeasureLineDialogProps {
   /** The product's display name. */
   productName: string;
   uom: OrderItemUom;
-  /** The current measure when the line is already in the cart. */
+  /** The current measure when the line is already in the cart (in the product's unit). */
   initial?: OrderItemMeasure;
+  /** Units the measure may be typed in, the product's own first (area: its side unit). One or none hides the choice. */
+  entryUnits?: readonly MeasureEntryUnit[];
   /** Re-measure after a piece-count change: what happened, shown under the title (announced politely). */
   notice?: string;
   /** A refusal of the last Confirm, shown above the buttons. */
@@ -54,7 +58,7 @@ export interface MeasureMergeChoice {
 function check(uom: OrderItemUom, value: MeasureValue) {
   try {
     const m = resolveBilledMeasure({
-      dimension: uom.dimension, qtyDecimals: uom.qtyDecimals,
+      dimension: uom.dimension, uomCode: uom.code, qtyDecimals: uom.qtyDecimals,
       measuredQty: value.measuredQty || undefined, length: value.length || undefined, width: value.width || undefined,
       minBillableQty: uom.minBillableQty, billingIncrement: uom.billingIncrement,
     });
@@ -65,12 +69,21 @@ function check(uom: OrderItemUom, value: MeasureValue) {
 }
 
 /** Dialog body; remounted on every open so it starts from `initial`. */
-function MeasureForm({ productName, uom, initial, notice, refusal, mergeChoice, onMerge, onConfirm, onClose }: Omit<MeasureLineDialogProps, 'open'>) {
+function MeasureForm({ productName, uom, initial, entryUnits, notice, refusal, mergeChoice, onMerge, onConfirm, onClose }: Omit<MeasureLineDialogProps, 'open'>) {
   const t = useTranslations('uom');
   const tCommon = useTranslations('common');
   const ar = useLocale() === 'ar';
-  const [value, setValue] = useState<MeasureValue>(initial ?? EMPTY);
+  // What staff type, in the chosen entry unit; the line's measure is derived from it.
+  const [typedValue, setTypedValue] = useState<MeasureValue>(initial ?? EMPTY);
+  const [entryCode, setEntryCode] = useState('');
   const [choice, setChoice] = useState<MeasureMergeChoice | null>(null);
+  const base = entryUnits?.[0];
+  const entry = entryUnits?.find((u) => u.code === entryCode);
+  const converting = !!entry && !!base && entry.code !== base.code;
+  const value = useMemo<MeasureValue>(
+    () => (converting ? convertMeasure(typedValue, entry.rate, uom.qtyDecimals) : typedValue),
+    [converting, typedValue, entry, uom.qtyDecimals],
+  );
   const add = () => {
     const found = mergeChoice?.(value);
     if (found && found.options.length > 0 && onMerge) setChoice(found);
@@ -79,7 +92,27 @@ function MeasureForm({ productName, uom, initial, notice, refusal, mergeChoice, 
 
   const symbol = ar && uom.symbol2 ? uom.symbol2 : uom.symbol;
   const result = useMemo(() => check(uom, value), [uom, value]);
-  const typed = !!(value.measuredQty || value.length || value.width);
+  const typed = !!(typedValue.measuredQty || typedValue.length || typedValue.width);
+  const isArea = uom.dimension === UOM_DIMENSIONS.AREA;
+  const symbolOf = (u: Pick<MeasureEntryUnit, 'symbol' | 'symbol2'>) => (ar && u.symbol2 ? u.symbol2 : u.symbol);
+  // The side unit comes from the area unit itself, so the label is right even before the units load.
+  const sideCode = isArea ? areaSideUnit(uom.code) : undefined;
+  const sideSymbol = sideCode ? t(`measure.side.${sideCode}`) : undefined;
+  const lengthSymbol = isArea ? (base ? symbolOf(entry ?? base) : sideSymbol) : undefined;
+  /** "2 lb = 0.907 kg": the figure that will be saved, shown before it is. */
+  const conversionLine = () => {
+    if (!converting || !base) return null;
+    const pairs = isArea
+      ? ([[typedValue.length, value.length], [typedValue.width, value.width]] as const)
+      : ([[typedValue.measuredQty, value.measuredQty]] as const);
+    if (pairs.some(([from, to]) => !from || !to)) return null;
+    const target = isArea ? symbolOf(base) : symbol;
+    return t('measure.converted', {
+      entered: pairs.map(([from]) => `${from} ${symbolOf(entry)}`).join(' × '),
+      converted: pairs.map(([, to]) => `${to} ${target}`).join(' × '),
+    });
+  };
+  const converted = conversionLine();
   // Silent until staff start typing; then the resolver's reason is shown next to the field.
   const error = typed && !result.ok ? (t.has(`errors.${result.code}`) ? t(`errors.${result.code}`) : t('errors.GENERIC')) : undefined;
 
@@ -123,15 +156,31 @@ function MeasureForm({ productName, uom, initial, notice, refusal, mergeChoice, 
       <CmxDialogHeader><CmxDialogTitle>{t('measure.dialogTitle', { product: productName })}</CmxDialogTitle></CmxDialogHeader>
       <div className="space-y-3">
         {notice && <p role="status" aria-live="polite" className="text-sm text-foreground">{notice}</p>}
+        {entryUnits && entryUnits.length > 1 && (
+          <CmxSelect
+            label={t('measure.enterIn')}
+            value={entry?.code ?? entryUnits[0].code}
+            // The typed figures belong to the previous unit, so they are cleared rather than reread.
+            onChange={(e) => { setEntryCode(e.target.value); setTypedValue(EMPTY); }}
+            options={entryUnits.map((u) => ({ value: u.code, label: `${u.code} (${symbolOf(u)})` }))}
+          />
+        )}
         <CmxQuantityMeasureInput
           dimension={uom.dimension as UomDimension}
-          unitSymbol={symbol}
-          qtyDecimals={uom.qtyDecimals}
-          value={value}
-          onChange={setValue}
+          unitSymbol={converting ? symbolOf(entry) : symbol}
+          lengthSymbol={lengthSymbol}
+          // An area line typed in its side unit keeps the area unit's decimals; another unit brings its own.
+          qtyDecimals={converting ? entry.qtyDecimals : uom.qtyDecimals}
+          value={typedValue}
+          onChange={setTypedValue}
           error={error}
           billedPreview={result.ok ? `${result.billed} ${symbol}` : undefined}
         />
+        {converted && (
+          <p role="status" aria-live="polite" className="text-sm text-foreground tabular-nums">
+            <bdi dir="ltr">{converted}</bdi>
+          </p>
+        )}
         {result.ok && (result.minimumApplied || result.incrementApplied) && (
           <p className="text-xs text-muted-foreground">{t(result.minimumApplied ? 'measure.minimumApplied' : 'measure.incrementApplied')}</p>
         )}

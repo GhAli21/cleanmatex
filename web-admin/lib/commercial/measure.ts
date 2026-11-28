@@ -8,10 +8,12 @@
  * `ck_oid_billed_qty` (0814) holds the same identity and refuses any other value;
  * this is the one place the application computes it.
  *
- * Area lines are entered as length × width (metres); the area is rounded half-up
- * to the unit's decimals, as `ck_oid_measure_area` requires.
+ * Area lines are entered as length × width in the area unit's side unit (metres for
+ * m², feet for ft²; `UOM_AREA_SIDE_UNITS`); the area is rounded half-up to the unit's
+ * decimals, as `ck_oid_measure_area` requires. Another area unit is refused: its
+ * product of two lengths would be charged as a different unit.
  */
-import { UOM_DIMENSIONS, QUANTITY_DECIMALS } from '@/lib/constants/uom';
+import { UOM_DIMENSIONS, QUANTITY_DECIMALS, areaSideUnit } from '@/lib/constants/uom';
 import { COMMERCIAL_ERROR_CODES, CommercialRuleError } from './errors';
 import { MoneyDecimal, toMoney, type Money, type MoneyInput } from './money';
 
@@ -19,11 +21,13 @@ import { MoneyDecimal, toMoney, type Money, type MoneyInput } from './money';
 export interface MeasureInput {
   /** The line unit's dimension; COUNT lines carry no measure. */
   dimension: string;
+  /** The line unit's code; an area line needs it to know what length and width are measured in. */
+  uomCode?: string | null;
   /** The line unit's `qty_decimals`. */
   qtyDecimals: number;
   /** Non-area lines: the measured amount in the line unit. */
   measuredQty?: MoneyInput | null;
-  /** Area lines: length and width in metres. */
+  /** Area lines: length and width in the area unit's side unit. */
   length?: MoneyInput | null;
   width?: MoneyInput | null;
   /** Optional minimum billed measure (product, snapshotted on the line). */
@@ -74,7 +78,8 @@ export function isMeasuredDimension(dimension: string | null | undefined): boole
  * Resolves the billed measure of one measured line.
  * @param input the unit dimension and decimals, the entered measure, and the optional minimum and step
  * @returns measured and billed quantities, and which rule raised the bill
- * @throws CommercialRuleError MEASURE_NOT_ALLOWED (count unit), MEASURE_REQUIRED (missing or ≤ 0), UOM_QTY_SCALE (too many decimals)
+ * @throws CommercialRuleError MEASURE_NOT_ALLOWED (count unit), MEASURE_REQUIRED (missing or ≤ 0), UOM_QTY_SCALE (too many decimals),
+ *   UOM_AREA_UNSUPPORTED (area unit without a side unit)
  * @example
  * resolveBilledMeasure({ dimension: 'MASS', qtyDecimals: 3, measuredQty: '3.2',
  *   minBillableQty: '3', billingIncrement: '0.5' }).billedQty.toString(); // '3.5'
@@ -89,6 +94,10 @@ export function resolveBilledMeasure(input: MeasureInput): BilledMeasure {
   let measured: Money;
 
   if (isArea) {
+    if (!areaSideUnit(input.uomCode)) {
+      throw rule('UOM_AREA_UNSUPPORTED', `The area unit ${input.uomCode ?? '(none)'} cannot be measured as length × width.`,
+        { uomCode: input.uomCode ?? '' });
+    }
     length = positive(input.length, 'length');
     width = positive(input.width, 'width');
     if (!length || !width) throw rule('MEASURE_REQUIRED', 'Enter both length and width.', { dimension: input.dimension });
@@ -119,4 +128,46 @@ export function resolveBilledMeasure(input: MeasureInput): BilledMeasure {
     minimumApplied: floored.greaterThan(measured),
     incrementApplied: billed.greaterThan(floored),
   };
+}
+
+/** One sample line that shows what a product's minimum or billing step does. */
+export interface BillingExample {
+  measuredQty: string;
+  billedQty: string;
+}
+
+/**
+ * Sample measures that show the effect of a product's rules: one under the minimum and one between
+ * two billing steps. Computed by {@link resolveBilledMeasure}, so the form shows what will be charged.
+ * @param rules the unit's decimals and the typed minimum and step (empty = none)
+ * @returns only samples whose billed quantity differs from the measure; none while a value is invalid
+ * @example
+ * billingExamples({ qtyDecimals: 3, minBillableQty: '3', billingIncrement: '0.5' });
+ * // [{ measuredQty: '2.4', billedQty: '3' }, { measuredQty: '3.2', billedQty: '3.5' }]
+ */
+export function billingExamples(rules: {
+  qtyDecimals: number;
+  minBillableQty?: string | null;
+  billingIncrement?: string | null;
+}): BillingExample[] {
+  const number = (v: string | null | undefined) => (v && Number(v) > 0 ? toMoney(v) : null);
+  const minimum = number(rules.minBillableQty);
+  const step = number(rules.billingIncrement);
+  const samples: Money[] = [];
+  if (minimum) samples.push(minimum.times('0.8'));
+  if (step) samples.push((minimum ?? step.times(6)).plus(step.times('0.4')));
+  return samples.flatMap((sample) => {
+    const measured = sample.toDecimalPlaces(rules.qtyDecimals, MoneyDecimal.ROUND_DOWN);
+    if (!measured.greaterThan(0)) return [];
+    try {
+      // The arithmetic is the same for every non-area measured unit.
+      const { billedQty } = resolveBilledMeasure({
+        dimension: UOM_DIMENSIONS.MASS, qtyDecimals: rules.qtyDecimals, measuredQty: measured,
+        minBillableQty: minimum, billingIncrement: step,
+      });
+      return billedQty.equals(measured) ? [] : [{ measuredQty: measured.toString(), billedQty: billedQty.toString() }];
+    } catch {
+      return [];
+    }
+  });
 }

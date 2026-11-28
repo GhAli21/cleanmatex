@@ -24,8 +24,10 @@ import { useOrderTotals } from '../hooks/use-order-totals';
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { PackingPreferenceSelector } from './preferences/PackingPreferenceSelector';
 import { PreferencesTabsSection } from './preferences/PreferencesTabsSection';
+import { PieceMoveMenu } from './piece-move-menu';
 import type { LineKey, PreSubmissionPiece } from '../model/new-order-types';
 import { productLineNumber } from '../model/cart-line-grouping';
+import { nextPieceId } from '../model/cart-line-key';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
 import { orderItemLinePackingCharge, packingPreferencePriceMap } from '@/lib/utils/order-packing-charges';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -169,7 +171,7 @@ export function OrderDetailsSection({
         : 1;
 
     const newPiece: PreSubmissionPiece = {
-      id: `temp-${lineKey}-${nextSeq}`,
+      id: nextPieceId(lineKey, existingPieces, nextSeq),
       itemId: lineKey,
       pieceSeq: nextSeq,
     };
@@ -182,6 +184,11 @@ export function OrderDetailsSection({
     if (!item) return;
 
     const existingPieces: PreSubmissionPiece[] = item.pieces ?? [];
+    // A line left with no pieces is removed; otherwise it would keep its quantity and price with nothing in it.
+    if (existingPieces.length <= 1) {
+      removeItem(lineKey);
+      return;
+    }
     const filteredPieces = existingPieces.filter((piece) => piece.id !== pieceId);
     const resequenced = filteredPieces.map((piece, index) => ({
       ...piece,
@@ -530,7 +537,16 @@ export function OrderDetailsSection({
                           <TableCell className="px-3 py-2 align-middle" />
                         )}
                         {/* Remove */}
-                        <TableCell className="px-3 py-2 align-middle text-center">
+                        <TableCell className="px-3 py-2 align-middle text-center whitespace-nowrap">
+                          <PieceMoveMenu
+                            lineKey={item.lineKey}
+                            pieceId={piece.id}
+                            pieceNumber={piece.pieceSeq}
+                            onMoved={(lineKey, pieceId) => {
+                              setExpandedPiecesItems(new Set([lineKey]));
+                              setSelectedPieceId(pieceId ?? null);
+                            }}
+                          />
                           <CmxButton
                             type="button"
                             variant="ghost"

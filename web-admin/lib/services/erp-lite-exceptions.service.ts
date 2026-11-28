@@ -124,9 +124,9 @@ export class ErpLiteExceptionsService {
    *
    * Any exception type/age is eligible here (operator-initiated, presumably
    * after fixing the underlying cause — e.g. adding a missing usage
-   * mapping). The scheduled B19 sweep is deliberately narrower (SYSTEM_ERROR
-   * only, bounded window) — see migration 0429's
-   * `list_retryable_posting_exceptions()` comment.
+   * mapping). The automatic retry is narrower: SYSTEM_ERROR only, queued by
+   * the posting engine when the posting fails (Background Jobs 6c,
+   * `fin.erp_post.retry`).
    *
    * @param exceptionId
    * @param postingLogId

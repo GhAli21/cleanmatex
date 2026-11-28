@@ -31,6 +31,7 @@ const lineQualifierSchema = z.strictObject({
   measure: z.strictObject({
     qty: z.string(), billedQty: z.string().nullable(), uomCode: z.string(), symbol: z.string(),
     symbol2: z.string().nullable(), qtyDecimals: z.number().int().min(0),
+    minBillableQty: z.string().nullable(), billingIncrement: z.string().nullable(), unitPrice: z.string().nullable(),
   }).optional(),
   speedCode: z.string().optional(),
   speedName: z.strictObject({ name: z.string(), name2: z.string().nullable() }).optional(),

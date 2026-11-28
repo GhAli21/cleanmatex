@@ -216,10 +216,8 @@ async function loadMeasuredUnitCodes(supabase: SupabaseClient, tenantId: string)
   return new Set((data ?? []).map((row: { uom_code: string }) => row.uom_code));
 }
 
-function normalizeProductUnit(unit: string | null): string {
-  const normalized = (unit ?? '').trim().toLowerCase();
-  return normalized.length > 0 ? normalized : 'per_piece';
-}
+/** Measured products are not offered for booking, so every catalog item is priced per piece. */
+const BOOKING_ITEM_UNIT = 'per_piece';
 
 function buildCatalogCategories(
   products: Array<{
@@ -230,7 +228,6 @@ function buildCatalogCategories(
     product_name2: string | null;
     hint_text: string | null;
     default_sell_price: number | string | null;
-    product_unit: string | null;
     base_uom_code?: string | null;
     product_image: string | null;
   }>,
@@ -297,7 +294,7 @@ function buildCatalogCategories(
       description: product.hint_text ?? null,
       description2: null,
       unitPrice: Number(product.default_sell_price ?? 0),
-      unit: normalizeProductUnit(product.product_unit),
+      unit: BOOKING_ITEM_UNIT,
       imageUrl: product.product_image ?? null,
     });
     grouped.set(categoryId, category);
@@ -476,7 +473,7 @@ export async function GET(request: NextRequest) {
       supabase
         .from('org_product_data_mst')
         .select(
-          'id, tenant_org_id, service_category_code, product_group1, product_name, product_name2, hint_text, default_sell_price, product_unit, base_uom_code, product_image, turnaround_hh',
+          'id, tenant_org_id, service_category_code, product_group1, product_name, product_name2, hint_text, default_sell_price, base_uom_code, product_image, turnaround_hh',
         )
         .eq('tenant_org_id', tenantId)
         .eq('is_active', true)

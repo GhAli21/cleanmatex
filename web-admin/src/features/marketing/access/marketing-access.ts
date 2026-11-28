@@ -236,6 +236,13 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
     },
     actions: {
+      expireDueNow: {
+        label: 'Expire due gift cards now (this Organization only)',
+        requirement: {
+          permissions: ['gift_cards:expire'],
+          requireAllPermissions: true,
+        },
+      },
       activate: {
         label: 'Activate',
         requirement: {
@@ -273,6 +280,16 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     },
     apiDependencies: [
+      {
+        label: 'Expire due gift cards now',
+        method: 'POST',
+        path: 'app/actions/finance/run-now-actions.expireDueGiftCardsAction',
+        notes: ['Background Jobs 6g: runs for the signed-in Organization only.'],
+        requirement: {
+          permissions: ['gift_cards:expire'],
+          requireAllPermissions: true,
+        },
+      },
       {
         label: 'Notifications Campaigns',
         method: 'GET',
@@ -451,6 +468,16 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     apiDependencies: [
       {
+        label: 'Expire due loyalty points now',
+        method: 'POST',
+        path: 'app/actions/finance/run-now-actions.expireDueLoyaltyPointsAction',
+        notes: ['Background Jobs 6g: runs for the signed-in Organization only.'],
+        requirement: {
+          permissions: ['loyalty:expire_points'],
+          requireAllPermissions: true,
+        },
+      },
+      {
         label: 'Notifications Campaigns',
         method: 'GET',
         path: '/api/v1/notifications/campaigns',
@@ -502,6 +529,13 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     ],
     actions: {
+      expireDueNow: {
+        label: 'Expire due loyalty points now (this Organization only)',
+        requirement: {
+          permissions: ['loyalty:expire_points'],
+          requireAllPermissions: true,
+        },
+      },
       create: {
         label: 'Create',
         requirement: {

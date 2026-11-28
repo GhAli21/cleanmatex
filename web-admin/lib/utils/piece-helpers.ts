@@ -9,6 +9,7 @@
  */
 
 import type { PreSubmissionPiece } from '@features/orders/model/new-order-types';
+import { nextPieceId } from '@features/orders/model/cart-line-key';
 
 /**
  * Generates pieces for an item
@@ -96,7 +97,7 @@ export function addPiece(
       : 0;
 
   const newPiece: PreSubmissionPiece = {
-    id: `temp-${itemId}-${maxSeq + 1}`,
+    id: nextPieceId(itemId, pieces, maxSeq + 1),
     itemId,
     pieceSeq: maxSeq + 1,
   };

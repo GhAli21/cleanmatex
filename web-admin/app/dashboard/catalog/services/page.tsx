@@ -27,7 +27,6 @@ interface ProductListItem {
   category_name: string | null
   category_name2: string | null
   default_sell_price: number | null
-  product_unit: string | null
   base_uom_code?: string | null
   is_active: boolean
   created_at: string
@@ -171,7 +170,7 @@ export default function ServicesPage() {
         key: 'unit',
         header: t('unit'),
         sortable: false,
-        render: (p) => <span dir="ltr">{p.base_uom_code ?? p.product_unit ?? '-'}</span>,
+        render: (p) => <span dir="ltr">{p.base_uom_code ?? '-'}</span>,
       },
       {
         key: 'status',

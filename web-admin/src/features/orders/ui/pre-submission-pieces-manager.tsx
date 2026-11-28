@@ -12,6 +12,7 @@ import { CmxButton, CmxInput, CmxTextarea, CmxCheckbox, Label } from '@ui/primit
 import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useEditControlGroup } from '../order-change/use-edit-control-capability';
 import { EditControlNotice } from '../order-change/edit-control-notice';
+import { nextPieceId } from '../model/cart-line-key';
 
 /**
  *
@@ -85,7 +86,7 @@ export function PreSubmissionPiecesManager({
       : 1;
     
     const newPiece: PreSubmissionPiece = {
-      id: `temp-${itemId}-${newPieceSeq}`,
+      id: nextPieceId(itemId, pieces, newPieceSeq),
       itemId,
       pieceSeq: newPieceSeq,
     };

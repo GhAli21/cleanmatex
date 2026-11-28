@@ -1,5 +1,7 @@
 # I11 Background Execution — Expert Replan
 
+> **SUPERSEDED (28 Nov 2026, Background Jobs step 9).** Historical record only; do not follow it. The current design is [docs/features/Background_Jobs/DESIGN.md](../../features/Background_Jobs/DESIGN.md). The pg-boss redesign replaced this runtime (platform-workers and the HQ worker claims were deleted in step 8).
+
 **Status:** `0782` through `0804` are applied. S0 is complete in source: the HQ claim list is shadow, dispatch, and file purge. That source is not live until the HQ API and worker builds are deployed. S1 is in progress: `0805` is applied, `expireGiftCard` locks the card row, and the HQ executor is not registered. The job stays off. I11 is not closed. The seven finance and campaign jobs use the §1.1 build. Close still needs the HQ API deploy, the one-step cutover in the runbook, S1–S7 and W1, a scheduled provider-specific reconciler, and a 48-hour soak. Until then leave `PLATFORM_BG_ENABLED` unset, leave worker loops on, and leave notification delivery off. Trial expiry is not a job. The living plan is this expert replan.  
 **Pending proposal (23 Nov 2026):** [Background platform target design](I11_background_execution_V2_ARCHITECTURE.md) would replace this runtime plan with pg-boss in the existing Postgres, one API plus one worker container, and one repository. Its appendix keeps a two-repo option. It is not approved. Until the Owner decides, this file stays the living plan.  
 **Written:** 20 Nov 2026  

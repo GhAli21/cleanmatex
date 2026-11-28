@@ -53,8 +53,8 @@ describe('order change apply rollback', () => {
     const orderNo = `WP12-${randomUUID()}`;
     await expect(prisma.$transaction(async (tx) => {
       const customer = await tx.$queryRaw<Array<{ id: string }>>`
-        INSERT INTO public.org_customers_mst (tenant_org_id, name)
-        VALUES (${tenantId}::uuid, 'WP12 rollback customer')
+        INSERT INTO public.org_customers_mst (customer_code, tenant_org_id, name)
+        VALUES (gen_random_uuid()::text, ${tenantId}::uuid, 'WP12 rollback customer')
         RETURNING id`;
       const order = await tx.$queryRaw<Array<{ id: string; state_version: number }>>`
         INSERT INTO public.org_orders_mst

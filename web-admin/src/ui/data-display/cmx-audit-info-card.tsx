@@ -9,7 +9,7 @@
 
 import { Fragment, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { CmxButton } from '@ui/primitives/cmx-button'
 import {
   CmxCard,
@@ -18,7 +18,8 @@ import {
   CmxCardTitle,
 } from '@ui/primitives/cmx-card'
 import { cn } from '@/lib/utils'
-import { formatDateTime } from '@/lib/utils/rtl'
+import { formatInstantText, useClock } from '@ui/clock/clock-provider'
+import { useViewZone } from '@ui/clock/view-zone'
 
 /**
  * Actor data accepts either a stored string value or a richer object when the
@@ -293,7 +294,7 @@ function resolveActorMeta(actor: AuditActor | null | undefined): {
 function renderRowValue(
   value: AuditRowValue,
   kind: AuditRowKind,
-  locale: 'en' | 'ar',
+  formatInstant: (value: Date | string) => string | null,
   notAvailableLabel: string,
 ): ReactNode {
   if (kind === 'actor') {
@@ -326,14 +327,15 @@ function renderRowValue(
         return notAvailableLabel
       }
 
-      return formatDateTime(value, locale)
+      // Screen zone (or the viewer zone, D20); "—" when no zone is known (fail closed).
+      return formatInstant(value) ?? notAvailableLabel
     }
 
     return notAvailableLabel
   }
 
   if (value instanceof Date) {
-    return formatDateTime(value, locale)
+    return formatInstant(value) ?? notAvailableLabel
   }
 
   // Non-actor kinds never hold an AuditActor at runtime (actor kind returns above).
@@ -400,7 +402,10 @@ function AuditInfoRow({
  * <CmxAuditInfoCard createdAt="2026-06-18T10:00:00.000Z" createdBy="user_123" />
  */
 export function CmxAuditInfoCard(props: CmxAuditInfoCardProps) {
-  const locale = useLocale() === 'ar' ? 'ar' : 'en'
+  const clock = useClock()
+  const { displayZone } = useViewZone()
+  const zone = displayZone(clock.zone)
+  const formatAuditInstant = (value: Date | string) => formatInstantText(value, zone, clock)
   const tCommon = useTranslations('common')
   const [isExpanded, setIsExpanded] = useState(props.defaultExpanded ?? false)
 
@@ -547,7 +552,7 @@ export function CmxAuditInfoCard(props: CmxAuditInfoCardProps) {
             <AuditInfoRow
               key={row.key}
               label={row.label}
-              value={renderRowValue(row.value, row.kind, locale, notAvailableLabel)}
+              value={renderRowValue(row.value, row.kind, formatAuditInstant, notAvailableLabel)}
             />
           ))}
         </dl>

@@ -1,6 +1,7 @@
 /**
  * Measured pricing — billed measure (PLAN §3.6a) and a measured line through the whole calculator.
  */
+import { areaSideUnit, canBeProductUnit } from '@/lib/constants/uom';
 import fc from 'fast-check';
 import {
   calculateCommercialOrder,
@@ -42,7 +43,7 @@ describe('resolveBilledMeasure', () => {
   });
 
   it('computes an area from length × width, rounded half-up to the unit decimals', () => {
-    const r = resolveBilledMeasure({ dimension: 'AREA', qtyDecimals: 2, length: '2.5', width: '1.255' });
+    const r = resolveBilledMeasure({ dimension: 'AREA', uomCode: 'SQM', qtyDecimals: 2, length: '2.5', width: '1.255' });
     expect(r.measuredQty.toString()).toBe('3.14'); // 3.1375 → 3.14
     expect(r.length?.toString()).toBe('2.5');
     expect(r.width?.toString()).toBe('1.255');
@@ -61,7 +62,7 @@ describe('resolveBilledMeasure', () => {
   });
 
   it('rejects an area missing a side', () => {
-    expect(() => resolveBilledMeasure({ dimension: 'AREA', qtyDecimals: 2, length: '2' })).toThrow();
+    expect(() => resolveBilledMeasure({ dimension: 'AREA', uomCode: 'SQM', qtyDecimals: 2, length: '2' })).toThrow(/length and width/);
   });
 
   it('property: billed ≥ measured and ≥ minimum, and is a multiple of the step', () => {
@@ -161,3 +162,19 @@ describe('a measured line through the calculator', () => {
     expect(r.lines[0].item.money.netAmount.toString()).toBe('2.43');
   });
 });
+
+describe('area units', () => {
+  const area = (uomCode: string | undefined) => resolveBilledMeasure({ dimension: 'AREA', uomCode, qtyDecimals: 2, length: '8', width: '10' });
+  it('takes length and width in the unit side: square feet from feet', () => {
+    expect(area('SQFT').billedQty.toString()).toBe('80');
+    expect([areaSideUnit('SQM'), areaSideUnit('SQFT'), areaSideUnit('BLOCK')]).toEqual(['M', 'FT', undefined]);
+  });
+  it('refuses an area unit whose sides cannot be measured instead of charging the wrong unit', () => {
+    for (const code of ['BLOCK', undefined]) expect(() => area(code)).toThrow(/cannot be measured/);
+  });
+  it('only those two area units can price a product', () => {
+    expect([['SQM', 'AREA'], ['SQFT', 'AREA'], ['BLOCK', 'AREA'], ['KG', 'MASS'], ['PC', 'COUNT']]
+      .map(([code, dimension]) => canBeProductUnit({ code, dimension }))).toEqual([true, true, false, true, true]);
+  });
+});
+

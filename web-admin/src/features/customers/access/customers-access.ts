@@ -38,11 +38,29 @@ export const CUSTOMERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
-        label: 'Create customer',
+        label: 'Lookup customer by phone or email',
+        method: 'POST',
+        path: '/api/v1/customers/lookup',
+        requirement: {
+          permissions: ['customers:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create or connect customer',
         method: 'POST',
         path: '/api/v1/customers',
         requirement: {
           permissions: ['customers:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Reactivate inactive customer',
+        method: 'POST',
+        path: '/api/v1/customers/[id]/reactivate',
+        requirement: {
+          permissions: ['customers:update'],
           requireAllPermissions: true,
         },
       },
@@ -155,6 +173,27 @@ export const CUSTOMERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       permissions: ['stored_value:view_balances'],
       requireAllPermissions: true,
     },
+    actions: {
+      expireDueCreditNotesNow: {
+        label: 'Expire due credit notes now (this Organization only)',
+        requirement: {
+          permissions: ['stored_value:expire_credit_notes'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Expire due credit notes now',
+        method: 'POST',
+        path: 'app/actions/finance/run-now-actions.expireDueCreditNotesAction',
+        notes: ['Background Jobs 6g: runs for the signed-in Organization only.'],
+        requirement: {
+          permissions: ['stored_value:expire_credit_notes'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
     notes: ['Stored value balances route requires the dedicated stored value viewer permission from navigation.'],
   },
   {
@@ -200,6 +239,15 @@ export const CUSTOMERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Get customer details',
         method: 'GET',
         path: '/api/v1/customers/[id]',
+        requirement: {
+          permissions: ['customers:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Get customer audit history',
+        method: 'GET',
+        path: '/api/v1/customers/[id]/audit',
         requirement: {
           permissions: ['customers:read'],
           requireAllPermissions: true,

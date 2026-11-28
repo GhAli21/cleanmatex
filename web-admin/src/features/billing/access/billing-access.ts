@@ -1156,27 +1156,6 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
-      viewFinanceJobs: {
-        label: 'View the scheduled finance jobs hub (outbox processor, gift-card expiry, credit-note expiry, idempotency cleanup, ERP posting-retry)',
-        requirement: {
-          permissions: ['finance_jobs:view'],
-          requireAllPermissions: true,
-        },
-      },
-      viewJobHistory: {
-        label: 'Open run history for a finance job',
-        requirement: {
-          permissions: ['finance_jobs:view'],
-          requireAllPermissions: true,
-        },
-      },
-      runFinanceJob: {
-        label: 'Manually trigger an on-demand run of a scheduled finance job (confirm + overlap rejected)',
-        requirement: {
-          permissions: ['finance_jobs:run'],
-          requireAllPermissions: true,
-        },
-      },
     },
     apiDependencies: [
       {
@@ -1215,38 +1194,11 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
           requireAllPermissions: true,
         },
       },
-      {
-        label: 'Finance jobs catalog + last run + cron health',
-        method: 'GET',
-        path: '/api/v1/finance/jobs',
-        requirement: {
-          permissions: ['finance_jobs:view'],
-          requireAllPermissions: true,
-        },
-      },
-      {
-        label: 'Finance job run history',
-        method: 'GET',
-        path: '/api/v1/finance/jobs/[jobCode]/runs',
-        requirement: {
-          permissions: ['finance_jobs:view'],
-          requireAllPermissions: true,
-        },
-      },
-      {
-        label: 'Manually run a finance job',
-        method: 'POST',
-        path: '/api/v1/finance/jobs/[jobCode]/run',
-        requirement: {
-          permissions: ['finance_jobs:run'],
-          requireAllPermissions: true,
-        },
-      },
     ],
     notes: [
       'B7 — ops-visibility screen for the financial domain-event outbox (pending/failed/dead-lettered counts, event detail, related-record links, bulk retry).',
       'Domain events are applied by cmx-workers reaction queues (Background Jobs step 4); the Retry actions here republish an event through POST /api/v1/finance/outbox/[eventId]/retry and the bulk retry route.',
-      'Jobs hub — gift-card, credit-note and loyalty expiry, idempotency cleanup, ERP posting-retry, POS session rollover. The scheduled dispatcher route (/api/finance/process-jobs) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry.',
+      'No scheduled-jobs section (Background Jobs 6f): those jobs run on platform schedules for every Organization and are switched on, run and monitored in HQ → Ops → Jobs.',
     ],
   },
   {

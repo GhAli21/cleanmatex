@@ -28,7 +28,7 @@ async function checkProducts() {
   console.log(`📦 Demo Laundry LLC: ${products1?.length || 0} products`);
   if (products1 && products1.length > 0) {
     products1.forEach(p => {
-      console.log(`   - ${p.product_code}: ${p.product_name} (${p.product_unit}) - ${p.default_sell_price} OMR - Active: ${p.is_active}`);
+      console.log(`   - ${p.product_code}: ${p.product_name} (${p.base_uom_code}) - ${p.default_sell_price} OMR - Active: ${p.is_active}`);
     });
   }
 
@@ -48,7 +48,7 @@ async function checkProducts() {
   console.log(`📦 BlueWave Laundry Co.: ${products2?.length || 0} products`);
   if (products2 && products2.length > 0) {
     products2.forEach(p => {
-      console.log(`   - ${p.product_code}: ${p.product_name} (${p.product_unit}) - ${p.default_sell_price} OMR - Active: ${p.is_active}`);
+      console.log(`   - ${p.product_code}: ${p.product_name} (${p.base_uom_code}) - ${p.default_sell_price} OMR - Active: ${p.is_active}`);
     });
   }
 

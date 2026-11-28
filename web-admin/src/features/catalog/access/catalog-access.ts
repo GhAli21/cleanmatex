@@ -67,6 +67,7 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
     },
     apiDependencies: [
+      { label: 'List units', method: 'GET', path: '/api/v1/uom/units', requirement: { permissions: ['uom:view'], requireAllPermissions: true } },
       {
         label: 'List sales tax classes',
         method: 'GET',
@@ -103,6 +104,11 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
     },
     apiDependencies: [
+      { label: 'List units', method: 'GET', path: '/api/v1/uom/units', requirement: { permissions: ['uom:view'], requireAllPermissions: true } },
+      { label: 'List conversions', method: 'GET', path: '/api/v1/uom/conversions', requirement: { permissions: ['uom:view'], requireAllPermissions: true } },
+      { label: 'Create product conversion', method: 'POST', path: '/api/v1/uom/conversions', requirement: { permissions: ['uom:manage'], requireAllPermissions: true } },
+      { label: 'Update product conversion', method: 'PATCH', path: '/api/v1/uom/conversions/[id]', requirement: { permissions: ['uom:manage'], requireAllPermissions: true } },
+      { label: 'Delete product conversion', method: 'DELETE', path: '/api/v1/uom/conversions/[id]', requirement: { permissions: ['uom:manage'], requireAllPermissions: true } },
       {
         label: 'List sales tax classes',
         method: 'GET',
@@ -791,6 +797,7 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     },
     apiDependencies: [
+      { label: 'Delete conversion', method: 'DELETE', path: '/api/v1/uom/conversions/[id]', requirement: { permissions: ['uom:manage'], requireAllPermissions: true } },
       { label: 'List units', method: 'GET', path: '/api/v1/uom/units', requirement: { permissions: ['uom:view'], requireAllPermissions: true } },
       { label: 'List conversions', method: 'GET', path: '/api/v1/uom/conversions', requirement: { permissions: ['uom:view'], requireAllPermissions: true } },
       { label: 'List addable system units', method: 'GET', path: '/api/v1/uom/catalog', requirement: { permissions: ['uom:manage'], requireAllPermissions: true } },

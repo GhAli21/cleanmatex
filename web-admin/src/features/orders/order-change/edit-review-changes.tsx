@@ -16,6 +16,8 @@ const HIDDEN_IN_SUMMARY = new Set([
   'rec_status', 'currencyCode', 'currency_code', 'field',
 ]);
 const MONEY_KEYS = new Set(['shownUnitPrice', 'pricePerUnit', 'totalPrice', 'priceOverride', 'preferenceCharge', 'extraPrice', 'totalAmount', 'taxAmount', 'commercialDelta', 'price_per_unit', 'total_price', 'price_override', 'service_pref_charge', 'extra_price', 'total_amount', 'total_tax_amount', 'commercial_delta', 'express_charge_amount']);
+/** Measure figures arrive as stored decimal text ("3.200000"); shown without the trailing zeros. */
+const MEASURE_KEYS = new Set(['measuredQty', 'measureLength', 'measureWidth']);
 const KIND_KEYS: Record<string, string> = {
   service_prefs: 'service', packing_prefs: 'packing', condition_stain: 'stain', condition_damag: 'damage',
   condition_special: 'condition', condition_pattern: 'condition', condition_material: 'condition', color: 'color', note: 'note',
@@ -50,6 +52,7 @@ export function EditReviewChanges({ operations, currencyCode, timezone, renderWa
     brand: t('workspace.audit.brand'), value: t('review.fields.value'), overrideReason: t('workspace.reason'), isDefaultCustomer: t('review.fields.defaultCustomer'),
     shownUnitPrice: t('review.fields.shownUnitPrice'),
     discountType: t('review.fields.discountType'), discountValue: t('review.fields.discountValue'), discountReason: t('review.fields.discountReason'),
+    measuredQty: t('review.fields.measuredQty'), measureLength: t('review.fields.measureLength'), measureWidth: t('review.fields.measureWidth'),
   };
   const aliases: Record<string, string> = {
     service_speed: 'serviceSpeed', ready_by: 'readyBy', total_amount: 'totalAmount', total_tax_amount: 'taxAmount',
@@ -77,6 +80,7 @@ export function EditReviewChanges({ operations, currencyCode, timezone, renderWa
         return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }).format(date);
       }
     }
+    if (MEASURE_KEYS.has(key) && Number.isFinite(Number(value))) return new Intl.NumberFormat(locale, { maximumFractionDigits: 6 }).format(Number(value));
     if (typeof value === 'number') return new Intl.NumberFormat(locale).format(value);
     // Nested objects and identifiers never become a JSON dump in the operator's review.
     return typeof value === 'string' ? value : t('review.none');

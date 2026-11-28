@@ -361,8 +361,8 @@ display order uses the standard `rec_order` column; tax-document lines added (e-
   bulk template download updated.
 - **Tenant maintenance** (`tenant-maintenance` module + screen): new step "Sync units" calling `fn_uom_seed_tenant`;
   `initialize_tenant_product_catalog` / `reseed_missing_products` callers unchanged (the fns seed units themselves).
-- **Tenant setup health** checks: products on an inactive unit; measured products with no price; custom physical units
-  without a base conversion; templates referencing inactive units.
+- **Tenant setup health** check: measured products with no price (0849). The other planned unit checks are not built:
+  database guards already block those states (see STATUS, P7d).
 - HQ docs: `docs/features/Products_Items_Config/` update + new `docs/features/UoM_Config/`.
 
 ### 3.11 Mobile customer app (`cmx_mobile_apps`)
@@ -440,3 +440,28 @@ Owner approved v5. P1 and P2 are done and applied; P3 is mostly done. Details, d
 - 2026-11-25: P6 web surfaces done (line qualifier helper, money view, tracking, receipts, prints, order detail, state API live-lines fix, booking hides measured products). Left: P7 HQ, P8 mobile (qualifier + booking unit), P9 Migration B, P10 docs.
 
 - 2026-11-27: P7a (HQ uom-config API), P7b (product setup on base_uom_code, product_unit mirrored until P9) and P7c (HQ screens) done in code; migration 0848 (HQ menu) awaits the owner. Next P7d (Sync units + setup-health checks). P9 note: drop the mirror in the HQ registry, bulk parse and tenant-product update together with `product_unit`.
+- 2026-11-27: P7d (Sync units + `MEASURED_PRODUCT_NO_PRICE`, migration 0849) done in code; 0849 awaits the owner. Next P7e.
+- 2026-11-27: 0849 applied (both databases). P7e done in code (template unit guards, migration 0850 awaiting the owner; bulk starter columns; HQ shows minimum / billing step). Next P8 mobile.
+- 2026-11-27: 0850 applied. P8 order detail done in code (line qualifier, billed quantity, line amount). P8 booking blocked on an owner decision (measured products stay hidden until then). P9 must also move the booking route off `product_unit`.
+- 2026-11-27: owner: measured products stay hidden in booking (P8 closed). P9 code done; migrations 0852 (seed from base_uom_code, defaults) then 0853 (drop legacy columns) await the owner; apply order in STATUS.
+- 2026-11-27: 0852 / 0853 applied and verified; custom measured unit bug fixed; P10 docs done. Audit the same day: billed quantity missing on web documents and some planned UI not built (STATUS, "Remaining against the plan").
+- 2026-11-28: owner approved closing **every** gap now (section 6). No item is deferred except L2 (purchasing / stock entry units) and D14 (price stated per another unit).
+
+## 6. Gap closure (approved 2026-11-28)
+
+Found by a second plan-versus-code audit. Status per package lives in [STATUS.md](STATUS.md).
+
+| Pkg | Scope | Done when |
+|---|---|---|
+| G1 Documents | One formatter prints measured, billed, the reason (minimum / step) and, where the page has no price column, "× unit price": receipts (text + HTML), prints, tracking, money view, order detail, tax-document print, customer app. Unit prices show up to 6 decimals. | A 1.8 kg line billed as 3 kg says so everywhere; unit tests |
+| G2 Product form | "Price per {unit}" label, live billed example, decimals checked before save, product cards show the per-unit price. | form tests |
+| G3 Conversions | Product "Units" tab (per-product pairs, e.g. 1 BOX = 12 PC); delete a pair (DELETE route, system pairs excluded); dialog consistency message, live preview, Active switch; rates saved and read as text (no digit lost); the resolver loads only the product asked for. | API + DB tests |
+| G4 Units screen and picker | Search and filters; packaging flag and UN/ECE code on custom units; display order; "used by N products" and base-unit reasons; `CmxUomSelect` grouped, with badges, searchable. | component tests, stories |
+| G5 Measure window | On-screen keypad; enter in any unit that converts to the product's unit (lb for kg, ft for length and width, a per-product pack), with the converted figure shown before saving. The line stores the product's unit; no migration (§3.6: UI follow-up). | unit + component tests |
+| G6 Cleanup | Remove unused `inventory.units.*`; server caching of units (§3.12) settled by measurement. | recorded in STATUS |
+| G7 Proof | DB flow: measured order, payment, measure change, settlement, tax-document quantity and unit; browser smoke test; `npm run build`, eslint, check:i18n, check:ui, access contract, design review, platform inventories, docs and QA guide. | all green or reported |
+
+2026-11-28: G1-G7 done in code (STATUS, "Gap closure"). Browser smoke written, not run.
+2026-11-28 (check against 3.14): G7 is partial; several planned database tests are not written (STATUS, "What remains").
+2026-11-28: planned database tests written and the new-line review measure shown. Open: area units other than m² are mis-measured (STATUS, "What remains"); fix awaits the Owner.
+2026-11-28: area units fixed (SQM in metres, SQFT in feet, others refused); migration 0859 written, awaiting the Owner.

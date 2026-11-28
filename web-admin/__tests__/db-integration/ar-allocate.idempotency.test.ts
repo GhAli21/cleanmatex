@@ -69,7 +69,7 @@ function dbit(name: string, fn: () => Promise<void>): void {
 /** COMMITS a customer + an OPEN AR invoice with `total` outstanding; returns ids for teardown. */
 async function commitSeedInvoice(total: number): Promise<{ invoiceId: string; customerId: string }> {
   const cust = await prisma.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_customers_mst (tenant_org_id) VALUES (${tenantA}::uuid) RETURNING id`;
+    INSERT INTO public.org_customers_mst (customer_code, tenant_org_id) VALUES (gen_random_uuid()::text, ${tenantA}::uuid) RETURNING id`;
   const inv = await prisma.$queryRaw<Array<{ id: string }>>`
     INSERT INTO public.org_invoice_mst
       (tenant_org_id, customer_id, invoice_no, currency_code, total, paid_amount, outstanding_amount, status)

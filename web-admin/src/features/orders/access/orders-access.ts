@@ -114,6 +114,8 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     },
     apiDependencies: [
+      { label: 'List units', method: 'GET', path: '/api/v1/uom/units', requirement: { permissions: ['uom:view'], requireAllPermissions: true } },
+      { label: 'List conversions', method: 'GET', path: '/api/v1/uom/conversions', requirement: { permissions: ['uom:view'], requireAllPermissions: true } },
       {
         label: '[Id] Complete',
         method: 'POST',
@@ -1335,6 +1337,8 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     label: 'Edit Order',
     page: {},
     apiDependencies: [
+      { label: 'List units', method: 'GET', path: '/api/v1/uom/units', requirement: { permissions: ['uom:view'], requireAllPermissions: true } },
+      { label: 'List conversions', method: 'GET', path: '/api/v1/uom/conversions', requirement: { permissions: ['uom:view'], requireAllPermissions: true } },
       {
         label: 'Orders Payment Quote',
         method: 'POST',

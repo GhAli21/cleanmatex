@@ -34,6 +34,29 @@ export function resolveCartAddTarget(items: readonly OrderItem[], productId: str
   return { kind: 'NEW_LINE' };
 }
 
+/**
+ * Whether pieces may move freely into or out of a line (§5.3). A measured line's pieces share one measure
+ * (only the equal-share split applies) and a custom item is one of a kind.
+ * @param line the cart line
+ * @returns whether the line takes part in piece moves
+ */
+export function isMovableLine(line: OrderItem): boolean {
+  return !line.uom && !line.customItem;
+}
+
+/**
+ * The lines a piece of `lineKey` may move to: the other movable lines of the same product, closed ones
+ * included (an explicit move is the staff's choice, and the menu says whose price it takes).
+ * @param items the cart lines
+ * @param lineKey the source line
+ * @returns the target lines, in cart order
+ */
+export function pieceMoveTargets(items: readonly OrderItem[], lineKey: LineKey): OrderItem[] {
+  const source = items.find((item) => item.lineKey === lineKey);
+  if (!source || !isMovableLine(source)) return [];
+  return items.filter((item) => item.lineKey !== lineKey && item.productId === source.productId && isMovableLine(item));
+}
+
 /** A measure as an exact decimal, or null when not entered or not a positive number. */
 function measuredOf(measure: OrderItemMeasure | undefined): Money | null {
   const text = measure?.measuredQty?.trim();
@@ -103,6 +126,17 @@ export function equalMeasureShare(line: OrderItem): string | null {
   const share = total.dividedBy(line.quantity);
   if (share.decimalPlaces() > line.uom.qtyDecimals || !share.times(line.quantity).equals(total)) return null;
   return share.toString();
+}
+
+/**
+ * What the Measure dialog starts with: the line's own measure when re-measuring it, nothing when adding an
+ * article. A prefilled add would save another line's measure and skip the "add to line" choice (§4.1).
+ * @param items the cart lines
+ * @param remeasureLineKey the line being re-measured; omitted when adding
+ * @returns that line's measure, or undefined
+ */
+export function measureDialogInitial(items: readonly OrderItem[], remeasureLineKey?: LineKey): OrderItemMeasure | undefined {
+  return remeasureLineKey ? items.find((item) => item.lineKey === remeasureLineKey)?.measure : undefined;
 }
 
 /**

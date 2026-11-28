@@ -35,3 +35,33 @@ export function assertQtyScale(qty: MoneyInput, unit: { code: string; qtyDecimal
       { unit: unit.code, decimals: String(unit.qtyDecimals), value: toMoney(qty).toString(), label });
   }
 }
+
+/**
+ * What a quantity field keeps of typed text: digits and one decimal point, cut to the unit's
+ * decimals, so a value the server would refuse cannot be entered. A comma counts as the point.
+ * @param raw the typed text
+ * @param qtyDecimals the unit's `qty_decimals`
+ * @returns the text to keep
+ * @example
+ * typedQtyText('2,3755 kg', 3); // '2.375'
+ */
+export function typedQtyText(raw: string, qtyDecimals: number): string {
+  const text = raw.replace(',', '.').replace(/[^0-9.]/g, '');
+  const [int, ...rest] = text.split('.');
+  return rest.length === 0 || qtyDecimals === 0 ? int : `${int}.${rest.join('').slice(0, qtyDecimals)}`;
+}
+
+/**
+ * One keypad press on a quantity field, with the same rule as typing.
+ * @param value the field's current text
+ * @param key a digit, `.` or `backspace`
+ * @param qtyDecimals the unit's `qty_decimals`
+ * @returns the new text; unchanged when the key would add what the unit does not allow
+ * @example
+ * applyKeypadKey('2.3', '7', 1); // '2.3'
+ */
+export function applyKeypadKey(value: string, key: string, qtyDecimals: number): string {
+  if (key === 'backspace') return value.slice(0, -1);
+  if (key === '.') return qtyDecimals === 0 || value.includes('.') ? value : `${value || '0'}.`;
+  return typedQtyText(value === '0' ? key : `${value}${key}`, qtyDecimals);
+}

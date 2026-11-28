@@ -172,11 +172,12 @@ function appendLineChanges(
     push({ code: 'CHANGE_DISCOUNT', target, payload: { lineDiscount: draft.lineDiscount ?? null } });
   }
   const draftPieces = new Map(draft.pieces.map((piece) => [identityKey(piece.identity), piece]));
+  const removals: Omit<EditChangeOperation, 'seq'>[] = [];
   for (const piece of baseline.pieces) {
     if (piece.identity.kind !== 'persisted') continue;
     const current = draftPieces.get(identityKey(piece.identity));
     if (!current) {
-      push({ code: 'REMOVE_PIECE', target: { kind: 'PERSISTED_PIECE', id: piece.identity.id }, payload: {} });
+      removals.push({ code: 'REMOVE_PIECE', target: { kind: 'PERSISTED_PIECE', id: piece.identity.id }, payload: {} });
       continue;
     }
     appendPreferenceChanges(piece.preferences, current.preferences, { kind: 'PERSISTED_PIECE', id: piece.identity.id }, push);
@@ -206,6 +207,8 @@ function appendLineChanges(
     }
   }
   appendPreferenceChanges(baseline.preferences, draft.preferences, { kind: 'PERSISTED_ITEM', id: baseline.identity.id }, push);
+  // After the additions: removing a line's last saved piece first would retire the line before its new piece.
+  removals.forEach(push);
 }
 
 function appendAddedLine(line: EditLineDraft, orderSpeed: string | undefined, push: (operation: Omit<EditChangeOperation, 'seq'>) => void): void {

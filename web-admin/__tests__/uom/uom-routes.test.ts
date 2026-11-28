@@ -17,7 +17,7 @@ jest.mock('@/lib/middleware/require-permission', () => ({
 jest.mock('@/lib/utils/logger', () => ({ logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn() }, log: { error: jest.fn() } }));
 
 jest.mock('@/lib/services/uom.service', () => {
-  const names = ["listUnits", "addSystemUnits", "createCustomUnit", "updateUnit", "resetUnit", "listConversions", "createConversion", "updateConversion", "resetConversion", "listAddableSystemUnits", "loadUomResolver"];
+  const names = ["listUnits", "addSystemUnits", "createCustomUnit", "updateUnit", "resetUnit", "listConversions", "createConversion", "updateConversion", "resetConversion", "deleteConversion", "listAddableSystemUnits", "loadUomResolver"];
   return Object.fromEntries(names.map((n) => [n, jest.fn()]));
 });
 
@@ -47,6 +47,7 @@ const gated: [string, string, Call][] = [
   ['POST conversions', 'uom:manage', () => convs.POST(req('POST', {}))],
   ['PATCH conversion', 'uom:manage', () => conv.PATCH(req('PATCH', {}), p({ id: ID }))],
   ['POST conversion reset', 'uom:manage', () => convReset.POST(req('POST'), p({ id: ID }))],
+  ['DELETE conversion', 'uom:manage', () => conv.DELETE(req('DELETE'), p({ id: ID }))],
   ['GET catalog', 'uom:manage', () => catalog.GET(req('GET'))],
   ['POST convert', 'uom:view', () => convert.POST(req('POST', {}))],
 ];
@@ -67,6 +68,7 @@ describe('validation before the service', () => {
     expect((await unit.PATCH(req('PATCH', {}), p({ code: 'kg!' }))).status).toBe(400);
     expect((await unitReset.POST(req('POST'), p({ code: '1x' }))).status).toBe(400);
     expect((await conv.PATCH(req('PATCH', {}), p({ id: 'nope' }))).status).toBe(400);
+    expect((await conv.DELETE(req('DELETE'), p({ id: 'nope' }))).status).toBe(400);
     expect((await convReset.POST(req('POST'), p({ id: 'nope' }))).status).toBe(400);
     expect((await convs.GET(req('GET', undefined, '?product_id=nope'))).status).toBe(400);
     expect((await convert.POST(req('POST', { quantity: 'x' }))).status).toBe(400);
@@ -81,8 +83,10 @@ describe('happy paths use the session tenant', () => {
     svc.listUnits.mockResolvedValue([]);
     await units.GET(req('GET'));
     await units.GET(req('GET', undefined, '?active_only=false'));
-    expect(svc.listUnits).toHaveBeenNthCalledWith(1, 't1', { activeOnly: true });
-    expect(svc.listUnits).toHaveBeenNthCalledWith(2, 't1', { activeOnly: false });
+    await units.GET(req('GET', undefined, '?active_only=false&with_counts=true'));
+    expect(svc.listUnits).toHaveBeenNthCalledWith(1, 't1', { activeOnly: true, withProductCounts: false });
+    expect(svc.listUnits).toHaveBeenNthCalledWith(2, 't1', { activeOnly: false, withProductCounts: false });
+    expect(svc.listUnits).toHaveBeenNthCalledWith(3, 't1', { activeOnly: false, withProductCounts: true });
   });
 
   it('adds system units and answers 201', async () => {
@@ -112,6 +116,22 @@ describe('happy paths use the session tenant', () => {
     const res = await convert.POST(req('POST', { quantity: '1', fromCode: 'KG', toCode: 'LB' }));
     expect(res.status).toBe(200);
     expect((await res.json()).data).toEqual({ quantity: '2.2', rate: '2.2' });
+  });
+
+  it('deletes a conversion and reports why a system one stays', async () => {
+    expect((await conv.DELETE(req('DELETE'), p({ id: ID }))).status).toBe(200);
+    expect(svc.deleteConversion).toHaveBeenCalledWith('t1', ID);
+    svc.deleteConversion.mockRejectedValue(new UomRuleError('UOM_CONV_SYSTEM', 'x'));
+    const res = await conv.DELETE(req('DELETE'), p({ id: ID }));
+    expect(res.status).toBe(409);
+    expect((await res.json()).error.code).toBe('UOM_CONV_SYSTEM');
+  });
+
+  it('converts with the asked product only', async () => {
+    const D = { toDecimalPlaces: () => ({ toString: () => '12' }) };
+    svc.loadUomResolver.mockResolvedValue({ convert: () => D, rate: () => null });
+    await convert.POST(req('POST', { quantity: '1', fromCode: 'BOX', toCode: 'PC', productId: ID }));
+    expect(svc.loadUomResolver).toHaveBeenCalledWith('t1', ID);
   });
 
   it('maps a service rule error to its status', async () => {

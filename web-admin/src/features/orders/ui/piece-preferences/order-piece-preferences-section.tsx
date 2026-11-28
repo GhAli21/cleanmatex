@@ -11,6 +11,7 @@ import { useNewOrderStateWithDispatch } from '@/src/features/orders/hooks/use-ne
 import { useOrderWorkspaceSessionOptional } from '@/src/features/orders/order-change/order-workspace-session';
 import type { PackingPreference, PreferenceKind, ServicePreference } from '@/lib/types/service-preferences';
 import type { OrderItem } from '@/src/features/orders/model/new-order-types';
+import { PieceMoveMenu } from '../piece-move-menu';
 import { productLineNumber } from '@/src/features/orders/model/cart-line-grouping';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 import { useNewOrderPiecePreferences } from '@/src/features/orders/hooks/use-new-order-piece-preferences';
@@ -189,6 +190,7 @@ export function OrderPiecePreferencesSection({
                   enforcePrefCompatibility={enforcePrefCompatibility}
                   siblingPieceIds={siblingIds}
                   copyAllTooltip={t('copyAllTooltip')}
+                  headerAction={<PieceMoveMenu lineKey={item.lineKey} pieceId={piece.id} pieceNumber={piece.pieceSeq} />}
                   onRemovePreference={removePreference}
                   onCopyPreferenceToPieces={(uiId, targets) => {
                     copySinglePreference(uiId, targets);

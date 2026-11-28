@@ -15,17 +15,14 @@ import {
   useCustomerSearch,
   CUSTOMER_SEARCH_MIN_CHARS,
 } from '@/lib/hooks/use-customer-search';
-import { searchCustomersForPicker } from '@/lib/api/customers';
 import { CmxInput } from '@ui/primitives/cmx-input';
 import { CmxButton } from '@ui/primitives/cmx-button';
-import { CmxCheckbox } from '@ui/primitives/cmx-checkbox';
 import { Label } from '@ui/primitives/label';
 import { CmxSkeleton } from '@ui/primitives/cmx-skeleton';
 import {
   CmxDialog,
   CmxDialogContent,
   CmxDialogDescription,
-  CmxDialogFooter,
   CmxDialogHeader,
   CmxDialogTitle,
 } from '@ui/overlays/cmx-dialog';
@@ -36,6 +33,7 @@ import { UserCircle, Search } from 'lucide-react';
 
 interface Customer {
   id: string;
+  customerCode?: string;
   name?: string;
   name2?: string;
   displayName?: string;
@@ -93,6 +91,7 @@ function createTimedSignal(signal?: AbortSignal, timeoutMs = DEFAULT_GUEST_TIMEO
 function mapSearchItemToCustomer(c: CustomerSearchItem): Customer {
   return {
     id: c.id,
+    customerCode: c.customerCode ?? undefined,
     name: c.displayName || `${c.firstName || ''} ${c.lastName || ''}`.trim() || undefined,
     name2: undefined,
     displayName: c.displayName ?? undefined,
@@ -136,10 +135,6 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
   const [appliedSearchName, setAppliedSearchName] = useState('');
   const [appliedSearchEmail, setAppliedSearchEmail] = useState('');
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
-  const [searchAllOptions, setSearchAllOptions] = useState(false);
-  const [linkingCustomer, setLinkingCustomer] = useState<Customer | null>(null);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [linkLoading, setLinkLoading] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [focusedIndex, setFocusedIndex] = useState(0);
@@ -169,7 +164,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
     searchPhone: appliedSearchPhone,
     searchName: appliedSearchName,
     searchEmail: appliedSearchEmail,
-    searchAllOptions,
+    searchAllOptions: false,
     limit: 10,
     minChars: CUSTOMER_SEARCH_MIN_CHARS,
   });
@@ -223,13 +218,8 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
 
   const handleCustomerClick = useCallback(
     (customer: Customer) => {
-      if (customer.source === 'current_tenant' || customer.belongsToCurrentTenant) {
-        onSelectCustomer(customer);
-        setSearch('');
-        return;
-      }
-      setLinkingCustomer(customer);
-      setShowConfirmDialog(true);
+      onSelectCustomer(customer);
+      setSearch('');
     },
     [onSelectCustomer]
   );
@@ -252,81 +242,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
     [customers, focusedIndex, handleCustomerClick]
   );
 
-  const handleLinkCustomer = async () => {
-    if (!linkingCustomer) return;
-
-    setLinkLoading(true);
-    setCreateError(null);
-    try {
-      const isSysGlobal = linkingCustomer.source === 'sys_global';
-      const isOtherTenant = linkingCustomer.source === 'other_tenant';
-
-      const body: {
-        customerId: string;
-        sourceType: 'sys' | 'org_other_tenant';
-        originalTenantId?: string;
-      } = {
-        customerId: isSysGlobal
-          ? (linkingCustomer.customerId || linkingCustomer.id)
-          : (linkingCustomer.orgCustomerId || linkingCustomer.id),
-        sourceType: isSysGlobal ? 'sys' : 'org_other_tenant',
-      };
-
-      if (isOtherTenant) {
-        if (!linkingCustomer.originalTenantId) {
-          throw new Error('Missing tenant information for customer linking');
-        }
-        body.originalTenantId = linkingCustomer.originalTenantId;
-      }
-
-      if (!body.customerId) {
-        throw new Error('Invalid customer ID');
-      }
-
-      const res = await fetch('/api/v1/customers/link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      const json = (await res.json()) as {
-        success: boolean;
-        data?: { orgCustomerId: string; customerId: string };
-        error?: string;
-      };
-
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Failed to link customer');
-      }
-
-      if (!json.data) {
-        throw new Error('Invalid response from server');
-      }
-
-      const linkedCustomer: Customer = {
-        ...linkingCustomer,
-        id: json.data.orgCustomerId,
-        source: 'current_tenant',
-        belongsToCurrentTenant: true,
-      };
-
-      onSelectCustomer(linkedCustomer);
-      setShowConfirmDialog(false);
-      setLinkingCustomer(null);
-      setSearch('');
-    } catch (err: unknown) {
-      console.error('Failed to link customer:', err);
-      setCreateError(err instanceof Error ? err.message : 'Failed to link customer');
-    } finally {
-      setLinkLoading(false);
-    }
-  };
-
   const handleClose = useCallback(() => {
     onClose();
     setSearch('');
-    setShowConfirmDialog(false);
-    setLinkingCustomer(null);
     setCreateError(null);
   }, [onClose]);
 
@@ -341,8 +259,8 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
   return (
     <CmxDialog
       open={open}
-      // The nested link-confirm and create overlays own the keyboard while open.
-      onOpenChange={(next) => { if (!next && !showConfirmDialog && !createModalOpen) handleClose(); }}
+      // The nested create overlay owns the keyboard while open.
+      onOpenChange={(next) => { if (!next && !createModalOpen) handleClose(); }}
       // The search box takes focus itself (effect below), not the first control.
       autoFocus={false}
     >
@@ -454,13 +372,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
 
           {/* Advanced Search Fields */}
           {advancedSearchOpen && (
-            <form
-              className="pt-2 pb-1 space-y-3"
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleAdvancedSearch();
-              }}
-            >
+            <div className="pt-2 pb-1 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-start">
                 <div>
                   <Label htmlFor="search-phone" className="mb-1.5 block text-xs">
@@ -505,19 +417,12 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   />
                 </div>
               </div>
-              <CmxCheckbox
-                id="search-all-options"
-                size="sm"
-                checked={searchAllOptions}
-                onChange={(e) => setSearchAllOptions(e.target.checked)}
-                label={t('searchAllOptions')}
-                aria-describedby="customer-search-hint"
-              />
               <div className="flex items-center gap-2 pt-1 justify-start">
                 <CmxButton
-                  type="submit"
+                  type="button"
                   variant="primary"
                   size="sm"
+                  onClick={handleAdvancedSearch}
                   aria-label={tCommon('search') || 'Search'}
                   className="shrink-0"
                 >
@@ -525,7 +430,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   <span>{tCommon('search') || 'Search'}</span>
                 </CmxButton>
               </div>
-            </form>
+            </div>
           )}
         </div>
 
@@ -649,12 +554,22 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                       <UserCircle className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-foreground truncate">
-                        {customer.name ||
-                          customer.name2 ||
-                          customer.displayName ||
-                          `${customer.firstName || ''} ${customer.lastName || ''}`.trim() ||
-                          t('unnamed')}
+                      <div className="font-medium text-foreground truncate flex items-center gap-2">
+                        <span className="truncate">
+                          {customer.name ||
+                            customer.name2 ||
+                            customer.displayName ||
+                            `${customer.firstName || ''} ${customer.lastName || ''}`.trim() ||
+                            t('unnamed')}
+                        </span>
+                        {customer.customerCode && (
+                          <bdi
+                            dir="ltr"
+                            className="shrink-0 text-xs font-mono text-muted-foreground"
+                          >
+                            {customer.customerCode}
+                          </bdi>
+                        )}
                       </div>
                       {(customer.phone || customer.email) && (
                         <div
@@ -699,56 +614,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
         </div>
       </CmxDialogContent>
 
-      {/* Confirmation Dialog */}
-      <CmxDialog
-        open={Boolean(showConfirmDialog && linkingCustomer)}
-        onOpenChange={(next) => {
-          if (!next && !linkLoading) {
-            setShowConfirmDialog(false);
-            setLinkingCustomer(null);
-          }
-        }}
-        stackAboveModals
-      >
-        <CmxDialogContent className="max-w-md w-full p-6">
-          <CmxDialogHeader>
-            <CmxDialogTitle>{t('confirmLink')}</CmxDialogTitle>
-            <CmxDialogDescription>
-              {linkingCustomer?.source === 'sys_global'
-                ? t('confirmLinkGlobal')
-                : t('confirmLinkOtherTenant')}
-            </CmxDialogDescription>
-          </CmxDialogHeader>
-          <CmxDialogFooter className="mt-4">
-            <CmxButton
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setShowConfirmDialog(false);
-                setLinkingCustomer(null);
-              }}
-              disabled={linkLoading}
-            >
-              {tCommon('cancel')}
-            </CmxButton>
-            <CmxButton
-              type="button"
-              variant="primary"
-              onClick={handleLinkCustomer}
-              loading={linkLoading}
-              disabled={linkLoading}
-            >
-              {linkLoading
-                ? t('linking')
-                : linkingCustomer?.source === 'sys_global'
-                  ? t('linkCustomer')
-                  : t('copyCustomer')}
-            </CmxButton>
-          </CmxDialogFooter>
-        </CmxDialogContent>
-      </CmxDialog>
-
-      {/* Customer Create Modal */}
+      {/* Unified Lookup-First Customer Create / Connect Modal */}
       <CustomerCreateModal
         open={createModalOpen}
         onClose={() => {
@@ -756,57 +622,47 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
           setCreateError(null);
         }}
         tenantId={tenantId}
-        onSuccess={async (createdCustomer: CustomerType) => {
-          try {
-            const searchTerm = createdCustomer.phone || createdCustomer.firstName || '';
-
-            if (!searchTerm) {
-              setCreateError('Failed to find created customer. Please search manually.');
-              setCreateModalOpen(false);
-              return;
-            }
-
-            await new Promise((resolve) => setTimeout(resolve, 400));
-
-            let orgCustomer: Customer | null = null;
-            for (let attempt = 0; attempt < 3; attempt++) {
-              const results = await searchCustomersForPicker({
-                search: searchTerm,
-                searchAllOptions: false,
-                limit: 10,
-              });
-
-              const found = results.find((c) => {
-                if (createdCustomer.phone) return c.phone === createdCustomer.phone;
-                return c.firstName === createdCustomer.firstName;
-              });
-
-              if (found) {
-                orgCustomer = mapSearchItemToCustomer(found);
-                break;
-              }
-              await new Promise((resolve) => setTimeout(resolve, 500));
-            }
-
-            if (!orgCustomer) {
-              throw new Error('Created customer not found. Please search manually.');
-            }
-
-            const formatted: Customer = {
-              ...orgCustomer,
-              source: 'current_tenant',
-              belongsToCurrentTenant: true,
-            };
-
-            onSelectCustomer(formatted);
-            setCreateModalOpen(false);
-            setSearch('');
-            setCreateError(null);
-          } catch (err) {
-            console.error('Failed to find created customer:', err);
-            setCreateError(err instanceof Error ? err.message : 'Failed to find created customer.');
-            setCreateModalOpen(false);
-          }
+        onSelectExisting={(existingCustomer: CustomerType) => {
+          onSelectCustomer({
+            id: existingCustomer.id,
+            customerCode: existingCustomer.customerCode ?? undefined,
+            name:
+              existingCustomer.displayName ||
+              `${existingCustomer.firstName || ''} ${existingCustomer.lastName || ''}`.trim() ||
+              undefined,
+            displayName: existingCustomer.displayName ?? undefined,
+            firstName: existingCustomer.firstName,
+            lastName: existingCustomer.lastName ?? undefined,
+            phone: existingCustomer.phone ?? undefined,
+            email: existingCustomer.email ?? undefined,
+            type: existingCustomer.type,
+            source: 'current_tenant',
+            belongsToCurrentTenant: true,
+          });
+          setCreateModalOpen(false);
+          setSearch('');
+          setCreateError(null);
+        }}
+        onSuccess={(createdCustomer: CustomerType) => {
+          onSelectCustomer({
+            id: createdCustomer.id,
+            customerCode: createdCustomer.customerCode ?? undefined,
+            name:
+              createdCustomer.displayName ||
+              `${createdCustomer.firstName || ''} ${createdCustomer.lastName || ''}`.trim() ||
+              undefined,
+            displayName: createdCustomer.displayName ?? undefined,
+            firstName: createdCustomer.firstName,
+            lastName: createdCustomer.lastName ?? undefined,
+            phone: createdCustomer.phone ?? undefined,
+            email: createdCustomer.email ?? undefined,
+            type: createdCustomer.type,
+            source: 'current_tenant',
+            belongsToCurrentTenant: true,
+          });
+          setCreateModalOpen(false);
+          setSearch('');
+          setCreateError(null);
         }}
       />
     </CmxDialog>

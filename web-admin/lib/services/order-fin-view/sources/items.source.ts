@@ -71,6 +71,8 @@ export function loadOrderItems(tenantId: string, orderId: string) {
           uom_qty_decimals: true,
           measured_qty: true,
           billed_qty: true,
+          min_billable_qty: true,
+          billing_increment: true,
           service_speed: true,
           sys_service_speed_cd: { select: { name: true, name2: true } },
         },

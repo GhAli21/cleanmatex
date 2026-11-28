@@ -6,6 +6,7 @@ import {
   equalMeasureShare,
   findMatchingMeasuredLines,
   isOpenLine,
+  measureDialogInitial,
   measureWithArticle,
   productLineNumber,
   resolveCartAddTarget,
@@ -147,5 +148,17 @@ describe('reducer: measured merge and split', () => {
   it('SPLIT_MEASURED_SHARE leaves a one-piece line alone', () => {
     const before = state([measured('m', 1, '2.5')]);
     expect(newOrderReducer(before, { type: 'SPLIT_MEASURED_SHARE', payload: { lineKey: 'm' as LineKey, newLineKey: 'n' as LineKey, share: '2.5' } })).toBe(before);
+  });
+});
+
+describe('measureDialogInitial (§4.1)', () => {
+  const items = [measured('m', 2, '5')];
+
+  it('starts empty when adding, even if the product is already in the cart', () => {
+    expect(measureDialogInitial(items)).toBeUndefined();
+  });
+
+  it('starts from the line being re-measured', () => {
+    expect(measureDialogInitial(items, 'm' as LineKey)).toEqual(entered('5'));
   });
 });

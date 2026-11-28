@@ -106,17 +106,4 @@ export const PRIORITY_LEVELS = {
  */
 export type PriorityLevel = typeof PRIORITY_LEVELS[keyof typeof PRIORITY_LEVELS];
 
-/**
- * Product Units
- */
-export const PRODUCT_UNITS = {
-  PIECE: 'piece',
-  KG: 'kg',
-  ITEM: 'item',
-} as const;
-
-/**
- *
- */
-export type ProductUnit = typeof PRODUCT_UNITS[keyof typeof PRODUCT_UNITS];
 

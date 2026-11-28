@@ -19,6 +19,20 @@ export function newCartLineKey(): LineKey {
 let fallbackCount = 0;
 
 /**
+ * A temporary piece id that no piece of the line uses yet. Removing or moving a piece renumbers `pieceSeq`
+ * but keeps ids, so the sequence alone can repeat an id.
+ * @param lineKey the line the piece belongs to
+ * @param pieces the line's current pieces
+ * @param seq the new piece's sequence
+ * @returns `temp-<lineKey>-<n>`, with the first free `n` from `seq`
+ */
+export function nextPieceId(lineKey: string, pieces: readonly { id: string }[] | undefined, seq: number): string {
+  let n = seq;
+  while (pieces?.some((piece) => piece.id === `temp-${lineKey}-${n}`)) n += 1;
+  return `temp-${lineKey}-${n}`;
+}
+
+/**
  * The key of a saved line: its database item id, so the same line keeps one key across reloads.
  * @param persistedItemId the `org_order_items_dtl.id`
  * @returns the line key

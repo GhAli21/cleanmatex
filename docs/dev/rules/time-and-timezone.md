@@ -1,6 +1,6 @@
 ---
 title: Time and Timezone
-last_updated: 2026-11-25
+last_updated: 2026-11-27
 owner: CleanMateX Team
 ---
 
@@ -260,6 +260,10 @@ One set of date and time rules, with the same names in SQL and TypeScript
 | Day range | `fn_cmx_dt_day_bounds`, `fn_cmx_dt_business_day_bounds` | `dtDayBounds`, `dtBusinessDayBounds` |
 | Business date (with cut-over) | `fn_cmx_dt_business_date` | `dtBusinessDate` |
 | Period key | `fn_cmx_dt_period_key` | `dtPeriodKey` |
+| Typed shop time in a named zone | `fn_cmx_dt_instant_at_zone` | `dtInstantAtZone` |
+| Today that may be missing (health, reports) | `fn_cmx_dt_today_or_null` | `dtTodayOrNull` |
+| Display settings (hour cycle, week start, cut-over, date format) | `fn_cmx_dt_settings` | `buildClockBlock` (from the `clock` block) |
+| Clock health | `fn_cmx_dt_health` | `GET /api/v1/health/clock` |
 
 - **TypeScript.** Services take a `Clock` argument: `systemClock` at the request
   boundary, `fixedClock(...)` in tests, `actionClock()` for one stable instant
@@ -307,6 +311,212 @@ in SQL).
 Only the user applies migrations (D17). An agent writes migration files and
 never applies them, never runs `db push`, and never runs Prisma against a
 database.
+
+## Clock program rules in force (S1–S7)
+
+This section states what is built and binding as of version 0.1.48 of the
+docs pack (`docs/features/Time_and_Timezone/`). The decisions (D1–D35) are in
+`MASTER_PLAN_v2.md` §3; the per-slice log is `IMPLEMENTATION_REPORT.md`.
+
+| Slice | What it put in place | Migration |
+|---|---|---|
+| S1 | `@cmx/clock` package, shared vectors, guard v2 | none |
+| S2 | `fn_cmx_dt_*` SQL API, zone catalog, settings readers | `0842`, `0843` |
+| S2 fix | Catalog readers `SECURITY DEFINER` | `0844` |
+| S3/S4 | Display components, zone picker, "today" in the business zone, D20 toggle | none |
+| S5 | `CURRENT_DATE` / `now()::date` replaced in 25 functions and 2 views; fail closed | `0846` |
+| S6 | API input parsing, `clock` block, clock error responses, D9 echo | none |
+| S7 | Exports, audit display, `/api/v1/health/clock`, second D20 list, `toApiInstant` | none |
+
+### SQL: which `fn_cmx_dt_*` to call
+
+| Need | Call | Notes |
+|---|---|---|
+| The instant of this action (`created_at`, `updated_at`, audit, due checks) | `fn_cmx_dt_now()` | Transaction start. Equal to `now()` in production. |
+| Elapsed time inside one long statement | `fn_cmx_dt_clock()` | Moving clock (`clock_timestamp()`). Never mix with `now` for one fact. |
+| The zone of an operation | `fn_cmx_dt_zone(tenant, op, scope)` | Wraps `fn_ops_zone`. Ops: `accept_order`, `ready_by`, `pos_session`, `delivery`, `invoice`, `ledger`, `notify`. |
+| Today in that zone | `fn_cmx_dt_today(tenant, op, scope)` | Raises `TIMEZONE_NOT_CONFIGURED` when no zone. `fn_cmx_dt_today_or_null` for health/reporting readers that must not fail. |
+| Local time / local date-time now | `fn_cmx_dt_local_time`, `fn_cmx_dt_local_now` | |
+| Civil date + local time to an instant | `fn_cmx_dt_at_local(...)` or `fn_cmx_dt_instant_at_zone(zone, date, time, mode)` | `mode`: `compatible`, `earlier`, `later`, `reject`. |
+| Instant to local fields | `fn_cmx_dt_to_local`, `fn_cmx_dt_local_parts` | |
+| A day as a `[start, end)` instant range | `fn_cmx_dt_day_bounds`, `fn_cmx_dt_business_day_bounds` | Filter instants with the range. Never `created_at::date = ...`. |
+| Business date with the cut-over | `fn_cmx_dt_business_date` | Cut-over from branch → tenant → HQ (D33). |
+| Period key for numbering and reports | `fn_cmx_dt_period_key(..., grain)` | `DAY` `YYYYMMDD`, `MONTH` `YYYYMM`, `YEAR` `YYYY`, `WEEK` `W` + first day of the week (`W20261121`; needs the week start), `FY` `FY` + the year the fiscal year starts (start month 4: 2027-02-10 → `FY2026`). |
+| Hour cycle, week start, cut-over, date format | `fn_cmx_dt_settings(tenant, branch)` and `fn_cmx_dt_hour_cycle` / `_week_start` / `_cutover` | D33 sources, below. |
+| Is this a valid zone | `fn_cmx_dt_is_valid_zone` | |
+| Clock health findings | `fn_cmx_dt_health(tenant)` | service role / server connection only; `NULL` tenant = whole platform. |
+
+### SQL rules
+
+- **No fallbacks.** A missing or invalid zone raises `TIMEZONE_NOT_CONFIGURED`
+  (or the reader returns `NULL` and the caller reports it). Never `UTC`,
+  `Asia/Muscat`, the server zone, or `utc_offset_hours`. S5 made seeding,
+  template apply, tax kits, price lookup and cash-drawer numbering fail closed
+  on purpose; credit-note expiry skips and counts a tenant without a ledger zone
+  (`CLOCK_ZONE_MISSING`) instead of expiring its notes.
+- **Tenant-only zone setting (G21).** A tenant's `timezone` comes from the tenant
+  row only, never from HQ defaults.
+- **Catalog readers are `SECURITY DEFINER`.** Migration `0745` closed every
+  `sys_*` table to signed-in users, so a function that reads
+  `sys_timezone_cd` (or any `sys_*` table) as the caller fails for every user
+  (`permission denied for table sys_timezone_cd`). `0844` made `fn_ops_zone` and
+  the zone checkers run as owner. Any new function that reads a locked `sys_*`
+  catalog on behalf of a user is `SECURITY DEFINER`, pins
+  `SET search_path = pg_catalog, public, pg_temp`, returns only the narrow
+  answer (a zone name or true/false), and keeps its tenant guard. Do not
+  re-grant the table.
+- **Banned in new SQL (from `0842`).** `now()`, `clock_timestamp()`,
+  `statement_timestamp()`, `transaction_timestamp()`, `current_timestamp`,
+  `CURRENT_DATE`, `CURRENT_TIME`, `LOCALTIME`, `LOCALTIMESTAMP`, `now()::date`,
+  `now()::time`, `extract(hour from now())`, `SET TIME ZONE`, and direct
+  `fn_ops_zone` calls. Write `updated_at = public.fn_cmx_dt_now()`. A line that
+  must break the rule ends with `-- CLOCK-OK: <reason>`. Existing column
+  `DEFAULT now()` stay.
+- **Test clock.** `cmx.fake_now` works only for the owner/superuser and only when
+  the owner-only `cmx_dt_env_cf.env` is `test`; otherwise it is ignored with
+  `WARNING CMX_FAKE_NOW_IGNORED`. Never write either in a migration.
+  `CLOCK_FAKE_ENV` in health means fake time is possible outside test.
+- **Anonymous writes.** `anon` gets only the clock functions. A public flow that
+  writes a zone (`org_tenants_mst.timezone`, `org_branches_mst.timezone_code`)
+  or anything validated against the catalog goes through the server with the
+  service-role client (public sign-up was moved in S3).
+- **Migration numbering.** The user applies migrations (D17). Take the next free
+  number at the moment the file is written, re-check just before creating it
+  and again at the end, and never reuse a number. The user also writes
+  migrations in parallel; a user migration written outside the clock program
+  that uses `now()` is allowlisted by name in the guard, and new ones should use
+  `fn_cmx_dt_now()` or `-- CLOCK-OK`.
+
+### Zone catalog and settings
+
+- **Catalog (D16, D28, D32).** `sys_timezone_cd` holds IANA names only.
+  Canonical (`is_canonical = true`): every name in `zone.tab` and
+  `zone1970.tab`, and `UTC`. Links are not merged across countries, so
+  `Asia/Muscat`, `Asia/Kuwait`, `Asia/Bahrain` and `Asia/Aden` stay distinct.
+  Aliases (`Asia/Calcutta`, `Europe/Kiev`, `US/Eastern`, `Asia/Katmandu`) are
+  inactive with `link_target`; validators normalize an alias to its canonical
+  name and save that. A zone the database's tz data does not know is kept
+  inactive until it does (America/Coyhaique, `0846`).
+- **Picker.** Settings and registration use `CmxTimeZoneSelect` (searchable,
+  live offset per zone, canonical active zones only). There is no per-user
+  zone (G7) and no fixed short list.
+- **Settings sources (D33).** Hour cycle: `org_tenants_mst.time_format` →
+  `sys_country_cd.default_hour_cycle` (CLDR) → `hq_general_config.time_format`.
+  Week start: `org_tenants_mst.first_day_of_week` →
+  `sys_country_cd.default_week_start` → `hq_general_config.first_day_of_week`.
+  Cut-over: `org_branches_mst.business_day_cutover` →
+  `org_tenants_mst.business_day_cutover` →
+  `hq_general_config.business_day_cutover`. Wire values: `24h` → `h23`,
+  `12h` → `h12`; week `0..6` → ISO (`0` → `7`).
+
+### TypeScript: `@cmx/clock`
+
+- Same names as SQL: `dtNow(clock)`, `dtClock`, `dtToday`, `dtTodayOrNull`,
+  `dtLocalTime`, `dtLocalNow`, `dtAtLocal`, `dtInstantAtZone`, `dtToLocal`,
+  `dtLocalParts`, `dtDayBounds`, `dtBusinessDayBounds`, `dtBusinessDate`,
+  `dtPeriodKey`, plus `parseInstant`, `parseCivilDate`, `localTimeKind`,
+  `zoneOffsetLabel`, `formatInstant`, `buildClockBlock`, `tzdbVersion()`.
+- Services take an injected `Clock` (`systemClock`, `fixedClock`, `actionClock`).
+- Errors are `ClockError` with `code`, `httpStatus` and `messageKey`
+  (`clock.errors.*`, EN/AR). Statuses: `INSTANT_OFFSET_REQUIRED`,
+  `INVALID_CIVIL_DATE`, `INVALID_LOCAL_TIME`, `INVALID_TIME_ZONE`,
+  `CLOCK_SETTING_INVALID` 400; `OPS_ZONE_TENANT_MISMATCH` 403;
+  `ZONE_MISMATCH`, `ZONE_CHANGE_BLOCKED_OPEN_SESSION` 409;
+  `TIMEZONE_NOT_CONFIGURED`, `LOCAL_TIME_NONEXISTENT`, `LOCAL_TIME_AMBIGUOUS` 422.
+
+### API input (web-admin `lib/clock/api-input.ts`)
+
+- An instant must carry an offset (`Z` or `±hh:mm`). Text without one is
+  refused with `INSTANT_OFFSET_REQUIRED`, never read in the server's zone.
+- Use `zInstant` / `zInstantDate` for instants, `zCivilDate` /
+  `zCivilStorageDate` for civil days (`@db.Date` stored as UTC midnight),
+  `zCivilOrInstantDate` for list filters that accept either, and
+  `zZonedInput` (date + local time + optional zone echo + DST mode) for a
+  typed shop time. `isCivilDateText`, `isInstantText` and `leadingCivilDate`
+  classify raw strings. Do not use `z.coerce.date()` or `new Date(text)` on
+  input.
+- **D9 zone echo.** `assertZoneEcho(clientZone, serverZone)`: a client may omit
+  the zone; a different zone is `409 ZONE_MISMATCH` (stale page); no server
+  zone is `TIMEZONE_NOT_CONFIGURED`. `resolveZonedInput` applies the echo and
+  the DST mode in one step.
+- **DST modes.** Typed input defaults to `reject`. A gap gives
+  `LOCAL_TIME_NONEXISTENT`, an overlap `LOCAL_TIME_AMBIGUOUS` (422 with both
+  candidates in `details`). The screen shows `CmxDstChoice` so the user picks
+  `earlier` or `later`, then resends with that mode. Computed times use
+  `compatible`.
+- **Errors out.** In a route's `catch`, call `clockErrorResponse(error)` first;
+  it returns the status and `{ success:false, error, code, messageKey,
+  details? }`, or `null` for a non-clock error. Screens show it with
+  `useClockErrorMessage`.
+
+### API output
+
+- **Instants leave as ISO UTC with milliseconds (`...Z`).** Use
+  `toApiInstant` / `withApiInstants` (`lib/clock/api-output.ts`) where a value
+  passes through as a string. Civil dates stay `YYYY-MM-DD`; local times
+  `HH:mm`.
+- **`clock` block (D21, D34).** Every screen endpoint adds
+  `clock: { zone, businessDate, serverNow, hourCycle, weekStart, tzdbVersion, dateFormat }`
+  from `screenClock(tenant, { operation, branchId })`; public endpoints use
+  `publicScreenClock` (`{ zone, serverNow, hourCycle, dateFormat }`). A failure
+  gives `clock: null`, logged, without failing the response. The list of
+  endpoints that carry it is
+  `docs/features/Time_and_Timezone/technical_docs/api-clock-inventory.md`, and a
+  test reads that table; add a row when a screen endpoint gains the block.
+
+### Display (web-admin `src/ui/clock`, exported from `@ui/clock`)
+
+- `ClockProvider` (block or zone) feeds `CmxInstant` (instants),
+  `CmxCivilDate` (civil dates, never shifted), `CmxLocalTime`, `CmxZoneBadge`
+  (abbreviation and offset of the instant shown), `CmxZoneNotice` ("Time zone
+  not configured"), `CmxTimeZoneSelect` and `CmxDstChoice`. Hooks:
+  `useClock`, `useInstantFormatter`, `useDateValueFormatter`,
+  `useClockCivilToday` (empty string without a zone, so a form never starts on
+  the device day).
+- Outside a provider the zone is `null` and components show `—`. Never the
+  device zone.
+- Digits are Latin (`latn`) by default in EN and AR. Wrap times and dates in
+  `<bdi dir="ltr">` inside RTL text.
+- **D20 viewer zone.** `ViewZoneProvider` (per-screen key, URL `tz=branch|device`,
+  remembered), `CmxViewZoneToggle`, `useViewZone().displayZone(opsZone)`.
+  Display only: filters, day buckets and grouping stay in the operations
+  zone, and civil dates and local times are never converted. Lists so far:
+  orders list (Ready By) and catalog price history.
+
+### Exports, audit and health (S7)
+
+- **Exports.** An instant column is ISO `Z`. When a local column is added, it
+  is in a named zone (`exportLocalText`, `en`, Latin digits, 24h) and the file
+  names that zone in a "Time Zone" column or a `# Time Zone: <zone>` header
+  (`exportZoneHeader`). Civil date columns pass through (`exportDateValue`).
+  A file-name day is the civil day in the screen zone (`exportFileDay`); with
+  no zone the name carries no day. `toCsv` and the shared grids write `Date`
+  cells as `Z`. Never `toISOString().slice(0, 10)` for a file name.
+- **Audit.** Storage stays UTC (`timestamptz`, logs in UTC). Audit screens
+  (`CmxAuditInfoCard`, `CmxAuditColumn`) show instants in the screen clock
+  zone, or the viewer zone under D20, and show `—` without a zone.
+- **Health.** `GET /api/v1/health/clock` (permission `setup_health:view`,
+  session tenant only, read-only): Node tz and ICU versions, app vs
+  `fn_cmx_dt_now()` skew (`CLOCK_DB_SKEW` over 2 s), three recent-rule vectors
+  compared in SQL and TS (`CLOCK_TZDB_SKEW`), and the `fn_cmx_dt_health`
+  findings (zone missing/invalid/non-canonical, catalog unknown, role zone,
+  `CLOCK_FAKE_ENV`). `data.status` is `ok`, `warning` or `error`.
+
+### Guard
+
+- `npm run check:clock-contract` (or `node scripts/check-clock-contract.mjs`)
+  must exit 0 in both repos before a slice is done.
+- TypeScript rules are counted per file against
+  `scripts/clock-contract-baseline.json` (`ts.iso-slice-date`,
+  `ts.iso-split-date`, `ts.date-only-literal`, `ts.tolocale-no-zone`,
+  `ts.instant-getters`, `ts.intl-dtf-no-zone`, `ts.resolved-options-zone`,
+  `ts.muscat-literal`). A count may go down, never up. After a fix, run
+  `node scripts/check-clock-contract.mjs --update-baseline` to lock the lower
+  count in. Tenant total after S7: 221.
+- SQL rules apply to migrations from `0842`; files before that, and named
+  user migrations written outside the program, are allowlisted in the script.
+- A line that must break a rule carries `// CLOCK-OK: <reason>`
+  (`-- CLOCK-OK: <reason>` in SQL).
 
 ## Clocks
 
