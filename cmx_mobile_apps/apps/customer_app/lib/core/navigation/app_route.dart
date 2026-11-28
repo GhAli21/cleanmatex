@@ -6,9 +6,11 @@ class AppRoute {
   static const loginEntry = '/login-entry';
   static const otpVerify = '/otp-verify';
   static const guestEntry = '/guest-entry';
+  static const quickDrop = '/quick-drop';
   static const booking = '/booking';
   static const orders = '/orders';
   static const orderDetail = '/order-detail';
+  static const receipts = '/receipts';
   static const home = '/home';
   static const offline = '/offline';
   static const error = '/error';

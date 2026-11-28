@@ -351,8 +351,8 @@
     "fields": {
       "priceOverride": "Price override",
       "measuredQty": "Measured",
-      "measureLength": "Length",
-      "measureWidth": "Width",
+      "measureLength": "Length (m)",
+      "measureWidth": "Width (m)",
       "preferenceCharge": "Preference charge",
       "service": "Service",
       "pieceNumber": "Piece number",

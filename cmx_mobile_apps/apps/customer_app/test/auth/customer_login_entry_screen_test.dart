@@ -13,7 +13,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CustomerLoginEntryScreen), findsOneWidget);
-    expect(find.text('Send verification code'), findsOneWidget);
+    expect(find.text('Find your laundries'), findsOneWidget);
+    expect(find.text('Find'), findsOneWidget);
     expect(find.text('Phone number'), findsOneWidget);
   });
 }

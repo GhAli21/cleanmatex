@@ -32,8 +32,8 @@ export function CartMeasureNote({ uom, measure, quoted, unitPrice, onEdit }: Car
   const t = useTranslations('uom');
   const ar = useLocale() === 'ar';
   const symbol = ar && uom.symbol2 ? uom.symbol2 : uom.symbol;
-  const typed = measure?.length && measure?.width ? `${measure.length} × ${measure.width}` : measure?.measuredQty ?? '';
-  const measuredText = quoted ? quoted.measuredQty : typed;
+  // An area line carries its area too (the size in metres is only a record of it).
+  const measuredText = quoted ? quoted.measuredQty : measure?.measuredQty ?? '';
   const text = quoted
     ? (quoted.billedQty === quoted.measuredQty
       ? `${quoted.billedQty} ${symbol}`

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
@@ -9,11 +9,20 @@ import '../../../../core/navigation/app_route.dart';
 import '../../../common/ui/widgets/customer_locale_switch_widget.dart';
 import '../../domain/booking_total_format.dart';
 import '../../providers/customer_order_booking_provider.dart';
+import '../views/customer_booking_step0_fulfillment_vw.dart';
 import '../views/customer_booking_step1_items_vw.dart';
 import '../views/customer_booking_step2_preferences_vw.dart';
 import '../views/customer_booking_step3_schedule_vw.dart';
-import '../views/customer_booking_step4_review_vw.dart';
+import '../views/customer_booking_step4_offers_notes_vw.dart';
+import '../views/customer_booking_step5_pos_review_vw.dart';
 
+/// 6-step POS-parity Detailed Order Booking Wizard:
+/// 1. Mandatory Fulfillment & Branch
+/// 2. Select Items + optional per-piece prefs (extra price) + per-item notes
+/// 3. Predefined Profile Preferences + master toggle + preferences notes
+/// 4. Schedule & Speed + Estimated Ready-By + sorting disclaimer
+/// 5. Promo Code, Gift Card, Payment Notes & General Order Note (save default)
+/// 6. Full POS-Parity Server-Priced Review
 class CustomerOrderBookingScreen extends ConsumerStatefulWidget {
   const CustomerOrderBookingScreen({super.key});
 
@@ -37,8 +46,6 @@ class _CustomerOrderBookingScreenState
     super.didChangeDependencies();
     if (_scheduledInitialLoad) return;
     _scheduledInitialLoad = true;
-    AppLogger.info('booking_screen.initial_load_scheduled');
-    // Fresh wizard for each visit — global notifier keeps success state otherwise.
     ref.invalidate(customerOrderBookingProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -57,6 +64,8 @@ class _CustomerOrderBookingScreenState
     final localizations = AppLocalizations.of(context);
     final booking = ref.watch(customerOrderBookingProvider);
     final notifier = ref.read(customerOrderBookingProvider.notifier);
+    final theme = Theme.of(context);
+    final ext = CmxStatusThemeExtension.of(context);
 
     return PopScope(
       canPop: !booking.isDirty || booking.hasSubmissionSuccess,
@@ -91,52 +100,157 @@ class _CustomerOrderBookingScreenState
           actions: const [CustomerLocaleSwitchWidget()],
         ),
         body: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              AppHeaderWidget(
-                title: localizations.text('booking.title'),
-                subtitle: localizations.text('booking.subtitle'),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              if (booking.isLoading)
-                AppLoadingIndicator(
-                  label: localizations.text('booking.loading'),
+          child: booking.isLoading
+              ? ListView(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  children: const [
+                    AppSkeletonWidget(height: 24, width: 220),
+                    SizedBox(height: AppSpacing.md),
+                    AppSkeletonWidget(height: 120),
+                    SizedBox(height: AppSpacing.md),
+                    AppSkeletonWidget(height: 120),
+                  ],
                 )
-              else if (booking.hasLoadError)
-                _buildLoadErrorState(localizations, booking, notifier)
-              else if (!booking.isBookingEnabled)
-                _buildDisabledState(localizations, booking)
-              else ...[
-                Text(
-                  localizations.textWithArg(
-                    'booking.stepLabel',
-                    (booking.stepIndex + 1).toString(),
-                  ),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                ..._buildStepContent(booking),
-                const SizedBox(height: AppSpacing.lg),
-                if (booking.errorMessageKey != null &&
-                    !booking.hasLoadError &&
-                    !booking.hasSubmissionSuccess)
-                  Padding(
-                    padding:
-                        const EdgeInsetsDirectional.only(bottom: AppSpacing.lg),
-                    child: _buildInlineErrorState(localizations, booking),
-                  ),
-                if (booking.hasSubmissionSuccess)
-                  _buildSuccessState(localizations, booking)
-                else
-                  _buildActionRow(
-                    localizations: localizations,
-                    booking: booking,
-                    notifier: notifier,
-                  ),
-              ],
-            ],
-          ),
+              : booking.hasLoadError
+                  ? ListView(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      children: [
+                        _buildLoadErrorState(localizations, booking, notifier),
+                      ],
+                    )
+                  : !booking.isBookingEnabled
+                      ? ListView(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          children: [
+                            _buildDisabledState(localizations, booking),
+                          ],
+                        )
+                      : booking.hasSubmissionSuccess
+                          ? ListView(
+                              padding: const EdgeInsets.all(AppSpacing.lg),
+                              children: [
+                                _buildSuccessState(localizations, booking),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                // 6-Step Progress Bar
+                                Padding(
+                                  padding: const EdgeInsetsDirectional.fromSTEB(
+                                    AppSpacing.lg,
+                                    AppSpacing.md,
+                                    AppSpacing.lg,
+                                    AppSpacing.sm,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              localizations.textWithArgs(
+                                                'booking.stepOfTotal',
+                                                {
+                                                  'current':
+                                                      '${booking.stepIndex + 1}',
+                                                  'total':
+                                                      '${BookingState.totalSteps}',
+                                                },
+                                              ),
+                                              style: theme.textTheme.labelLarge
+                                                  ?.copyWith(
+                                                color: ext.brandText,
+                                              ),
+                                            ),
+                                          ),
+                                          if (booking.hasCartItems)
+                                            AppMoneyTextWidget(
+                                              amount: booking.estimatedTotal,
+                                              currencyCode:
+                                                  booking.currencyCode,
+                                              style: theme.textTheme.labelLarge
+                                                  ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: AppSpacing.xs),
+                                      Row(
+                                        children: [
+                                          for (var i = 0;
+                                              i < BookingState.totalSteps;
+                                              i++) ...[
+                                            Expanded(
+                                              child: Container(
+                                                height: 4,
+                                                decoration: BoxDecoration(
+                                                  color: i <= booking.stepIndex
+                                                      ? theme
+                                                          .colorScheme.primary
+                                                      : ext.border,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                    AppRadii.pill,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            if (i < BookingState.totalSteps - 1)
+                                              const SizedBox(width: 4),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Expanded(
+                                  child: ListView(
+                                    padding:
+                                        const EdgeInsetsDirectional.fromSTEB(
+                                      AppSpacing.lg,
+                                      AppSpacing.sm,
+                                      AppSpacing.lg,
+                                      AppSpacing.xxl,
+                                    ),
+                                    children: [
+                                      ..._buildStepContent(booking),
+                                      if (booking.errorMessageKey != null &&
+                                          !booking.hasLoadError &&
+                                          !booking.hasSubmissionSuccess) ...[
+                                        const SizedBox(height: AppSpacing.lg),
+                                        _buildInlineErrorState(
+                                          localizations,
+                                          booking,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                // Sticky Action Dock
+                                Container(
+                                  padding: const EdgeInsetsDirectional.fromSTEB(
+                                    AppSpacing.lg,
+                                    AppSpacing.md,
+                                    AppSpacing.lg,
+                                    AppSpacing.md,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surface,
+                                    border: Border(
+                                      top: BorderSide(color: ext.border),
+                                    ),
+                                  ),
+                                  child: _buildActionRow(
+                                    localizations: localizations,
+                                    booking: booking,
+                                    notifier: notifier,
+                                  ),
+                                ),
+                              ],
+                            ),
         ),
       ),
     );
@@ -145,13 +259,17 @@ class _CustomerOrderBookingScreenState
   List<Widget> _buildStepContent(BookingState booking) {
     switch (booking.stepIndex) {
       case 0:
-        return [const CustomerBookingStep1ItemsVw()];
+        return const [CustomerBookingStep0FulfillmentVw()];
       case 1:
-        return [const CustomerBookingStep2PreferencesVw()];
+        return const [CustomerBookingStep1ItemsVw()];
       case 2:
-        return [const CustomerBookingStep3ScheduleVw()];
+        return const [CustomerBookingStep2PreferencesVw()];
+      case 3:
+        return const [CustomerBookingStep3ScheduleVw()];
+      case 4:
+        return const [CustomerBookingStep4OffersNotesVw()];
       default:
-        return [const CustomerBookingStep4ReviewVw()];
+        return const [CustomerBookingStep5PosReviewVw()];
     }
   }
 
@@ -160,26 +278,11 @@ class _CustomerOrderBookingScreenState
     BookingState booking,
     CustomerOrderBookingNotifier notifier,
   ) {
-    return AppCardWidget(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            localizations.text('booking.errorTitle'),
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            localizations.text(booking.errorMessageKey!),
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppCustomButtonWidget(
-            label: localizations.text('booking.retryAction'),
-            onPressed: notifier.load,
-          ),
-        ],
-      ),
+    return AppErrorWidget(
+      title: localizations.text('booking.errorTitle'),
+      message: localizations.text(booking.errorMessageKey!),
+      retryLabel: localizations.text('booking.retryAction'),
+      onRetry: notifier.load,
     );
   }
 
@@ -197,15 +300,23 @@ class _CustomerOrderBookingScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const Icon(Icons.check_circle_rounded,
+              size: 44, color: AppColors.success),
+          const SizedBox(height: AppSpacing.md),
           Text(
             localizations.text('booking.successTitle'),
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: AppSpacing.sm),
+          AppCodeChipWidget(
+            code: ltrCode(booking.submittedOrderNumber ?? ''),
+            copiedFeedbackMessage:
+                localizations.text('common.copiedToClipboard'),
+          ),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             localizations.textWithArg(
               'booking.successBody',
-              // Isolate the order code so it reads left-to-right in Arabic (HFC A-73).
               ltrCode(booking.submittedOrderNumber ?? ''),
             ),
             style: Theme.of(context).textTheme.bodyLarge,
@@ -229,14 +340,17 @@ class _CustomerOrderBookingScreenState
             ),
           ],
           const SizedBox(height: AppSpacing.lg),
-          AppCustomButtonWidget(
-            label: localizations.text('booking.viewOrdersAction'),
-            onPressed: () {
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                AppRoute.orders,
-                (route) => route.settings.name == AppRoute.home,
-              );
-            },
+          SizedBox(
+            width: double.infinity,
+            child: AppCustomButtonWidget(
+              label: localizations.text('booking.viewOrdersAction'),
+              onPressed: () {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  AppRoute.home,
+                  (route) => false,
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -315,24 +429,26 @@ class _CustomerOrderBookingScreenState
     required BookingState booking,
     required CustomerOrderBookingNotifier notifier,
   }) {
+    final isFinalStep = booking.stepIndex == BookingState.reviewStepIndex;
     return Row(
       children: [
         if (booking.stepIndex > 0) ...[
           Expanded(
             child: AppCustomButtonWidget(
               label: localizations.text('common.back'),
-              onPressed: notifier.goBack,
+              onPressed: booking.isSubmitting ? null : notifier.goBack,
               isPrimary: false,
             ),
           ),
           const SizedBox(width: AppSpacing.md),
         ],
         Expanded(
+          flex: 2,
           child: AppCustomButtonWidget(
-            label: booking.stepIndex == 3
+            label: isFinalStep
                 ? localizations.text('booking.submitAction')
                 : localizations.text('booking.nextAction'),
-            onPressed: booking.stepIndex == 3
+            onPressed: isFinalStep
                 ? (booking.isSubmitting ? null : notifier.submit)
                 : (notifier.canProceed() ? notifier.goNext : null),
             isLoading: booking.isSubmitting,
@@ -343,8 +459,6 @@ class _CustomerOrderBookingScreenState
   }
 }
 
-/// The promised time in the customer's language. The server sends an ISO
-/// instant; anything that does not parse is shown as sent.
 String _formatReadyBy(BuildContext context, String promised) {
   final instant = DateTime.tryParse(promised);
   if (instant == null) return promised;

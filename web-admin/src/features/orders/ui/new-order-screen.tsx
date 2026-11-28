@@ -11,6 +11,7 @@ import { NewOrderLayout } from './new-order-layout';
 import { NewOrderContent } from './new-order-content';
 import { NewOrderModals } from './new-order-modals';
 import { NewOrderLoadingSkeleton } from './new-order-loading-skeleton';
+import { CustomerRequestIntakeBanner } from './customer-request-intake-banner';
 
 /**
  * New Order Screen Component
@@ -18,6 +19,9 @@ import { NewOrderLoadingSkeleton } from './new-order-loading-skeleton';
 export function NewOrderScreen() {
   return (
     <NewOrderLayout>
+      <Suspense fallback={null}>
+        <CustomerRequestIntakeBanner />
+      </Suspense>
       <Suspense fallback={<NewOrderLoadingSkeleton />}>
         <NewOrderContent />
       </Suspense>

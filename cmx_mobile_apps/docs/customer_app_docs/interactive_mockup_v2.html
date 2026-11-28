@@ -1,0 +1,2109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CleanMateX Go — Interactive Mobile UI/UX Prototype v2</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* Scoped phone-simulator design tokens (Brand Spec v1.1) — never touch :root */
+    .cmx-phone {
+      --p-brand: #0AB6D8;
+      --p-brand-text: #0888A3;
+      --p-brand-soft: rgba(10, 182, 216, 0.12);
+      --p-navy: #0E2A47;
+      --p-emerald: #1DBF73;
+      --p-amber: #FFB100;
+      --p-amber-text: #92400E;
+      --p-amber-bg: #FEF3C7;
+      --p-amber-border: #FCD34D;
+      --p-success: #14B8A6;
+      --p-success-text: #0F766E;
+      --p-success-bg: #CCFBF1;
+      --p-danger: #E44D4D;
+      --p-danger-text: #B91C1C;
+      --p-danger-bg: #FEE2E2;
+      --p-danger-border: #FECACA;
+      --p-info: #0284C7;
+      --p-info-text: #0369A1;
+      --p-info-bg: #E0F2FE;
+
+      --p-bg: #F8FAFC;
+      --p-card: #FFFFFF;
+      --p-muted-bg: #F1F5F9;
+      --p-border: #E2E8F0;
+      --p-text: #0E2A47;
+      --p-text-muted: #475569;
+      --p-nav-bg: rgba(255, 255, 255, 0.96);
+      --p-shadow: 0 2px 10px rgba(14, 42, 71, 0.06);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .cmx-phone.is-rtl {
+      font-family: "Segoe UI", Tahoma, "Geeza Pro", "Arial", sans-serif;
+    }
+
+    .cmx-phone.theme-dark {
+      --p-brand-text: #38D1EE;
+      --p-brand-soft: rgba(56, 209, 238, 0.16);
+      --p-navy: #E2EEFA;
+      --p-amber-text: #FCD34D;
+      --p-amber-bg: rgba(245, 158, 11, 0.16);
+      --p-amber-border: rgba(245, 158, 11, 0.4);
+      --p-success-text: #5EEAD4;
+      --p-success-bg: rgba(20, 184, 166, 0.18);
+      --p-danger-text: #FCA5A5;
+      --p-danger-bg: rgba(239, 68, 68, 0.16);
+      --p-danger-border: rgba(239, 68, 68, 0.4);
+      --p-info-text: #7DD3FC;
+      --p-info-bg: rgba(14, 165, 233, 0.18);
+
+      --p-bg: #0B111A;
+      --p-card: #131C2B;
+      --p-muted-bg: #1C273A;
+      --p-border: #263449;
+      --p-text: #F1F5F9;
+      --p-text-muted: #94A3B8;
+      --p-nav-bg: rgba(19, 28, 43, 0.96);
+      --p-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
+    }
+
+    .cmx-phone.org-noor { --p-brand: #0F766E; --p-brand-text: #0F766E; --p-brand-soft: rgba(15, 118, 110, 0.13); }
+    .cmx-phone.theme-dark.org-noor { --p-brand: #2DD4BF; --p-brand-text: #5EEAD4; --p-brand-soft: rgba(45, 212, 191, 0.16); }
+    .cmx-phone.org-royal { --p-brand: #7C3AED; --p-brand-text: #6D28D9; --p-brand-soft: rgba(124, 58, 237, 0.13); }
+    .cmx-phone.theme-dark.org-royal { --p-brand: #A78BFA; --p-brand-text: #C4B5FD; --p-brand-soft: rgba(167, 139, 250, 0.18); }
+
+    .phone-scroll::-webkit-scrollbar { width: 4px; }
+    .phone-scroll::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.28); border-radius: 999px; }
+    .ltr-iso { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
+    .cmx-phone.is-rtl .flip-rtl { transform: scaleX(-1); }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .screen-anim { animation: fadeSlide 0.16s ease-out; }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased m-0 p-4 md:p-6">
+  <div class="max-w-7xl mx-auto space-y-5">
+
+    <!-- Studio Header -->
+    <header class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background: linear-gradient(135deg, #0AB6D8 0%, #1DBF73 100%);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round">
+              <path d="M5 5l14 14M19 5L5 19" />
+              <circle cx="19" cy="4" r="1.4" fill="#FFFFFF" stroke="none"/>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h1 class="text-base font-bold tracking-tight">CleanMateX Go — Interactive Prototype v2</h1>
+              <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-[var(--content)] text-[var(--muted-foreground)] border border-[var(--border)]">All Review Notes Applied</span>
+            </div>
+            <p class="text-xs text-[var(--muted-foreground)] mt-0.5">Includes last-branch top pill, Horizontal/Vertical live tracker, full Account Profile CRUD, 2×2 Pickup/Delivery fulfillment, and 6-step POS-parity Detailed Order.</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <div class="inline-flex rounded-lg border border-[var(--border)] bg-[var(--content)] p-0.5">
+            <button id="btn-en" onclick="setLang('en')" class="px-2.5 py-1.5 rounded-md font-semibold transition">English (LTR)</button>
+            <button id="btn-ar" onclick="setLang('ar')" class="px-2.5 py-1.5 rounded-md font-semibold transition">العربية (RTL)</button>
+          </div>
+
+          <div class="inline-flex rounded-lg border border-[var(--border)] bg-[var(--content)] p-0.5">
+            <button id="btn-light" onclick="setPhoneTheme('light')" class="px-2.5 py-1.5 rounded-md font-semibold transition">☀️ Light</button>
+            <button id="btn-dark" onclick="setPhoneTheme('dark')" class="px-2.5 py-1.5 rounded-md font-semibold transition">🌙 Dark</button>
+          </div>
+
+          <select id="sel-org" onchange="setOrgBrand(this.value)" class="px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--content)] text-[var(--foreground)] font-medium">
+            <option value="default">Brand: CleanMateX Go (Aqua)</option>
+            <option value="noor">Org Override: Al-Noor (Teal)</option>
+            <option value="royal">Org Override: Royal Care (Violet)</option>
+          </select>
+
+          <select id="sel-state" onchange="setSimState(this.value)" class="px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--content)] text-[var(--foreground)] font-medium">
+            <option value="normal">State: Signed-In (Active)</option>
+            <option value="empty">State: Empty (No Orders)</option>
+            <option value="offline">State: Offline (Cached)</option>
+            <option value="guest">State: Guest Mode</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- 3-Column Studio Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+      <!-- Left: Screen Directory -->
+      <aside class="lg:col-span-3 space-y-4">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 space-y-2.5">
+          <div class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Screens &amp; Flows</div>
+          <div id="screen-nav" class="space-y-1.5"></div>
+        </div>
+
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 space-y-2">
+          <div class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Try These New Updates</div>
+          <ul class="text-xs space-y-1.5 text-[var(--muted-foreground)]">
+            <li>• Tap top pill on <strong>Home</strong> to switch Org + <strong>Last Branch</strong></li>
+            <li>• Open <strong>Live Tracking</strong> → toggle <strong>Horizontal / Vertical</strong> tracker</li>
+            <li>• Open <strong>Detailed Order</strong> → walk Steps <strong>1/6 to 6/6</strong> (expand item for per-piece prefs + note, enter promo <code class="font-mono">SAVE10</code> or gift card <code class="font-mono">GC500</code>)</li>
+            <li>• Open <strong>Account</strong> → edit Contact, add Address, toggle Saved Order Note</li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Center: Phone Frame -->
+      <main class="lg:col-span-5 flex flex-col items-center">
+        <div class="relative rounded-[44px] p-[11px] shadow-2xl border border-[var(--border)]" style="background: linear-gradient(145deg, #1e293b, #0f172a); width: 396px; max-width: 100%;">
+          <div id="phone-root" class="cmx-phone relative rounded-[34px] overflow-hidden flex flex-col" style="height: 790px; background: var(--p-bg); color: var(--p-text);">
+
+            <!-- Status Bar -->
+            <div class="shrink-0 px-6 pt-3 pb-2 flex items-center justify-between text-xs font-semibold select-none" style="background: var(--p-card); color: var(--p-text);">
+              <span class="ltr-iso">9:41</span>
+              <div class="w-24 h-6 rounded-full bg-black/90 mx-auto"></div>
+              <div class="flex items-center gap-1.5 ltr-iso">
+                <span>5G</span>
+                <span class="inline-block w-5 h-2.5 rounded-sm border border-current p-[1px]">
+                  <span class="block h-full w-4/5 rounded-[1px] bg-current"></span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Offline Banner -->
+            <div id="offline-banner" class="hidden shrink-0 px-4 py-2 text-xs font-medium flex items-center justify-between gap-2" style="background: var(--p-amber-bg); color: var(--p-amber-text);">
+              <span id="offline-banner-text"></span>
+              <button onclick="setSimState('normal')" class="underline font-bold shrink-0" id="offline-retry-btn"></button>
+            </div>
+
+            <!-- Screen Viewport -->
+            <div id="phone-viewport" class="flex-1 overflow-y-auto phone-scroll relative"></div>
+
+            <!-- Persistent 4-Tab Nav -->
+            <nav id="phone-bottom-nav" class="shrink-0 border-t px-2 pt-1.5 pb-4 grid grid-cols-4 gap-1 select-none" style="background: var(--p-nav-bg); border-color: var(--p-border);"></nav>
+
+            <!-- Modal Layer -->
+            <div id="phone-modal-layer" class="hidden absolute inset-0 z-40 flex items-end justify-center" style="background: rgba(10, 18, 30, 0.58);"></div>
+            <div id="phone-toast" class="hidden absolute top-14 left-4 right-4 z-50 px-3.5 py-2.5 rounded-xl text-xs font-semibold shadow-lg text-white text-center"></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right: Live Spec Panel -->
+      <aside class="lg:col-span-4 space-y-4">
+        <div id="spec-panel" class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 space-y-3"></div>
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 space-y-2 text-xs text-[var(--muted-foreground)]">
+          <div class="font-semibold uppercase tracking-wider">Data Persistence Rules (Verified)</div>
+          <div><strong class="text-[var(--foreground)]">Last Branch:</strong> Stored in <code class="font-mono">org_customers_mst.last_branch_id</code> (updated on each order when changed).</div>
+          <div><strong class="text-[var(--foreground)]">Addresses &amp; Contact:</strong> Saved to <code class="font-mono">sys_customer_addresses_dtl</code> &amp; <code class="font-mono">sys_customers_mst</code> when linked to global customer ID; falls back to <code class="font-mono">org_customer_addresses</code> &amp; <code class="font-mono">org_customers_mst</code> for org-only customers.</div>
+          <div><strong class="text-[var(--foreground)]">API Gateway:</strong> <code class="font-mono">web-admin/app/api/v1/public/customer/*</code> (100% POS pricing &amp; tax parity).</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script>
+// ===================== DATA & STATE =====================
+const ORGS = [
+  {
+    id: 'org_al_noor',
+    nameEn: 'Al-Noor Laundry',
+    nameAr: 'مغسلة النور',
+    brandKey: 'default',
+    lastBranchId: 'br_khuwair',
+    branches: [
+      { id: 'br_khuwair', en: 'Al Khuwair Main', ar: 'الفرع الرئيسي - الخوير', tz: 'Asia/Muscat', deliveryFee: 0.500 },
+      { id: 'br_qurum', en: 'Qurum Express', ar: 'فرع القرم السريع', tz: 'Asia/Muscat', deliveryFee: 0.700 },
+      { id: 'br_mawaleh', en: 'Al Mawaleh Hub', ar: 'فرع الموالح', tz: 'Asia/Muscat', deliveryFee: 0.600 }
+    ]
+  },
+  {
+    id: 'org_royal_care',
+    nameEn: 'Royal Care Dry Clean',
+    nameAr: 'رويال كير للدراي كلين',
+    brandKey: 'royal',
+    lastBranchId: 'br_royal_shatti',
+    branches: [
+      { id: 'br_royal_shatti', en: 'Shatti Al Qurum', ar: 'شاطئ القرم', tz: 'Asia/Muscat', deliveryFee: 1.000 },
+      { id: 'br_royal_wave', en: 'Al Mouj Marina', ar: 'الموج مسقط', tz: 'Asia/Muscat', deliveryFee: 1.000 }
+    ]
+  },
+  {
+    id: 'org_sparkle_hub',
+    nameEn: 'Sparkle Express',
+    nameAr: 'سباركل إكسبرس',
+    brandKey: 'noor',
+    lastBranchId: 'br_seeb',
+    branches: [
+      { id: 'br_seeb', en: 'Al Hail North', ar: 'الحيل الشمالية', tz: 'Asia/Muscat', deliveryFee: 0.500 }
+    ]
+  }
+];
+
+const PIECE_PREFS = [
+  { id: 'heavy_starch', en: 'Heavy Starch', ar: 'نشاء قوي', price: 0.200 },
+  { id: 'hand_steam', en: 'Delicate Hand Steam', ar: 'بخار يدوي لطيف', price: 0.500 },
+  { id: 'garment_bag', en: 'Protective Garment Bag', ar: 'كيس حماية للملابس', price: 0.300 },
+  { id: 'stain_treat', en: 'Spot Stain Care', ar: 'معالجة البقع', price: 0.400 },
+  { id: 'no_perfume', en: 'Unscented', ar: 'بدون معطر', price: 0.000 }
+];
+
+const CATALOG = [
+  { id: 'dishdasha', cat: 'gcc', en: 'Dishdasha / Thobe (Wash & Press)', ar: 'دشداشة / ثوب (غسيل وكوي)', price: 1.200, unitEn: 'piece', unitAr: 'قطعة' },
+  { id: 'abaya', cat: 'gcc', en: 'Abaya (Delicate Steam)', ar: 'عباية (بخار لطيف)', price: 1.800, unitEn: 'piece', unitAr: 'قطعة' },
+  { id: 'ghutra', cat: 'gcc', en: 'Ghutra / Mussar (Starch & Fold)', ar: 'غترة / مصر (نشاء وطي)', price: 0.700, unitEn: 'piece', unitAr: 'قطعة' },
+  { id: 'shirt', cat: 'wash', en: 'Formal Shirt (Wash & Iron)', ar: 'قميص رسمي (غسيل وكوي)', price: 0.800, unitEn: 'piece', unitAr: 'قطعة' },
+  { id: 'suit', cat: 'dry', en: '2-Piece Suit (Dry Clean)', ar: 'بدلة قطعتين (تنظيف جاف)', price: 3.500, unitEn: 'set', unitAr: 'طقم' },
+  { id: 'duvet', cat: 'home', en: 'King Duvet / Blanket', ar: 'لحاف / بطانية حجم كبير', price: 4.000, unitEn: 'item', unitAr: 'قطعة' }
+];
+
+const state = {
+  lang: 'en',
+  phoneTheme: 'light',
+  orgBrand: 'default',
+  simState: 'normal',
+  screen: 'home',
+  activeOrgId: 'org_al_noor',
+  hiddenOrgs: { org_sparkle_hub: false },
+  ordersTab: 'active',
+  trackStage: 2,
+  trackerLayout: 'horizontal', // horizontal | vertical
+
+  // Customer Registered Data (Account Profile)
+  customer: {
+    hasSysId: true,
+    sysCustomerId: 'sys-cust-9f31a',
+    customerCode: 'CUST-004821',
+    nameEn: 'Ahmed Al-Harthi',
+    nameAr: 'أحمد الحارثي',
+    mobile: '+968 9123 4567',
+    mobileVerified: true,
+    email: 'ahmed.alharthi@example.om',
+    emailVerified: true,
+    profileStatus: 'full',
+    memberSince: '12 Jan 2025',
+    loyaltyPoints: 840,
+    tierEn: 'Gold Member',
+    tierAr: 'عضوية ذهبية',
+    defaultOrderNote: 'Please call 10 mins before arriving at Villa gate #14.',
+    autoApplyGeneralNote: true
+  },
+
+  addresses: [
+    { id: 'addr_home', type: 'home', labelEn: 'Home (Villa 14)', labelAr: 'المنزل (فيلا 14)', detailsEn: 'Way 3322, Al Khuwair, Muscat · Call on arrival', detailsAr: 'سكة 3322، الخوير، مسقط · الاتصال عند الوصول', isDefault: true, scope: 'sys_customer_addresses_dtl' },
+    { id: 'addr_work', type: 'work', labelEn: 'Office (CBD Tower)', labelAr: 'العمل (برج الحي التجاري)', detailsEn: 'Floor 6, Ruwi, Muscat · Leave with reception', detailsAr: 'الطابق 6، روي، مسقط · التسليم للاستقبال', isDefault: false, scope: 'sys_customer_addresses_dtl' }
+  ],
+
+  carePrefs: {
+    finishing: 'hanger',
+    starch: 'light',
+    detergent: 'standard',
+    fragrance: true
+  },
+
+  // Fast Quick Drop State (3 steps + done)
+  qdStep: 1,
+  qdData: {
+    pickupMode: 'collect_address', // collect_address | store_dropoff
+    deliveryMode: 'deliver_address', // deliver_address | store_pickup
+    pickupAddrId: 'addr_home',
+    deliveryAddrId: 'addr_home',
+    branchId: 'br_khuwair', // or 'auto'
+    speed: 'express',
+    bags: 2,
+    pieces: 12,
+    chips: ['Dishdasha / Thobe', 'Shirts'],
+    notes: ''
+  },
+
+  // Detailed Order State (6 steps + done)
+  bkStep: 1,
+  bkCategory: 'all',
+  bkExpandedItem: 'dishdasha',
+  bkData: {
+    branchId: 'br_khuwair', // MANDATORY in Detailed Order
+    pickupMode: 'collect_address',
+    deliveryMode: 'deliver_address',
+    pickupAddrId: 'addr_home',
+    deliveryAddrId: 'addr_home',
+    cart: { dishdasha: 2, abaya: 1, shirt: 2 },
+    itemPrefs: { dishdasha: ['heavy_starch'], abaya: ['hand_steam'] },
+    itemNotes: { dishdasha: 'Small tea spot near collar' },
+    applyProfilePrefsToAll: true,
+    preferencesNote: '',
+    speed: 'express',
+    pickupSlot: 'today_18',
+    promoCode: '',
+    promoApplied: false,
+    promoDiscountPct: 0,
+    giftCardCode: '',
+    giftCardApplied: false,
+    giftCardAmount: 0,
+    paymentNotes: 'Prefer card machine at delivery',
+    generalOrderNote: 'Please call 10 mins before arriving at Villa gate #14.',
+    saveGeneralNoteForFuture: true
+  },
+
+  authMode: 'otp',
+  submitting: false,
+  createdRequests: []
+};
+
+// ===================== TRANSLATIONS =====================
+const T = {
+  en: {
+    greeting: 'Good evening, Ahmed',
+    greetingGuest: 'Welcome to CleanMateX Go',
+    homeSub: 'Smart. Fast. Spotless.',
+    readyBy: 'Est. Ready: Tomorrow, 6:00 PM',
+    tzNote: 'Muscat time',
+    itemsCount: '8 items',
+    balanceDue: 'Balance: Due',
+    balanceSettled: 'Balance: Settled',
+    balanceCollection: 'Due at collection',
+    quickDropTitle: 'Fast Quick Drop',
+    quickDropSub: 'Send bag in 30s · Unpriced',
+    detailedTitle: 'Detailed Order',
+    detailedSub: 'Branch catalog · Live prices',
+    urgentTitle: 'Quick Confirmation Needed',
+    urgentDesc: 'REQ-26-00914 · Confirm villa gate number before pickup',
+    urgentBtn: 'Confirm',
+    quickActions: 'Quick Actions',
+    reorder: 'Reorder Last',
+    receipts: 'Receipts',
+    addresses: 'Addresses',
+    navHome: 'Home',
+    navOrders: 'Orders',
+    navReceipts: 'Receipts',
+    navAccount: 'Account',
+    emptyTitle: 'All fresh & spotless!',
+    emptyDesc: 'No active laundry orders right now. Schedule a pickup in under 30 seconds.',
+    emptyCta: 'Schedule Fast Quick Drop',
+    offlineMsg: 'Offline · Showing cached order from 3m ago',
+    offlineRetry: 'Reconnect',
+    guestBannerTitle: 'Browsing in Guest Mode',
+    guestBannerDesc: 'Explore services & pricing freely. Sign in when ready to book.',
+    guestSignIn: 'Sign In',
+    myLaundries: 'My Laundries & Branch',
+    switchLaundry: 'Active organization & last order branch',
+    lastBranchTag: 'Last order branch',
+    hideLaundry: 'Hide',
+    unhideLaundry: 'Show',
+    hiddenNote: 'Hidden from main list (active orders always stay visible)',
+    linkNewLaundry: 'Link New Laundry (QR / Invite Code)',
+    ordersTitle: 'My Orders',
+    tabActive: 'Active',
+    tabRequests: 'Requests',
+    tabHistory: 'History',
+    trackTitle: 'Live Order Tracking',
+    horizontalLbl: 'Horizontal',
+    verticalLbl: 'Vertical',
+    previewStageHint: 'Tap stage (1–5) to preview live status:',
+    financialSummary: 'Financial Summary',
+    subtotal: 'Items Subtotal',
+    prefAddons: 'Piece Preference Add-ons',
+    deliveryFee: 'Pickup & Delivery Fee',
+    discounts: 'Discounts & Promo',
+    afterDiscounts: 'After discounts',
+    speedPremium: 'Speed premium',
+    vat: 'VAT (5%)',
+    giftCardRedeem: 'Gift Card Applied',
+    total: 'Order Total',
+    balance: 'Balance',
+    viewReceipt: 'View Digital Receipt',
+    needHelp: 'Need help with this order?',
+    whatsapp: 'WhatsApp',
+    call: 'Call',
+    pickupQrTitle: 'Ready for Counter Pickup',
+    pickupQrSub: 'Show this code at the counter for instant 2-second handoff.',
+    // Fulfillment shared
+    pickupSection: '1. Pickup / Collection',
+    collectFromAddr: 'Collect from my address',
+    collectFromAddrSub: 'Send someone to collect',
+    storeDropOff: 'Store Drop-off',
+    storeDropOffSub: 'I will bring it myself',
+    deliverySection: '2. Delivery / Return',
+    deliverToAddr: 'Deliver to my address',
+    deliverToAddrSub: 'Send driver to deliver',
+    storePickup: 'Store Pickup',
+    storePickupSub: 'I will pick up myself',
+    branchRequiredTitle: 'Select Branch (Required)',
+    branchRequiredHint: 'Pricing, catalog & ready-by times depend on your selected branch.',
+    branchOptionalTitle: 'Fulfilment Branch (Optional)',
+    branchAuto: 'Let laundry assign nearest branch',
+    // Quick Drop
+    qdHeader: 'Fast Quick Drop',
+    qdBadge: 'Unpriced Request · Final total confirmed after inspection',
+    qdStep1: 'Fulfillment & Branch',
+    qdStep2: 'Service Speed & Bag Estimate',
+    qdStep3: 'Review & Send Request',
+    speedStandard: 'Standard Speed',
+    speedStandardMeta: '2 working days · Cut-off 8:00 PM',
+    speedExpress: 'Express Speed',
+    speedExpressMeta: 'Next working day · Cut-off 2:00 PM',
+    estBags: 'Estimated Bags',
+    estPieces: 'Estimated Pieces',
+    optionalChips: 'Optional: What is inside?',
+    notesPlaceholder: 'e.g., Stain on white dishdasha collar, call on arrival...',
+    continueBtn: 'Continue',
+    backBtn: 'Back',
+    sendRequestBtn: 'Send Quick Drop Request',
+    submittingBtn: 'Submitting safely...',
+    qdDoneTitle: 'Request Sent!',
+    qdDoneSub: 'The laundry will confirm your pickup shortly. Final total is confirmed after garment inspection.',
+    trackNowBtn: 'Track My Request',
+    // Detailed Order (6 Steps)
+    bkHeader: 'Detailed Order',
+    bkSteps: ['Fulfillment & Branch', 'Select Items & Piece Care', 'Order Care Preferences', 'Schedule & Ready-By', 'Promo, Gift Card & Notes', 'POS-Parity Order Review'],
+    customizePiece: 'Customize pieces & note',
+    perPiecePrefs: 'Optional per-piece preferences (extra price shown):',
+    itemNoteLabel: 'Item note (optional)',
+    itemNotePlaceholder: 'e.g., delicate embroidery, coffee stain on sleeve...',
+    applyDefaultToggleTitle: 'Apply my default profile preferences to all pieces',
+    applyDefaultToggleSub: 'Predefined profile care settings will be attached to this order',
+    prefNotesLabel: 'Order preferences notes (optional)',
+    prefNotesPlaceholder: 'e.g., fold travel shirts compactly, extra tissue paper...',
+    estReadyTitle: 'Estimated Ready-By',
+    estReadyHint: 'Note: Estimated ready-by date & time may vary after the order is received and sorted at the branch.',
+    promoTitle: 'Promotion Code',
+    promoPlaceholder: 'Try SAVE10',
+    giftCardTitle: 'Gift Card',
+    giftCardPlaceholder: 'Try GC500',
+    applyBtn: 'Apply',
+    paymentNotesLabel: 'Payment Notes (optional)',
+    paymentNotesPlaceholder: 'e.g., Bring POS card machine, paying cash...',
+    generalOrderNoteLabel: 'General Order Note',
+    generalOrderNotePlaceholder: 'Instructions for driver or laundry team...',
+    saveNoteToggleTitle: 'Save for all upcoming orders',
+    saveNoteToggleSub: 'Saved in your profile preferences (toggle off anytime in Account)',
+    posGrossTitle: 'Gross Order Value',
+    posGrossHelp: 'Items, piece add-ons, speed premium & delivery before discounts',
+    posDiscTitle: 'Discounts & Gift Card',
+    posDiscHelp: 'Applied promotions, bulk discounts & gift card credits',
+    posTaxTitle: 'Taxes (VAT)',
+    posTaxHelp: 'Server-calculated VAT on taxable net lines',
+    placeOrderBtn: 'Confirm & Place Order',
+    bkDoneTitle: 'Order Confirmed!',
+    bkDoneSub: 'Your branch & pickup are booked with server-calculated pricing.',
+    // Receipts & Account
+    receiptsTitle: 'Digital Receipts',
+    paperAlwaysLight: 'Always-Light Receipt Preview (Print-Safe)',
+    downloadPdf: 'Share / Download PDF',
+    accountTitle: 'My Account',
+    registeredData: 'Registered CleanMateX Data',
+    customerCode: 'Customer Code',
+    editContact: 'Edit Contact',
+    addAddress: '+ Add Address',
+    savedAddresses: 'Saved Addresses',
+    defaultCarePrefs: 'Default Care Preferences',
+    savedDefaultNoteTitle: 'Saved General Order Note',
+    autoShowNoteLbl: 'Auto-fill on all upcoming orders',
+    finishing: 'Finishing',
+    hanger: 'On Hanger',
+    folded: 'Folded',
+    starch: 'Starch',
+    starchNone: 'None',
+    starchLight: 'Light',
+    starchMed: 'Medium',
+    detergent: 'Detergent',
+    detStandard: 'Standard',
+    detSensitive: 'Hypoallergenic',
+    fragrance: 'Fresh Fragrance',
+    entryHeroTitle: 'Fresh laundry, zero effort.',
+    entryHeroSub: 'Doorstep pickup, live tracking & clear digital receipts across your favorite laundries.',
+    signInCta: 'Sign In / Get Started',
+    continueGuestCta: 'Continue as Guest',
+    scanQrCta: 'Scan Laundry QR',
+    otpMode: 'Mobile + OTP',
+    pwMode: 'Email / Password',
+    stages: [
+      { short: 'Received', title: 'Order Received', time: '27 Nov · 10:15 AM', desc: 'Your items are safely logged and tagged at the branch.' },
+      { short: 'Cleaning', title: 'Cleaning & Care', time: '27 Nov · 01:40 PM', desc: 'Being washed and pressed to your exact care preferences.' },
+      { short: 'Quality', title: 'Final Inspection', time: 'Pending', desc: 'Quality check and crisp packaging before dispatch.' },
+      { short: 'Ready', title: 'Ready / Out for Delivery', time: 'Est. Tomorrow 6:00 PM', desc: 'Freshly packed! Show your pickup QR or await delivery.' },
+      { short: 'Delivered', title: 'Delivered', time: 'Completed', desc: 'Handed over safely. Digital receipt saved in Receipts.' }
+    ]
+  },
+  ar: {
+    greeting: 'مساء الخير، أحمد',
+    greetingGuest: 'مرحباً بك في CleanMateX Go',
+    homeSub: 'ذكي. سريع. ناصع النظافة.',
+    readyBy: 'الجاهزية المتوقعة: غداً 6:00 م',
+    tzNote: 'توقيت مسقط',
+    itemsCount: '8 قطع',
+    balanceDue: 'الرصيد: مستحق',
+    balanceSettled: 'الرصيد: مسدّد',
+    balanceCollection: 'يُدفع عند الاستلام',
+    quickDropTitle: 'توصيل سريع بالأكياس',
+    quickDropSub: 'أرسل كيسك في 30 ثانية · بدون تسعير',
+    detailedTitle: 'طلب مفصّل',
+    detailedSub: 'قائمة الفرع · أسعار مباشرة',
+    urgentTitle: 'نحتاج تأكيداً سريعاً',
+    urgentDesc: 'REQ-26-00914 · يرجى تأكيد رقم بوابة الفيلا قبل الاستلام',
+    urgentBtn: 'تأكيد',
+    quickActions: 'اختصارات سريعة',
+    reorder: 'إعادة آخر طلب',
+    receipts: 'الفواتير',
+    addresses: 'العناوين',
+    navHome: 'الرئيسية',
+    navOrders: 'طلباتي',
+    navReceipts: 'الفواتير',
+    navAccount: 'حسابي',
+    emptyTitle: 'كل ملابسك نظيفة ومنتعشة!',
+    emptyDesc: 'لا توجد لديك طلبات غسيل نشطة حالياً. احجز استلامك القادم خلال 30 ثانية.',
+    emptyCta: 'حجز توصيل سريع الآن',
+    offlineMsg: 'غير متصل · عرض آخر تحديث قبل 3 دقائق',
+    offlineRetry: 'إعادة الاتصال',
+    guestBannerTitle: 'تصفح بوضع الضيف',
+    guestBannerDesc: 'استكشف الخدمات والأسعار بحرية. سجّل الدخول عندما تكون جاهزاً.',
+    guestSignIn: 'تسجيل الدخول',
+    myLaundries: 'مغاسلي والفرع النشط',
+    switchLaundry: 'اختر المغسلة وفرع آخر طلب',
+    lastBranchTag: 'فرع آخر طلب',
+    hideLaundry: 'إخفاء',
+    unhideLaundry: 'إظهار',
+    hiddenNote: 'مخفية من القائمة الرئيسية (الطلبات النشطة تبقى ظاهرة دائماً)',
+    linkNewLaundry: 'ربط مغسلة جديدة (مسح QR أو رمز الدعوة)',
+    ordersTitle: 'طلباتي',
+    tabActive: 'النشطة',
+    tabRequests: 'طلبات سريعة',
+    tabHistory: 'السابقة',
+    trackTitle: 'التتبع المباشر للطلب',
+    horizontalLbl: 'أفقي',
+    verticalLbl: 'عمودي',
+    previewStageHint: 'اضغط على أي مرحلة (1–5) للمعاينة:',
+    financialSummary: 'الملخص المالي',
+    subtotal: 'مجموع القطع',
+    prefAddons: 'إضافات تفضيلات القطع',
+    deliveryFee: 'رسوم الاستلام والتوصيل',
+    discounts: 'الخصومات والرموز الترويجية',
+    afterDiscounts: 'بعد الخصومات',
+    speedPremium: 'رسوم السرعة',
+    vat: 'ضريبة القيمة المضافة (5%)',
+    giftCardRedeem: 'رصيد بطاقة الهدايا',
+    total: 'إجمالي الطلب',
+    balance: 'الرصيد',
+    viewReceipt: 'عرض الفاتورة الرقمية',
+    needHelp: 'هل تحتاج مساعدة بخصوص هذا الطلب؟',
+    whatsapp: 'واتساب',
+    call: 'اتصال',
+    pickupQrTitle: 'جاهز للاستلام من الفرع',
+    pickupQrSub: 'اعرض هذا الرمز عند الكاونتر للاستلام الفوري.',
+    pickupSection: '1. الاستلام (إحضار الملابس)',
+    collectFromAddr: 'استلام من عنواني',
+    collectFromAddrSub: 'إرسال مندوب للاستلام',
+    storeDropOff: 'تسليم في الفرع',
+    storeDropOffSub: 'سأحضرها بنفسي للفرع',
+    deliverySection: '2. التسليم (إرجاع الملابس)',
+    deliverToAddr: 'توصيل إلى عنواني',
+    deliverToAddrSub: 'إرسال مندوب للتوصيل',
+    storePickup: 'استلام من الفرع',
+    storePickupSub: 'سأستلمها بنفسي من الفرع',
+    branchRequiredTitle: 'اختر الفرع (إلزامي)',
+    branchRequiredHint: 'الأسعار والقائمة وموعد الجاهزية تعتمد على الفرع المختار.',
+    branchOptionalTitle: 'فرع التنفيذ (اختياري)',
+    branchAuto: 'دع المغسلة تختار أقرب فرع',
+    qdHeader: 'توصيل سريع بالأكياس',
+    qdBadge: 'طلب غير مسعّر · يتأكد الإجمالي النهائي بعد الفحص',
+    qdStep1: 'الاستلام والتسليم والفرع',
+    qdStep2: 'سرعة الخدمة وتقدير الأكياس',
+    qdStep3: 'المراجعة وإرسال الطلب',
+    speedStandard: 'السرعة العادية',
+    speedStandardMeta: 'يومي عمل · آخر وقت للاستلام 8:00 م',
+    speedExpress: 'الخدمة السريعة',
+    speedExpressMeta: 'يوم العمل التالي · آخر وقت للاستلام 2:00 م',
+    estBags: 'عدد الأكياس التقريبي',
+    estPieces: 'عدد القطع التقريبي',
+    optionalChips: 'اختياري: ماذا يوجد داخل الكيس؟',
+    notesPlaceholder: 'مثال: بقعة على ياقة الدشداشة، الاتصال عند الوصول...',
+    continueBtn: 'متابعة',
+    backBtn: 'رجوع',
+    sendRequestBtn: 'إرسال طلب التوصيل السريع',
+    submittingBtn: 'جاري الإرسال بأمان...',
+    qdDoneTitle: 'تم إرسال طلبك بنجاح!',
+    qdDoneSub: 'ستقوم المغسلة بتأكيد موعد الاستلام قريباً. يتأكد الإجمالي بعد الفحص.',
+    trackNowBtn: 'تتبع طلبي الآن',
+    bkHeader: 'طلب مفصّل',
+    bkSteps: ['الاستلام والتسليم والفرع', 'اختيار القطع وعنايتها', 'تفضيلات العناية للطلب', 'الموعد والجاهزية التقديرية', 'الخصم والهدايا والملاحظات', 'مراجعة الطلب الكاملة (مطابقة POS)'],
+    customizePiece: 'تخصيص القطع والملاحظة',
+    perPiecePrefs: 'تفضيلات اختيارية للقطعة (مع إظهار أي سعر إضافي):',
+    itemNoteLabel: 'ملاحظة على القطعة (اختياري)',
+    itemNotePlaceholder: 'مثال: تطريز حساس، بقعة قهوة على الكم...',
+    applyDefaultToggleTitle: 'تطبيق تفضيلاتي الافتراضية على جميع قطع الطلب',
+    applyDefaultToggleSub: 'سيتم تطبيق إعدادات العناية المسجلة في ملفك الشخصي تلقائياً',
+    prefNotesLabel: 'ملاحظات إضافية للتفضيلات (اختياري)',
+    prefNotesPlaceholder: 'مثال: طي القمصان للسفر، ورق حماية إضافي...',
+    estReadyTitle: 'موعد الجاهزية التقديري',
+    estReadyHint: 'ملاحظة: قد يتغير تاريخ ووقت الجاهزية التقديري بعد استلام الطلب وفرزه في الفرع.',
+    promoTitle: 'رمز الخصم / العرض الترويجي',
+    promoPlaceholder: 'جرّب SAVE10',
+    giftCardTitle: 'بطاقة هدايا',
+    giftCardPlaceholder: 'جرّب GC500',
+    applyBtn: 'تطبيق',
+    paymentNotesLabel: 'ملاحظات الدفع (اختياري)',
+    paymentNotesPlaceholder: 'مثال: إحضار جهاز البطاقة عند التوصيل، الدفع نقداً...',
+    generalOrderNoteLabel: 'ملاحظة عامة للطلب',
+    generalOrderNotePlaceholder: 'تعليمات للمندوب أو فريق المغسلة...',
+    saveNoteToggleTitle: 'حفظ هذه الملاحظة لجميع الطلبات القادمة',
+    saveNoteToggleSub: 'تُحفظ في ملفك الشخصي ويمكنك إيقافها لاحقاً من صفحة حسابي',
+    posGrossTitle: 'إجمالي قيمة الطلب قبل الخصم',
+    posGrossHelp: 'القطع وإضافات التفضيلات ورسوم السرعة والتوصيل',
+    posDiscTitle: 'الخصومات وبطاقة الهدايا',
+    posDiscHelp: 'العروض الترويجية وخصومات الطلب ورصيد الهدايا',
+    posTaxTitle: 'الضرائب (ضريبة القيمة المضافة)',
+    posTaxHelp: 'ضريبة القيمة المضافة المحسوبة من الخادم',
+    placeOrderBtn: 'تأكيد وإرسال الطلب',
+    bkDoneTitle: 'تم تأكيد طلبك!',
+    bkDoneSub: 'تم حجز الفرع والموعد بالأسعار المعتمدة من الخادم.',
+    receiptsTitle: 'الفواتير الرقمية',
+    paperAlwaysLight: 'معاينة فاتورة ورقية فاتحة دائماً (صالحة للطباعة)',
+    downloadPdf: 'مشاركة / تحميل PDF',
+    accountTitle: 'حسابي',
+    registeredData: 'بياناتك المسجلة في CleanMateX',
+    customerCode: 'رمز العميل',
+    editContact: 'تعديل التواصل',
+    addAddress: '+ إضافة عنوان',
+    savedAddresses: 'العناوين المحفوظة',
+    defaultCarePrefs: 'تفضيلات العناية الافتراضية',
+    savedDefaultNoteTitle: 'ملاحظة الطلب العامة المحفوظة',
+    autoShowNoteLbl: 'تعبئة تلقائية في جميع الطلبات القادمة',
+    finishing: 'التشطيب',
+    hanger: 'علاقة',
+    folded: 'مطوي',
+    starch: 'النشاء',
+    starchNone: 'بدون',
+    starchLight: 'خفيف',
+    starchMed: 'متوسط',
+    detergent: 'المنظف',
+    detStandard: 'عادي',
+    detSensitive: 'للبشرة الحساسة',
+    fragrance: 'معطر منعش',
+    entryHeroTitle: 'غسيل نظيف بأقل جهد.',
+    entryHeroSub: 'استلام من باب المنزل، تتبع مباشر، وفواتير رقمية واضحة لدى مغاسلك المفضلة.',
+    signInCta: 'تسجيل الدخول / البدء',
+    continueGuestCta: 'المتابعة كضيف',
+    scanQrCta: 'مسح QR المغسلة',
+    otpMode: 'الجوال + رمز التحقق',
+    pwMode: 'البريد / كلمة المرور',
+    stages: [
+      { short: 'الاستلام', title: 'تم استلام الطلب', time: '27 نوفمبر · 10:15 ص', desc: 'تم تسجيل قطعك وترقيمها بأمان في الفرع.' },
+      { short: 'الغسيل', title: 'قيد الغسيل والعناية', time: '27 نوفمبر · 01:40 م', desc: 'جاري التنظيف والكوي حسب تفضيلاتك.' },
+      { short: 'الفحص', title: 'الفحص والتجهيز', time: 'قيد الانتظار', desc: 'فحص الجودة والتغليف الأنيق قبل التسليم.' },
+      { short: 'جاهز', title: 'جاهز / في الطريق إليك', time: 'تقديرياً غداً 6:00 م', desc: 'ملابسك جاهزة! اعرض رمز QR أو بانتظار المندوب.' },
+      { short: 'تم التسليم', title: 'تم التسليم', time: 'مكتمل', desc: 'تم التسليم بنجاح. الفاتورة محفوظة في الفواتير.' }
+    ]
+  }
+};
+
+const SCREENS_META = [
+  { id: 'entry', label: '0. Onboarding & Global Auth', route: 'AppRoute.entry / loginEntry', primaryAction: 'Global sign-in (sys_customers_mst) via GCC E.164 OTP or Email/Password + Guest Mode.', trust: 'Zero account enumeration; forced replacement of temporary 6-digit staff activation PIN.', rules: ['Global identity authenticated BEFORE selecting laundry', 'Instant EN/AR switch on first screen', 'QR / Invite Code linking'] },
+  { id: 'home', label: '1. Home (+ Last Branch Pill)', route: 'AppRoute.home', primaryAction: 'Switch Laundry + Last Order Branch from top pill, track live order, or launch Quick Drop / Detailed Order.', trust: 'Top pill always shows active Organization + last_branch_id so customers immediately know which branch serves them.', rules: ['org_customers_mst.last_branch_id auto-updated on every order if changed', 'Primary Aqua CTA (Fast Quick Drop) vs Secondary Navy CTA (Detailed Order)', 'Supports Active, Empty, Offline & Guest states'] },
+  { id: 'quickDrop', label: '2. Fast Quick Drop (3-Step)', route: 'AppRoute.quickDrop', primaryAction: 'Pick 2×2 Pickup & Delivery options + optional branch, speed & bags, submit unpriced request.', trust: 'Explicit "Unpriced Request — confirmed after inspection" banner + REQ-* tracking.', rules: ['1. Pickup: Collect from address vs Store Drop-off | 2. Delivery: Deliver to address vs Store Pickup', 'Branch optional/auto-assignable when tenant permits', 'Writes to org_ord_requests_mst with Idempotency-Key'] },
+  { id: 'booking', label: '3. Detailed Order (6-Step POS Parity)', route: 'AppRoute.booking', primaryAction: 'Branch-first mandatory → Items (+ piece prefs & notes) → Profile prefs toggle → Schedule (+ Ready-by hint) → Promo/Gift/Notes → POS Review.', trust: 'Full POS-parity 3-card value breakdown (Gross · Discounts/Gift Card · VAT) + sorting disclaimer on Ready-by.', rules: ['Step 1 Fulfillment & Branch MANDATORY (affects catalog, prices & TZ)', 'Per-piece preferences show extra price (+0.200 OMR etc.) + per-item note', 'General Order Note toggle syncs back to Profile default preferences'] },
+  { id: 'orders', label: '4. Orders & Requests Hub', route: 'AppRoute.orders', primaryAction: 'View Active orders, unpriced Quick Drop requests, and Order History.', trust: 'Unified plain-language badges (icon + text, never color-only).', rules: ['Tracks both org_orders_mst and org_ord_requests_mst', 'Hidden organizations still surface active orders until closed', 'LTR-isolated monospace codes inside RTL Arabic'] },
+  { id: 'orderDetail', label: '5. Live Tracker (Horiz / Vert)', route: 'AppRoute.orderDetail', primaryAction: 'Follow visual Horizontal or Vertical 5-stage tracker, show Pickup QR, open Receipt or WhatsApp.', trust: 'Clean milestone progress with timestamps + Order Fin Balance (Due / Settled / Overpaid).', rules: ['Supports both Horizontal stepper and Vertical timeline tracker at top', 'Internal QA loops hidden; branch timezone shown on Ready-by', 'Links directly to Always-Light Digital Receipt'] },
+  { id: 'receipts', label: '6. Receipts (Always-Light)', route: 'AppRoute.receipts', primaryAction: 'Inspect bilingual VAT receipts and share/download PDF.', trust: 'Always-light crisp paper modal even when phone is in Dark Mode.', rules: ['Enforces "Paper is always light" rule', 'ZATCA / GCC e-invoicing QR ready', 'Canonical Balance words from Platform Glossary'] },
+  { id: 'profile', label: '7. Account Profile & CRUD', route: 'AppRoute.profile', primaryAction: 'Inspect Customer Code + all registered CleanMateX data; edit mobile/email; add addresses; set care prefs & saved order note.', trust: 'Full transparency of registered profile + clear storage routing (sys_* vs org_*).', rules: ['Add Address → sys_customer_addresses_dtl (if sys customer_id) else org_customer_addresses', 'Edit Email/Mobile → sys_customers_mst (if sys id) else org_customers_mst', 'Saved General Order Note toggle controls auto-fill on all upcoming orders'] }
+];
+
+function t(k) { return T[state.lang][k] ?? k; }
+function activeOrg() { return ORGS.find(o => o.id === state.activeOrgId) || ORGS[0]; }
+function getBranch(org, brId) { return org.branches.find(b => b.id === brId) || org.branches[0]; }
+function fmtOMR(v) { return `${v.toFixed(3)} OMR`; }
+function getAddr(id) { return state.addresses.find(a => a.id === id) || state.addresses[0]; }
+
+// ===================== CONTROLS =====================
+function setLang(l) { state.lang = l; renderAll(); }
+function setPhoneTheme(m) { state.phoneTheme = m; renderAll(); }
+function setOrgBrand(b) { state.orgBrand = b; renderAll(); }
+function setSimState(s) { state.simState = s; renderAll(); }
+function goScreen(scr) {
+  state.screen = scr;
+  closeModal();
+  renderAll();
+  const vp = document.getElementById('phone-viewport');
+  if (vp) vp.scrollTop = 0;
+}
+function showToast(msg) {
+  const el = document.getElementById('phone-toast');
+  el.textContent = msg;
+  el.style.background = '#0E2A47';
+  el.classList.remove('hidden');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => el.classList.add('hidden'), 2300);
+}
+function copyCode(code) {
+  if (navigator.clipboard) navigator.clipboard.writeText(code).catch(() => {});
+  showToast(state.lang === 'ar' ? `تم نسخ ${code}` : `Copied ${code}`);
+}
+function closeModal() {
+  const layer = document.getElementById('phone-modal-layer');
+  layer.classList.add('hidden');
+  layer.innerHTML = '';
+}
+
+// ===================== MODALS =====================
+function openOrgSwitcher() {
+  const layer = document.getElementById('phone-modal-layer');
+  const rows = ORGS.map(org => {
+    const isSel = org.id === state.activeOrgId;
+    const isHidden = !!state.hiddenOrgs[org.id];
+    const name = state.lang === 'ar' ? org.nameAr : org.nameEn;
+    const lastBr = getBranch(org, org.lastBranchId);
+    const brName = state.lang === 'ar' ? lastBr.ar : lastBr.en;
+
+    return `
+      <div class="p-3 rounded-2xl border space-y-2 transition" style="background:${isSel ? 'var(--p-brand-soft)' : 'var(--p-bg)'}; border-color:${isSel ? 'var(--p-brand)' : 'var(--p-border)'}; opacity:${isHidden ? '0.62' : '1'}">
+        <div class="flex items-start justify-between gap-2">
+          <button onclick="selectOrg('${org.id}', '${org.lastBranchId}')" class="flex-1 text-start">
+            <div class="text-sm font-bold flex items-center gap-1.5">
+              <span>${name}</span>
+              ${isSel ? `<span class="text-[11px] px-1.5 py-0.5 rounded-full font-bold" style="background:var(--p-brand); color:#fff;">✓</span>` : ''}
+            </div>
+            <div class="text-xs mt-1 flex items-center gap-1 flex-wrap" style="color:var(--p-text-muted)">
+              <span class="px-1.5 py-0.5 rounded-md text-[11px] font-semibold" style="background:var(--p-card); border:1px solid var(--p-border);">📍 ${brName}</span>
+              <span class="text-[11px]">(${t('lastBranchTag')})</span>
+            </div>
+            ${isHidden ? `<div class="text-[11px] mt-1" style="color:var(--p-amber-text)">${t('hiddenNote')}</div>` : ''}
+          </button>
+          ${!isSel ? `
+            <button onclick="toggleHideOrg('${org.id}')" class="text-xs px-2.5 py-1.5 rounded-lg border font-semibold shrink-0" style="border-color:var(--p-border); color:var(--p-text-muted); background:var(--p-card);">
+              ${isHidden ? t('unhideLaundry') : t('hideLaundry')}
+            </button>
+          ` : ''}
+        </div>
+
+        ${isSel && org.branches.length > 1 ? `
+          <div class="pt-2 border-t flex flex-wrap gap-1.5" style="border-color:var(--p-border)">
+            ${org.branches.map(b => {
+              const bActive = org.lastBranchId === b.id;
+              return `<button onclick="selectOrg('${org.id}', '${b.id}')" class="text-[11px] px-2.5 py-1 rounded-full font-bold border" style="background:${bActive ? 'var(--p-brand)' : 'var(--p-card)'}; color:${bActive ? '#fff' : 'var(--p-text)'}; border-color:${bActive ? 'var(--p-brand)' : 'var(--p-border)'};">${state.lang==='ar'?b.ar:b.en}</button>`;
+            }).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+
+  layer.innerHTML = `
+    <div class="w-full rounded-t-3xl p-4 space-y-3 screen-anim max-h-[85%] overflow-y-auto" style="background:var(--p-card); color:var(--p-text);" onclick="event.stopPropagation()">
+      <div class="w-10 h-1 rounded-full mx-auto" style="background:var(--p-border)"></div>
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold">${t('myLaundries')}</h3>
+          <p class="text-xs" style="color:var(--p-text-muted)">${t('switchLaundry')}</p>
+        </div>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style="background:var(--p-muted-bg)">✕</button>
+      </div>
+      <div class="space-y-2.5">${rows}</div>
+      <button onclick="closeModal(); showToast(state.lang==='ar'?'جاهز لمسح رمز QR للمغسلة':'QR / Invite Code scanner ready')" class="w-full py-3 rounded-xl font-bold text-xs border-2 border-dashed flex items-center justify-center gap-2" style="border-color:var(--p-brand); color:var(--p-brand-text); background:var(--p-brand-soft);">
+        <span>📷</span> <span>${t('linkNewLaundry')}</span>
+      </button>
+    </div>
+  `;
+  layer.onclick = closeModal;
+  layer.classList.remove('hidden');
+}
+
+function selectOrg(orgId, branchId) {
+  state.activeOrgId = orgId;
+  const org = activeOrg();
+  org.lastBranchId = branchId;
+  state.qdData.branchId = branchId;
+  state.bkData.branchId = branchId;
+  state.orgBrand = org.brandKey;
+  document.getElementById('sel-org').value = state.orgBrand;
+  closeModal();
+  renderAll();
+  const br = getBranch(org, branchId);
+  showToast(state.lang === 'ar' ? `${org.nameAr} · ${br.ar}` : `${org.nameEn} · ${br.en}`);
+}
+function toggleHideOrg(id) { state.hiddenOrgs[id] = !state.hiddenOrgs[id]; openOrgSwitcher(); }
+
+function openEditContactModal() {
+  const layer = document.getElementById('phone-modal-layer');
+  const targetTable = state.customer.hasSysId ? 'sys_customers_mst' : 'org_customers_mst';
+  layer.innerHTML = `
+    <div class="w-full rounded-t-3xl p-4 space-y-3 screen-anim" style="background:var(--p-card); color:var(--p-text);" onclick="event.stopPropagation()">
+      <div class="w-10 h-1 rounded-full mx-auto" style="background:var(--p-border)"></div>
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-extrabold">${t('editContact')}</h3>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full font-bold text-xs" style="background:var(--p-muted-bg)">✕</button>
+      </div>
+      <div class="text-[11px] px-2.5 py-1.5 rounded-lg font-mono" style="background:var(--p-info-bg); color:var(--p-info-text);">
+        Storage target: ${targetTable}
+      </div>
+      <div class="space-y-2 text-xs">
+        <label class="block font-bold">${state.lang==='ar'?'رقم الجوال (E.164)':'Mobile Number (E.164)'}</label>
+        <input id="inp-edit-mob" type="text" value="${state.customer.mobile}" class="w-full p-2.5 rounded-xl border ltr-iso bg-transparent" style="border-color:var(--p-border); color:var(--p-text);" />
+        <label class="block font-bold pt-1">${state.lang==='ar'?'البريد الإلكتروني':'Email Address'}</label>
+        <input id="inp-edit-email" type="email" value="${state.customer.email}" class="w-full p-2.5 rounded-xl border ltr-iso bg-transparent" style="border-color:var(--p-border); color:var(--p-text);" />
+      </div>
+      <button onclick="saveContactEdit()" class="w-full py-3 rounded-xl font-bold text-xs text-white" style="background:var(--p-brand);">${state.lang==='ar'?'حفظ التعديلات':'Save Changes'}</button>
+    </div>
+  `;
+  layer.onclick = closeModal;
+  layer.classList.remove('hidden');
+}
+
+function saveContactEdit() {
+  const mob = document.getElementById('inp-edit-mob').value.trim();
+  const em = document.getElementById('inp-edit-email').value.trim();
+  if (mob) state.customer.mobile = mob;
+  if (em) state.customer.email = em;
+  closeModal();
+  renderAll();
+  showToast(state.lang==='ar' ? 'تم تحديث بيانات التواصل وحفظها' : 'Contact saved to ' + (state.customer.hasSysId ? 'sys_customers_mst' : 'org_customers_mst'));
+}
+
+function openAddAddressModal() {
+  const layer = document.getElementById('phone-modal-layer');
+  const targetTable = state.customer.hasSysId ? 'sys_customer_addresses_dtl' : 'org_customer_addresses';
+  layer.innerHTML = `
+    <div class="w-full rounded-t-3xl p-4 space-y-3 screen-anim max-h-[85%] overflow-y-auto" style="background:var(--p-card); color:var(--p-text);" onclick="event.stopPropagation()">
+      <div class="w-10 h-1 rounded-full mx-auto" style="background:var(--p-border)"></div>
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-extrabold">${t('addAddress')}</h3>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full font-bold text-xs" style="background:var(--p-muted-bg)">✕</button>
+      </div>
+      <div class="text-[11px] px-2.5 py-1.5 rounded-lg font-mono" style="background:var(--p-info-bg); color:var(--p-info-text);">
+        Storage target: ${targetTable}
+      </div>
+      <div class="space-y-2 text-xs">
+        <input id="inp-addr-label" placeholder="${state.lang==='ar'?'الاسم (مثال: بيت العائلة)':'Label (e.g., Family Villa)'}" class="w-full p-2.5 rounded-xl border bg-transparent" style="border-color:var(--p-border); color:var(--p-text);" />
+        <div class="grid grid-cols-2 gap-2">
+          <input id="inp-addr-bldg" placeholder="${state.lang==='ar'?'فيلا / مبنى':'Villa / Building'}" class="p-2.5 rounded-xl border bg-transparent" style="border-color:var(--p-border); color:var(--p-text);" />
+          <input id="inp-addr-area" placeholder="${state.lang==='ar'?'المنطقة / الولاية':'Area / District'}" class="p-2.5 rounded-xl border bg-transparent" style="border-color:var(--p-border); color:var(--p-text);" />
+        </div>
+        <input id="inp-addr-note" placeholder="${state.lang==='ar'?'تعليمات التوصيل (مثال: تركه عند الاستقبال)':'Delivery note (e.g., Leave with security)'}" class="w-full p-2.5 rounded-xl border bg-transparent" style="border-color:var(--p-border); color:var(--p-text);" />
+      </div>
+      <button onclick="saveNewAddress()" class="w-full py-3 rounded-xl font-bold text-xs text-white" style="background:var(--p-brand);">${state.lang==='ar'?'حفظ العنوان الجديد':'Save New Address'}</button>
+    </div>
+  `;
+  layer.onclick = closeModal;
+  layer.classList.remove('hidden');
+}
+
+function saveNewAddress() {
+  const lbl = document.getElementById('inp-addr-label').value.trim() || (state.lang==='ar' ? 'عنوان جديد' : 'New Address');
+  const bldg = document.getElementById('inp-addr-bldg').value.trim() || 'Villa 22';
+  const area = document.getElementById('inp-addr-area').value.trim() || 'Boshar, Muscat';
+  const note = document.getElementById('inp-addr-note').value.trim() || 'Call on arrival';
+  const scope = state.customer.hasSysId ? 'sys_customer_addresses_dtl' : 'org_customer_addresses';
+  state.addresses.push({
+    id: 'addr_' + Date.now(),
+    type: 'other',
+    labelEn: lbl,
+    labelAr: lbl,
+    detailsEn: `${bldg}, ${area} · ${note}`,
+    detailsAr: `${bldg}، ${area} · ${note}`,
+    isDefault: false,
+    scope
+  });
+  closeModal();
+  renderAll();
+  showToast(state.lang==='ar' ? 'تمت إضافة العنوان بنجاح' : `Address saved to ${scope}`);
+}
+
+function openAlwaysLightReceipt(orderNo, totalStr, isSettled) {
+  const layer = document.getElementById('phone-modal-layer');
+  const org = activeOrg();
+  const orgName = state.lang === 'ar' ? org.nameAr : org.nameEn;
+  const br = getBranch(org, org.lastBranchId);
+  layer.innerHTML = `
+    <div class="w-full rounded-t-3xl p-4 space-y-3 screen-anim max-h-[88%] overflow-y-auto" style="background:#FFFFFF; color:#0E2A47;" onclick="event.stopPropagation()">
+      <div class="w-10 h-1 rounded-full mx-auto" style="background:#CBD5E1"></div>
+      <div class="flex items-center justify-between gap-2 pb-2 border-b" style="border-color:#E2E8F0">
+        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full" style="background:#E0F2FE; color:#0369A1;">☀️ ${t('paperAlwaysLight')}</span>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style="background:#F1F5F9; color:#0E2A47;">✕</button>
+      </div>
+      <div class="text-center space-y-1 py-1">
+        <div class="text-base font-extrabold" style="color:#0E2A47">${orgName}</div>
+        <div class="text-xs" style="color:#475569">${state.lang==='ar'?br.ar:br.en} · Tax Invoice / فاتورة ضريبية</div>
+        <div class="inline-block font-mono text-xs font-bold px-2.5 py-1 rounded-lg ltr-iso mt-1" style="background:#F1F5F9; color:#0E2A47;">${orderNo}</div>
+      </div>
+      <div class="border-t border-b border-dashed py-3 space-y-1.5 text-xs" style="border-color:#CBD5E1">
+        <div class="flex justify-between"><span>2× ${state.lang==='ar'?'دشداشة (غسيل وكوي)':'Dishdasha (Wash & Press)'}</span><span class="ltr-iso font-semibold">2.400 OMR</span></div>
+        <div class="flex justify-between"><span>1× ${state.lang==='ar'?'عباية (بخار لطيف)':'Abaya (Delicate Steam)'}</span><span class="ltr-iso font-semibold">1.800 OMR</span></div>
+        <div class="flex justify-between"><span>${t('speedPremium')}</span><span class="ltr-iso font-semibold">0.400 OMR</span></div>
+        <div class="flex justify-between" style="color:#0F766E"><span>${t('discounts')}</span><span class="ltr-iso font-semibold">-0.314 OMR</span></div>
+        <div class="flex justify-between" style="color:#475569"><span>${t('vat')}</span><span class="ltr-iso">0.214 OMR</span></div>
+      </div>
+      <div class="space-y-1 text-sm">
+        <div class="flex justify-between font-extrabold"><span>${t('total')}</span><span class="ltr-iso">${totalStr}</span></div>
+        <div class="flex justify-between text-xs font-bold" style="color:${isSettled ? '#0F766E' : '#92400E'}">
+          <span>${t('balance')}</span>
+          <span>${isSettled ? (state.lang==='ar'?'مسدّد (0.000 OMR)':'Settled (0.000 OMR)') : (state.lang==='ar'?'مستحق ('+totalStr+')':'Due ('+totalStr+')')}</span>
+        </div>
+      </div>
+      <div class="flex flex-col items-center py-2">
+        <svg width="74" height="74" viewBox="0 0 21 21" class="border p-1 rounded-lg" style="border-color:#CBD5E1; background:#FFF">
+          <rect width="21" height="21" fill="#FFF"/>
+          <path d="M1 1h6v6H1zM2 2v4h4V2zM3 3h2v2H3zM14 1h6v6h-6zM15 2v4h4V2zM16 3h2v2h-2zM1 14h6v6H1zM2 15v4h4v-4zM3 16h2v2H3zM9 2h2v2H9zM9 6h2v4H9zM12 8h2v2h-2zM9 12h4v2H9zM15 10h2v4h-2zM18 12h2v2h-2zM10 16h2v4h-2zM14 16h3v2h-3zM18 17h2v3h-2z" fill="#0E2A47"/>
+        </svg>
+        <span class="text-[11px] mt-1 ltr-iso" style="color:#64748B">VAT #OM110048291 · 27 Nov 2026</span>
+      </div>
+      <button onclick="closeModal(); showToast(state.lang==='ar'?'تم تجهيز ملف PDF للمشاركة':'PDF Receipt ready to share')" class="w-full py-3 rounded-xl font-bold text-xs text-white" style="background:#0AB6D8;">
+        ⬇ ${t('downloadPdf')}
+      </button>
+    </div>
+  `;
+  layer.onclick = closeModal;
+  layer.classList.remove('hidden');
+}
+
+// ===================== SHARED FULFILLMENT & BRANCH COMPONENT =====================
+function renderFulfillmentAndBranch(targetObjName, isBranchMandatory) {
+  const data = targetObjName === 'qd' ? state.qdData : state.bkData;
+  const org = activeOrg();
+  const branchOptions = isBranchMandatory
+    ? org.branches
+    : [{ id: 'auto', en: t('branchAuto'), ar: t('branchAuto') }, ...org.branches];
+
+  return `
+    <div class="space-y-3.5">
+      <!-- Branch Selection -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between">
+          <div class="text-xs font-extrabold">${isBranchMandatory ? t('branchRequiredTitle') : t('branchOptionalTitle')}</div>
+          ${isBranchMandatory ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full" style="background:var(--p-brand-soft); color:var(--p-brand-text);">${state.lang==='ar'?'إلزامي':'Required'}</span>` : ''}
+        </div>
+        ${isBranchMandatory ? `<div class="text-[11px]" style="color:var(--p-text-muted)">${t('branchRequiredHint')}</div>` : ''}
+        <div class="space-y-1.5">
+          ${branchOptions.map(b => {
+            const active = data.branchId === b.id;
+            const isLast = b.id === org.lastBranchId;
+            return `
+              <button onclick="setFulfillField('${targetObjName}', 'branchId', '${b.id}')" class="w-full p-2.5 rounded-xl border text-start text-xs font-semibold flex items-center justify-between gap-2" style="background:${active ? 'var(--p-brand-soft)' : 'var(--p-card)'}; border-color:${active ? 'var(--p-brand)' : 'var(--p-border)'};">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span>📍 ${state.lang==='ar' ? b.ar : b.en}</span>
+                  ${isLast ? `<span class="text-[10px] px-1.5 py-0.5 rounded-md font-bold" style="background:var(--p-card); color:var(--p-brand-text); border:1px solid var(--p-border);">${t('lastBranchTag')}</span>` : ''}
+                </div>
+                <span style="color:${active ? 'var(--p-brand-text)' : 'var(--p-text-muted)'}">${active ? '●' : '○'}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- 1. Pickup Option -->
+      <div class="space-y-1.5">
+        <div class="text-xs font-extrabold">${t('pickupSection')}</div>
+        <div class="grid grid-cols-2 gap-2">
+          ${[
+            { id: 'collect_address', icon: '🚐', title: t('collectFromAddr'), sub: t('collectFromAddrSub') },
+            { id: 'store_dropoff', icon: '🏪', title: t('storeDropOff'), sub: t('storeDropOffSub') }
+          ].map(opt => {
+            const active = data.pickupMode === opt.id;
+            return `
+              <button onclick="setFulfillField('${targetObjName}', 'pickupMode', '${opt.id}')" class="p-3 rounded-xl border-2 text-start space-y-1" style="background:${active ? 'var(--p-brand-soft)' : 'var(--p-card)'}; border-color:${active ? 'var(--p-brand)' : 'var(--p-border)'};">
+                <div class="text-base">${opt.icon}</div>
+                <div class="text-xs font-extrabold leading-tight">${opt.title}</div>
+                <div class="text-[11px] leading-snug" style="color:var(--p-text-muted)">${opt.sub}</div>
+              </button>
+            `;
+          }).join('')}
+        </div>
+        ${data.pickupMode === 'collect_address' ? renderAddressMiniPicker(targetObjName, 'pickupAddrId', data.pickupAddrId) : ''}
+      </div>
+
+      <!-- 2. Delivery Option -->
+      <div class="space-y-1.5">
+        <div class="text-xs font-extrabold">${t('deliverySection')}</div>
+        <div class="grid grid-cols-2 gap-2">
+          ${[
+            { id: 'deliver_address', icon: '📦', title: t('deliverToAddr'), sub: t('deliverToAddrSub') },
+            { id: 'store_pickup', icon: '🛍️', title: t('storePickup'), sub: t('storePickupSub') }
+          ].map(opt => {
+            const active = data.deliveryMode === opt.id;
+            return `
+              <button onclick="setFulfillField('${targetObjName}', 'deliveryMode', '${opt.id}')" class="p-3 rounded-xl border-2 text-start space-y-1" style="background:${active ? 'var(--p-brand-soft)' : 'var(--p-card)'}; border-color:${active ? 'var(--p-brand)' : 'var(--p-border)'};">
+                <div class="text-base">${opt.icon}</div>
+                <div class="text-xs font-extrabold leading-tight">${opt.title}</div>
+                <div class="text-[11px] leading-snug" style="color:var(--p-text-muted)">${opt.sub}</div>
+              </button>
+            `;
+          }).join('')}
+        </div>
+        ${data.deliveryMode === 'deliver_address' ? renderAddressMiniPicker(targetObjName, 'deliveryAddrId', data.deliveryAddrId) : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderAddressMiniPicker(targetObjName, field, selectedId) {
+  return `
+    <div class="flex gap-1.5 overflow-x-auto pt-1">
+      ${state.addresses.map(a => {
+        const active = a.id === selectedId;
+        return `<button onclick="setFulfillField('${targetObjName}', '${field}', '${a.id}')" class="px-2.5 py-1.5 rounded-lg border text-[11px] font-bold shrink-0" style="background:${active ? 'var(--p-brand)' : 'var(--p-card)'}; color:${active ? '#fff' : 'var(--p-text)'}; border-color:${active ? 'var(--p-brand)' : 'var(--p-border)'};">📍 ${state.lang==='ar'?a.labelAr:a.labelEn}</button>`;
+      }).join('')}
+      <button onclick="openAddAddressModal()" class="px-2.5 py-1.5 rounded-lg border border-dashed text-[11px] font-bold shrink-0" style="border-color:var(--p-brand); color:var(--p-brand-text);">${t('addAddress')}</button>
+    </div>
+  `;
+}
+
+function setFulfillField(target, field, val) {
+  const obj = target === 'qd' ? state.qdData : state.bkData;
+  obj[field] = val;
+  if (field === 'branchId' && val !== 'auto') {
+    activeOrg().lastBranchId = val;
+  }
+  renderAll();
+}
+
+// ===================== SCREENS =====================
+function renderEntryScreen() {
+  return `
+    <div class="min-h-full flex flex-col justify-between p-5 screen-anim" style="background: linear-gradient(165deg, var(--p-brand) 0%, #0E2A47 68%); color:#FFFFFF;">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center border border-white/25">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19" /></svg>
+          </div>
+          <span class="font-extrabold text-sm">CleanMateX Go</span>
+        </div>
+        <button onclick="setLang(state.lang==='en'?'ar':'en')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-white/15 border border-white/25">${state.lang === 'en' ? 'العربية' : 'English'}</button>
+      </div>
+
+      <div class="my-5 space-y-3">
+        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-white/15">✨ ${t('homeSub')}</span>
+        <h2 class="text-2xl font-extrabold leading-tight">${t('entryHeroTitle')}</h2>
+        <p class="text-xs text-white/85 leading-relaxed">${t('entryHeroSub')}</p>
+      </div>
+
+      <div class="rounded-2xl p-4 space-y-3 shadow-xl" style="background:var(--p-card); color:var(--p-text);">
+        <div class="grid grid-cols-2 gap-1 p-1 rounded-xl text-xs font-bold" style="background:var(--p-muted-bg);">
+          <button onclick="state.authMode='otp'; renderAll()" class="py-2 rounded-lg" style="${state.authMode==='otp' ? 'background:var(--p-card); color:var(--p-brand-text);' : 'color:var(--p-text-muted);'}">${t('otpMode')}</button>
+          <button onclick="state.authMode='pw'; renderAll()" class="py-2 rounded-lg" style="${state.authMode==='pw' ? 'background:var(--p-card); color:var(--p-brand-text);' : 'color:var(--p-text-muted);'}">${t('pwMode')}</button>
+        </div>
+
+        ${state.authMode === 'otp' ? `
+          <div class="flex gap-2 ltr-iso">
+            <div class="px-3 py-2.5 rounded-xl border text-xs font-bold shrink-0" style="border-color:var(--p-border); background:var(--p-bg);">🇴🇲 +968</div>
+            <input type="text" value="9123 4567" class="flex-1 px-3 py-2.5 rounded-xl border text-xs font-semibold bg-transparent" style="border-color:var(--p-brand); color:var(--p-text);" />
+          </div>
+        ` : `
+          <div class="space-y-2">
+            <input type="text" value="${state.customer.email}" class="w-full px-3 py-2.5 rounded-xl border text-xs ltr-iso bg-transparent" style="border-color:var(--p-border); color:var(--p-text);" />
+            <input type="password" value="••••••••" class="w-full px-3 py-2.5 rounded-xl border text-xs ltr-iso bg-transparent" style="border-color:var(--p-border); color:var(--p-text);" />
+          </div>
+        `}
+
+        <button onclick="setSimState('normal'); goScreen('home'); showToast(state.lang==='ar'?'مرحباً بعودتك أحمد!':'Signed in securely!')" class="w-full py-3 rounded-xl font-bold text-xs text-white" style="background:var(--p-brand);">${t('signInCta')}</button>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="setSimState('guest'); goScreen('home')" class="py-2.5 rounded-xl text-xs font-bold border" style="border-color:var(--p-border);">${t('continueGuestCta')}</button>
+          <button onclick="showToast(state.lang==='ar'?'افتح الكاميرا لمسح QR المغسلة':'Laundry QR scanner opened')" class="py-2.5 rounded-xl text-xs font-bold border" style="border-color:var(--p-border); color:var(--p-brand-text);">📷 ${t('scanQrCta')}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderHomeScreen() {
+  const org = activeOrg();
+  const orgName = state.lang === 'ar' ? org.nameAr : org.nameEn;
+  const br = getBranch(org, org.lastBranchId);
+  const brName = state.lang === 'ar' ? br.ar : br.en;
+  const isGuest = state.simState === 'guest';
+  const isEmpty = state.simState === 'empty';
+  const curStage = t('stages')[state.trackStage - 1];
+
+  return `
+    <div class="pb-5 screen-anim">
+      <!-- Top Bar: Active Org + Last Order Branch Pill -->
+      <div class="px-4 py-2.5 flex items-center justify-between gap-2 border-b sticky top-0 z-10" style="background:var(--p-card); border-color:var(--p-border);">
+        <button onclick="openOrgSwitcher()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-2xl border max-w-[78%] text-start" style="background:var(--p-bg); border-color:var(--p-border);">
+          <span class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-extrabold shrink-0" style="background:var(--p-brand);">${orgName.charAt(0)}</span>
+          <div class="min-w-0 leading-tight">
+            <div class="text-xs font-extrabold truncate">${orgName}</div>
+            <div class="text-[11px] truncate" style="color:var(--p-brand-text);">📍 ${brName}</div>
+          </div>
+          <span class="text-[11px] shrink-0" style="color:var(--p-text-muted)">▾</span>
+        </button>
+        <button onclick="setLang(state.lang==='en'?'ar':'en')" class="px-2.5 py-1.5 rounded-full text-xs font-bold border shrink-0" style="border-color:var(--p-border); color:var(--p-brand-text); background:var(--p-bg);">
+          ${state.lang === 'en' ? 'عربي' : 'EN'}
+        </button>
+      </div>
+
+      <div class="p-4 space-y-4">
+        <div>
+          <h2 class="text-lg font-extrabold tracking-tight">${isGuest ? t('greetingGuest') : t('greeting')}</h2>
+          <p class="text-xs mt-0.5" style="color:var(--p-text-muted)">${t('homeSub')}</p>
+        </div>
+
+        ${isGuest ? `
+          <div class="p-3.5 rounded-2xl border flex items-center justify-between gap-3" style="background:var(--p-brand-soft); border-color:var(--p-brand);">
+            <div>
+              <div class="text-xs font-bold" style="color:var(--p-brand-text)">${t('guestBannerTitle')}</div>
+              <div class="text-xs" style="color:var(--p-text-muted)">${t('guestBannerDesc')}</div>
+            </div>
+            <button onclick="goScreen('entry')" class="px-3 py-2 rounded-xl text-xs font-bold text-white shrink-0" style="background:var(--p-brand);">${t('guestSignIn')}</button>
+          </div>
+        ` : ''}
+
+        ${isEmpty || isGuest ? `
+          <div class="p-5 rounded-2xl border text-center space-y-3" style="background:var(--p-card); border-color:var(--p-border); box-shadow:var(--p-shadow);">
+            <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center text-2xl" style="background:var(--p-brand-soft);">✨🧺</div>
+            <div>
+              <div class="text-sm font-extrabold">${t('emptyTitle')}</div>
+              <p class="text-xs mt-1" style="color:var(--p-text-muted)">${t('emptyDesc')}</p>
+            </div>
+            <button onclick="startQuickDrop()" class="w-full py-3 rounded-xl font-bold text-xs text-white" style="background:var(--p-brand);">${t('emptyCta')}</button>
+          </div>
+        ` : `
+          <button onclick="goScreen('orderDetail')" class="w-full text-start p-4 rounded-2xl border space-y-3" style="background:var(--p-card); border-color:var(--p-border); box-shadow:var(--p-shadow);">
+            <div class="flex items-center justify-between gap-2">
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full" style="background:var(--p-brand-soft); color:var(--p-brand-text);">🫧 ${curStage.title}</span>
+              <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-md ltr-iso" style="background:var(--p-muted-bg);">ORD-26-04182</span>
+            </div>
+            <div class="grid grid-cols-5 gap-1.5">
+              ${[1,2,3,4,5].map(n => `<div class="h-1.5 rounded-full" style="background:${n <= state.trackStage ? 'var(--p-brand)' : 'var(--p-border)'}"></div>`).join('')}
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-semibold">${t('readyBy')}</span>
+              <span style="color:var(--p-text-muted)">${t('tzNote')}</span>
+            </div>
+            <div class="pt-2 border-t flex items-center justify-between text-xs" style="border-color:var(--p-border);">
+              <span style="color:var(--p-text-muted)">${t('itemsCount')} · <strong class="ltr-iso" style="color:var(--p-amber-text)">${t('balanceDue')} 4.500 OMR</strong></span>
+              <span class="font-bold flip-rtl" style="color:var(--p-brand-text)">→</span>
+            </div>
+          </button>
+        `}
+
+        <div class="grid grid-cols-2 gap-3">
+          <button onclick="startQuickDrop()" class="p-3.5 rounded-2xl text-start text-white space-y-1.5 shadow-sm" style="background:var(--p-brand);">
+            <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-base">⚡</div>
+            <div class="text-sm font-extrabold leading-tight">${t('quickDropTitle')}</div>
+            <div class="text-xs text-white/90 leading-snug">${t('quickDropSub')}</div>
+          </button>
+          <button onclick="startBooking()" class="p-3.5 rounded-2xl text-start border-2 space-y-1.5" style="background:var(--p-card); border-color:var(--p-navy); color:var(--p-text);">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center text-base" style="background:var(--p-muted-bg);">🧺</div>
+            <div class="text-sm font-extrabold leading-tight">${t('detailedTitle')}</div>
+            <div class="text-xs leading-snug" style="color:var(--p-text-muted)">${t('detailedSub')}</div>
+          </button>
+        </div>
+
+        ${!isEmpty && !isGuest ? `
+          <div class="p-3 rounded-2xl border flex items-center justify-between gap-2.5" style="background:var(--p-amber-bg); border-color:var(--p-amber);">
+            <div class="flex items-start gap-2">
+              <span class="text-base leading-none mt-0.5">⚠️</span>
+              <div>
+                <div class="text-xs font-extrabold" style="color:var(--p-amber-text)">${t('urgentTitle')}</div>
+                <div class="text-xs mt-0.5 leading-snug" style="color:var(--p-amber-text)">${t('urgentDesc')}</div>
+              </div>
+            </div>
+            <button onclick="state.ordersTab='requests'; goScreen('orders')" class="px-2.5 py-1.5 rounded-xl text-xs font-bold shrink-0" style="background:var(--p-amber); color:#101828;">${t('urgentBtn')}</button>
+          </div>
+        ` : ''}
+
+        <div class="space-y-2">
+          <div class="text-xs font-bold" style="color:var(--p-text-muted)">${t('quickActions')}</div>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="startBooking()" class="p-3 rounded-xl border text-center space-y-1" style="background:var(--p-card); border-color:var(--p-border);"><div>↻</div><div class="text-xs font-semibold">${t('reorder')}</div></button>
+            <button onclick="goScreen('receipts')" class="p-3 rounded-xl border text-center space-y-1" style="background:var(--p-card); border-color:var(--p-border);"><div>🧾</div><div class="text-xs font-semibold">${t('receipts')}</div></button>
+            <button onclick="goScreen('profile')" class="p-3 rounded-xl border text-center space-y-1" style="background:var(--p-card); border-color:var(--p-border);"><div>📍</div><div class="text-xs font-semibold">${t('addresses')}</div></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ===================== FAST QUICK DROP (3 STEPS) =====================
+function startQuickDrop() {
+  if (state.simState === 'guest') { showToast(state.lang==='ar'?'سجّل الدخول أولاً':'Sign in to book'); goScreen('entry'); return; }
+  state.qdData.branchId = activeOrg().lastBranchId;
+  state.qdStep = 1;
+  goScreen('quickDrop');
+}
+
+function renderQuickDropScreen() {
+  const step = state.qdStep;
+  const org = activeOrg();
+  const chipsList = state.lang === 'ar' ? ['دشداشة / ثوب', 'عباية', 'قمصان', 'مفارش', 'سجاد'] : ['Dishdasha / Thobe', 'Abaya', 'Shirts', 'Bedding', 'Carpet'];
+
+  if (step === 4) {
+    const reqCode = state.createdRequests[0]?.code || 'REQ-26-00921';
+    return `
+      <div class="p-5 min-h-full flex flex-col justify-center text-center space-y-4 screen-anim">
+        <div class="w-16 h-16 rounded-full mx-auto flex items-center justify-center text-3xl" style="background:var(--p-success-bg); color:var(--p-success-text);">✓</div>
+        <div>
+          <h2 class="text-xl font-extrabold">${t('qdDoneTitle')}</h2>
+          <p class="text-xs mt-1.5" style="color:var(--p-text-muted)">${t('qdDoneSub')}</p>
+        </div>
+        <button onclick="copyCode('${reqCode}')" class="mx-auto inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-mono text-sm font-bold ltr-iso" style="background:var(--p-card); border-color:var(--p-border);">${reqCode} 📋</button>
+        <button onclick="state.ordersTab='requests'; goScreen('orders')" class="w-full py-3.5 rounded-xl font-bold text-xs text-white" style="background:var(--p-brand);">${t('trackNowBtn')}</button>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="pb-5 screen-anim">
+      <div class="px-4 py-3 border-b flex items-center justify-between sticky top-0 z-10" style="background:var(--p-card); border-color:var(--p-border);">
+        <button onclick="${step > 1 ? `state.qdStep--; renderAll()` : `goScreen('home')`}" class="text-xs font-bold" style="color:var(--p-brand-text);"><span class="inline-block flip-rtl">←</span> ${t('backBtn')}</button>
+        <div class="text-sm font-extrabold">${t('qdHeader')}</div>
+        <span class="text-xs font-bold ltr-iso" style="color:var(--p-text-muted)">${step}/3</span>
+      </div>
+
+      <div class="p-4 space-y-4">
+        <div class="px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2" style="background:var(--p-info-bg); color:var(--p-info-text);">
+          <span>ℹ️</span><span>${t('qdBadge')}</span>
+        </div>
+
+        ${step === 1 ? renderFulfillmentAndBranch('qd', false) : step === 2 ? `
+          <div class="space-y-3.5">
+            <div class="text-sm font-bold">${t('qdStep2')}</div>
+            ${[
+              { id: 'standard', title: t('speedStandard'), meta: t('speedStandardMeta'), icon: '🕒' },
+              { id: 'express', title: t('speedExpress'), meta: t('speedExpressMeta'), icon: '⚡' }
+            ].map(sp => {
+              const active = state.qdData.speed === sp.id;
+              return `
+                <button onclick="state.qdData.speed='${sp.id}'; renderAll()" class="w-full p-3 rounded-xl border-2 text-start space-y-0.5" style="background:${active ? 'var(--p-brand-soft)' : 'var(--p-card)'}; border-color:${active ? 'var(--p-brand)' : 'var(--p-border)'};">
+                  <div class="flex justify-between text-xs font-extrabold"><span>${sp.icon} ${sp.title}</span><span style="color:var(--p-brand-text)">${active ? '✓' : ''}</span></div>
+                  <div class="text-xs" style="color:var(--p-text-muted)">${sp.meta}</div>
+                </button>
+              `;
+            }).join('')}
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div class="p-3 rounded-xl border space-y-2" style="background:var(--p-card); border-color:var(--p-border);">
+                <div class="text-xs font-bold">${t('estBags')}</div>
+                <div class="flex items-center justify-between ltr-iso">
+                  <button onclick="state.qdData.bags=Math.max(1,state.qdData.bags-1); renderAll()" class="w-8 h-8 rounded-lg font-bold" style="background:var(--p-muted-bg)">−</button>
+                  <span class="text-base font-extrabold">${state.qdData.bags}</span>
+                  <button onclick="state.qdData.bags++; renderAll()" class="w-8 h-8 rounded-lg font-bold text-white" style="background:var(--p-brand)">+</button>
+                </div>
+              </div>
+              <div class="p-3 rounded-xl border space-y-2" style="background:var(--p-card); border-color:var(--p-border);">
+                <div class="text-xs font-bold">${t('estPieces')}</div>
+                <div class="flex items-center justify-between ltr-iso">
+                  <button onclick="state.qdData.pieces=Math.max(1,state.qdData.pieces-1); renderAll()" class="w-8 h-8 rounded-lg font-bold" style="background:var(--p-muted-bg)">−</button>
+                  <span class="text-base font-extrabold">${state.qdData.pieces}</span>
+                  <button onclick="state.qdData.pieces++; renderAll()" class="w-8 h-8 rounded-lg font-bold text-white" style="background:var(--p-brand)">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <div class="text-xs font-bold" style="color:var(--p-text-muted)">${t('optionalChips')}</div>
+              <div class="flex flex-wrap gap-1.5">
+                ${chipsList.map(ch => {
+                  const sel = state.qdData.chips.includes(ch);
+                  return `<button onclick="toggleQdChip('${ch}')" class="px-2.5 py-1.5 rounded-full text-xs font-semibold border" style="background:${sel ? 'var(--p-brand)' : 'var(--p-card)'}; color:${sel ? '#fff' : 'var(--p-text)'}; border-color:${sel ? 'var(--p-brand)' : 'var(--p-border)'};">${ch}</button>`;
+                }).join('')}
+              </div>
+            </div>
+            <textarea oninput="state.qdData.notes=this.value" rows="2" placeholder="${t('notesPlaceholder')}" class="w-full p-3 rounded-xl border text-xs bg-transparent" style="border-color:var(--p-border); background:var(--p-card); color:var(--p-text);">${state.qdData.notes}</textarea>
+          </div>
+        ` : `
+          <div class="p-4 rounded-2xl border space-y-2 text-xs" style="background:var(--p-card); border-color:var(--p-border);">
+            <div class="font-extrabold text-sm pb-1">${t('qdStep3')}</div>
+            <div class="flex justify-between"><span style="color:var(--p-text-muted)">${t('pickupSection')}</span><span class="font-bold">${state.qdData.pickupMode==='collect_address'?t('collectFromAddr'):t('storeDropOff')}</span></div>
+            <div class="flex justify-between"><span style="color:var(--p-text-muted)">${t('deliverySection')}</span><span class="font-bold">${state.qdData.deliveryMode==='deliver_address'?t('deliverToAddr'):t('storePickup')}</span></div>
+            <div class="flex justify-between"><span style="color:var(--p-text-muted)">${state.lang==='ar'?'الفرع':'Branch'}</span><span class="font-bold">${state.qdData.branchId==='auto'?t('branchAuto'):(state.lang==='ar'?getBranch(org,state.qdData.branchId).ar:getBranch(org,state.qdData.branchId).en)}</span></div>
+            <div class="flex justify-between"><span style="color:var(--p-text-muted)">${t('estBags')} / ${t('estPieces')}</span><span class="font-bold ltr-iso">${state.qdData.bags} / ~${state.qdData.pieces}</span></div>
+          </div>
+        `}
+
+        <button ${state.submitting ? 'disabled' : ''} onclick="${step < 3 ? `state.qdStep++; renderAll()` : `submitQuickDrop()`}" class="w-full py-3.5 rounded-xl font-bold text-xs text-white" style="background:var(--p-brand); opacity:${state.submitting?'0.65':'1'};">
+          ${state.submitting ? t('submittingBtn') : (step < 3 ? t('continueBtn') : t('sendRequestBtn'))}
+        </button>
+      </div>
+    </div>
+  `;
+}
+function toggleQdChip(ch) { const i = state.qdData.chips.indexOf(ch); if (i>=0) state.qdData.chips.splice(i,1); else state.qdData.chips.push(ch); renderAll(); }
+function submitQuickDrop() {
+  if (state.submitting) return;
+  state.submitting = true; renderAll();
+  setTimeout(() => {
+    state.submitting = false;
+    state.createdRequests.unshift({ code: 'REQ-26-00921', bags: state.qdData.bags, pieces: state.qdData.pieces });
+    state.qdStep = 4; renderAll();
+  }, 450);
+}
+
+// ===================== DETAILED ORDER (6 STEPS — POS PARITY) =====================
+function startBooking() {
+  if (state.simState === 'guest') { showToast(state.lang==='ar'?'سجّل الدخول أولاً':'Sign in to book'); goScreen('entry'); return; }
+  state.bkData.branchId = activeOrg().lastBranchId;
+  state.bkData.generalOrderNote = state.customer.autoApplyGeneralNote ? state.customer.defaultOrderNote : '';
+  state.bkData.saveGeneralNoteForFuture = state.customer.autoApplyGeneralNote;
+  state.bkStep = 1;
+  goScreen('booking');
+}
+
+function calcBookingTotals() {
+  const bk = state.bkData;
+  const org = activeOrg();
+  const br = getBranch(org, bk.branchId);
+  let itemsSubtotal = 0;
+  let prefAddons = 0;
+  let count = 0;
+
+  for (const item of CATALOG) {
+    const qty = bk.cart[item.id] || 0;
+    if (qty > 0) {
+      itemsSubtotal += qty * item.price;
+      count += qty;
+      const pIds = bk.itemPrefs[item.id] || [];
+      for (const pid of pIds) {
+        const pObj = PIECE_PREFS.find(x => x.id === pid);
+        if (pObj) prefAddons += qty * pObj.price;
+      }
+    }
+  }
+  const hasDelivery = bk.pickupMode === 'collect_address' || bk.deliveryMode === 'deliver_address';
+  const deliveryFee = hasDelivery ? (br.deliveryFee || 0.500) : 0;
+  const speedPremium = bk.speed === 'express' ? +((itemsSubtotal + prefAddons) * 0.20).toFixed(3) : 0;
+  const grossTotal = +(itemsSubtotal + prefAddons + speedPremium + deliveryFee).toFixed(3);
+
+  const bulkDiscount = itemsSubtotal >= 5 ? +(itemsSubtotal * 0.05).toFixed(3) : 0;
+  const promoDiscount = bk.promoApplied ? +(itemsSubtotal * (bk.promoDiscountPct / 100)).toFixed(3) : 0;
+  const totalDiscounts = +(bulkDiscount + promoDiscount).toFixed(3);
+  const afterDiscounts = Math.max(0, +(grossTotal - totalDiscounts).toFixed(3));
+
+  const vat = +(afterDiscounts * 0.05).toFixed(3);
+  const orderTotal = +(afterDiscounts + vat).toFixed(3);
+  const giftCardUsed = bk.giftCardApplied ? Math.min(orderTotal, bk.giftCardAmount) : 0;
+  const balanceDue = Math.max(0, +(orderTotal - giftCardUsed).toFixed(3));
+
+  return { count, itemsSubtotal, prefAddons, deliveryFee, speedPremium, grossTotal, bulkDiscount, promoDiscount, totalDiscounts, afterDiscounts, vat, orderTotal, giftCardUsed, balanceDue };
+}
+
+function renderBookingScreen() {
+  const step = state.bkStep;
+  const bk = state.bkData;
+  const org = activeOrg();
+  const br = getBranch(org, bk.branchId);
+  const totals = calcBookingTotals();
+  const stepTitles = t('bkSteps');
+
+  if (step === 7) {
+    return `
+      <div class="p-5 min-h-full flex flex-col justify-center text-center space-y-4 screen-anim">
+        <div class="w-16 h-16 rounded-full mx-auto flex items-center justify-center text-3xl" style="background:var(--p-success-bg); color:var(--p-success-text);">✓</div>
+        <div>
+          <h2 class="text-xl font-extrabold">${t('bkDoneTitle')}</h2>
+          <p class="text-xs mt-1.5" style="color:var(--p-text-muted)">${t('bkDoneSub')}</p>
+        </div>
+        <button onclick="copyCode('ORD-26-04199')" class="mx-auto inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-mono text-sm font-bold ltr-iso" style="background:var(--p-card); border-color:var(--p-border);">ORD-26-04199 📋</button>
+        <div class="text-xs font-bold ltr-iso" style="color:var(--p-brand-text)">${t('total')}: ${fmtOMR(totals.orderTotal)} · ${t('balance')}: ${fmtOMR(totals.balanceDue)}</div>
+        <button onclick="state.trackStage=1; goScreen('orderDetail')" class="w-full py-3.5 rounded-xl font-bold text-xs text-white" style="background:var(--p-brand);">${t('trackTitle')}</button>
+      </div>
+    `;
+  }
+
+  const cats = [
+    { id: 'all', en: 'All', ar: 'الكل' },
+    { id: 'gcc', en: 'Thobe & Abaya', ar: 'ثوب وعباية' },
+    { id: 'wash', en: 'Wash & Iron', ar: 'غسيل وكوي' },
+    { id: 'dry', en: 'Dry Clean', ar: 'تنظيف جاف' },
+    { id: 'home', en: 'Home', ar: 'المنزل' }
+  ];
+  const filtered = state.bkCategory === 'all' ? CATALOG : CATALOG.filter(c => c.cat === state.bkCategory);
+  const canNext = (step === 1 && !!bk.branchId) || (step === 2 && totals.count > 0) || step >= 3;
+
+  return `
+    <div class="pb-5 screen-anim">
+      <div class="px-4 py-3 border-b sticky top-0 z-10 space-y-2" style="background:var(--p-card); border-color:var(--p-border);">
+        <div class="flex items-center justify-between">
+          <button onclick="${step > 1 ? `state.bkStep--; renderAll()` : `goScreen('home')`}" class="text-xs font-bold" style="color:var(--p-brand-text);"><span class="inline-block flip-rtl">←</span> ${t('backBtn')}</button>
+          <div class="text-sm font-extrabold">${t('bkHeader')}</div>
+          <span class="text-xs font-bold ltr-iso" style="color:var(--p-text-muted)">${step}/6</span>
+        </div>
+        <!-- 6-step thin progress bar -->
+        <div class="grid grid-cols-6 gap-1">
+          ${[1,2,3,4,5,6].map(n => `<div class="h-1 rounded-full" style="background:${n<=step?'var(--p-brand)':'var(--p-border)'}"></div>`).join('')}
+        </div>
+        <div class="text-xs font-bold" style="color:var(--p-brand-text)">${step}. ${stepTitles[step-1]}</div>
+      </div>
+
+      <div class="p-4 space-y-3.5">
+
+        ${step === 1 ? renderFulfillmentAndBranch('bk', true) : ''}
+
+        ${step === 2 ? `
+          <div class="flex gap-1.5 overflow-x-auto pb-1">
+            ${cats.map(c => {
+              const active = state.bkCategory === c.id;
+              return `<button onclick="state.bkCategory='${c.id}'; renderAll()" class="px-3 py-1.5 rounded-full text-xs font-bold shrink-0 border" style="background:${active ? 'var(--p-brand)' : 'var(--p-card)'}; color:${active ? '#fff' : 'var(--p-text)'}; border-color:${active ? 'var(--p-brand)' : 'var(--p-border)'};">${state.lang==='ar'?c.ar:c.en}</button>`;
+            }).join('')}
+          </div>
+
+          <div class="space-y-2.5">
+            ${filtered.map(item => {
+              const qty = bk.cart[item.id] || 0;
+              const isExp = state.bkExpandedItem === item.id && qty > 0;
+              const selPrefs = bk.itemPrefs[item.id] || [];
+              const noteVal = bk.itemNotes[item.id] || '';
+              return `
+                <div class="rounded-2xl border overflow-hidden" style="background:var(--p-card); border-color:${qty > 0 ? 'var(--p-brand)' : 'var(--p-border)'};">
+                  <div class="p-3 flex items-center justify-between gap-2">
+                    <div class="min-w-0">
+                      <div class="text-xs font-bold">${state.lang==='ar'?item.ar:item.en}</div>
+                      <div class="text-xs font-semibold ltr-iso mt-0.5" style="color:var(--p-brand-text)">${fmtOMR(item.price)} / ${state.lang==='ar'?item.unitAr:item.unitEn}</div>
+                    </div>
+                    <div class="flex items-center gap-2 ltr-iso shrink-0">
+                      <button onclick="updateCart('${item.id}', -1)" class="w-7 h-7 rounded-lg font-bold text-xs" style="background:var(--p-muted-bg)">−</button>
+                      <span class="w-5 text-center text-xs font-extrabold">${qty}</span>
+                      <button onclick="updateCart('${item.id}', 1)" class="w-7 h-7 rounded-lg font-bold text-xs text-white" style="background:var(--p-brand)">+</button>
+                    </div>
+                  </div>
+                  ${qty > 0 ? `
+                    <div class="px-3 pb-2.5 pt-1 border-t" style="border-color:var(--p-border); background:var(--p-bg);">
+                      <button onclick="state.bkExpandedItem = state.bkExpandedItem==='${item.id}' ? null : '${item.id}'; renderAll()" class="w-full flex items-center justify-between text-[11px] font-bold" style="color:var(--p-brand-text);">
+                        <span>✨ ${t('customizePiece')} ${selPrefs.length ? `(${selPrefs.length})` : ''} ${noteVal ? '📝' : ''}</span>
+                        <span>${isExp ? '▴' : '▾'}</span>
+                      </button>
+                      ${isExp ? `
+                        <div class="mt-2.5 space-y-2.5">
+                          <div class="text-[11px]" style="color:var(--p-text-muted)">${t('perPiecePrefs')}</div>
+                          <div class="flex flex-wrap gap-1.5">
+                            ${PIECE_PREFS.map(p => {
+                              const active = selPrefs.includes(p.id);
+                              const priceTag = p.price > 0 ? ` +${p.price.toFixed(3)}` : '';
+                              return `<button onclick="toggleItemPref('${item.id}','${p.id}')" class="px-2 py-1 rounded-lg text-[11px] font-semibold border" style="background:${active ? 'var(--p-brand)' : 'var(--p-card)'}; color:${active ? '#fff' : 'var(--p-text)'}; border-color:${active ? 'var(--p-brand)' : 'var(--p-border)'};">${state.lang==='ar'?p.ar:p.en}<span class="ltr-iso opacity-90">${priceTag}</span></button>`;
+                            }).join('')}
+                          </div>
+                          <div>
+                            <div class="text-[11px] font-bold mb-1" style="color:var(--p-text-muted)">${t('itemNoteLabel')}</div>
+                            <input oninput="state.bkData.itemNotes['${item.id}']=this.value" value="${noteVal}" placeholder="${t('itemNotePlaceholder')}" class="w-full px-2.5 py-2 rounded-xl border text-xs bg-transparent" style="border-color:var(--p-border); background:var(--p-card); color:var(--p-text);" />
+                          </div>
+                        </div>
+                      ` : ''}
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        ` : ''}
+
+        ${step === 3 ? `
+          <!-- Master Toggle for Predefined Profile Preferences -->
+          <div class="p-3.5 rounded-2xl border space-y-3" style="background:var(--p-card); border-color:var(--p-brand);">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-xs font-extrabold">${t('applyDefaultToggleTitle')}</div>
+                <div class="text-[11px] mt-0.5" style="color:var(--p-text-muted)">${t('applyDefaultToggleSub')}</div>
+              </div>
+              <button onclick="state.bkData.applyProfilePrefsToAll=!state.bkData.applyProfilePrefsToAll; renderAll()" class="w-11 h-6 rounded-full p-0.5 shrink-0 flex items-center transition" style="background:${bk.applyProfilePrefsToAll?'var(--p-brand)':'var(--p-border)'}; justify-content:${bk.applyProfilePrefsToAll?'flex-end':'flex-start'};">
+                <span class="w-5 h-5 rounded-full bg-white shadow"></span>
+              </button>
+            </div>
+            <div class="p-2.5 rounded-xl text-[11px] flex flex-wrap gap-1.5" style="background:var(--p-bg); opacity:${bk.applyProfilePrefsToAll?'1':'0.5'};">
+              <span class="px-2 py-0.5 rounded-md font-bold" style="background:var(--p-brand-soft); color:var(--p-brand-text);">${t('finishing')}: ${state.carePrefs.finishing==='hanger'?t('hanger'):t('folded')}</span>
+              <span class="px-2 py-0.5 rounded-md font-bold" style="background:var(--p-brand-soft); color:var(--p-brand-text);">${t('starch')}: ${state.carePrefs.starch}</span>
+              <span class="px-2 py-0.5 rounded-md font-bold" style="background:var(--p-brand-soft); color:var(--p-brand-text);">${t('detergent')}: ${state.carePrefs.detergent}</span>
+              <span class="px-2 py-0.5 rounded-md font-bold" style="background:var(--p-brand-soft); color:var(--p-brand-text);">${t('fragrance')}: ${state.carePrefs.fragrance?'ON':'OFF'}</span>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold">${t('prefNotesLabel')}</label>
+            <textarea oninput="state.bkData.preferencesNote=this.value" rows="3" placeholder="${t('prefNotesPlaceholder')}" class="w-full p-3 rounded-xl border text-xs bg-transparent" style="border-color:var(--p-border); background:var(--p-card); color:var(--p-text);">${bk.preferencesNote}</textarea>
+          </div>
+        ` : ''}
+
+        ${step === 4 ? `
+          ${[
+            { id: 'standard', title: t('speedStandard'), sub: t('speedStandardMeta'), ready: state.lang==='ar'?'الأحد 29 نوفمبر · 6:00 مساءً':'Sun, 29 Nov · 6:00 PM', tag: state.lang==='ar'?'عادي':'Standard' },
+            { id: 'express', title: t('speedExpress'), sub: t('speedExpressMeta'), ready: state.lang==='ar'?'السبت 28 نوفمبر · 4:00 مساءً':'Sat, 28 Nov · 4:00 PM', tag: '+20%' }
+          ].map(sp => {
+            const active = bk.speed === sp.id;
+            return `
+              <button onclick="state.bkData.speed='${sp.id}'; renderAll()" class="w-full p-3.5 rounded-xl border-2 text-start space-y-1" style="background:${active ? 'var(--p-brand-soft)' : 'var(--p-card)'}; border-color:${active ? 'var(--p-brand)' : 'var(--p-border)'};">
+                <div class="flex justify-between text-xs font-extrabold"><span>${sp.title}</span><span class="ltr-iso" style="color:var(--p-brand-text)">${sp.tag}</span></div>
+                <div class="text-xs" style="color:var(--p-text-muted)">${sp.sub}</div>
+              </button>
+            `;
+          }).join('')}
+
+          <!-- Estimated Ready-By Box + Sorting Disclaimer -->
+          <div class="p-3.5 rounded-2xl border space-y-1.5" style="background:var(--p-amber-bg); border-color:var(--p-amber-border);">
+            <div class="flex items-center justify-between text-xs font-extrabold" style="color:var(--p-amber-text);">
+              <span>⏱️ ${t('estReadyTitle')}</span>
+              <span>${t('tzNote')}</span>
+            </div>
+            <div class="text-sm font-extrabold" style="color:var(--p-text);">
+              ${bk.speed === 'express' ? (state.lang==='ar'?'السبت 28 نوفمبر 2026 · 4:00 مساءً':'Sat, 28 Nov 2026 · 4:00 PM') : (state.lang==='ar'?'الأحد 29 نوفمبر 2026 · 6:00 مساءً':'Sun, 29 Nov 2026 · 6:00 PM')}
+            </div>
+            <p class="text-[11px] leading-snug" style="color:var(--p-amber-text);">${t('estReadyHint')}</p>
+          </div>
+        ` : ''}
+
+        ${step === 5 ? `
+          <!-- Promo Code -->
+          <div class="p-3.5 rounded-2xl border space-y-2" style="background:var(--p-card); border-color:var(--p-border);">
+            <div class="text-xs font-extrabold">🏷️ ${t('promoTitle')}</div>
+            <div class="flex gap-2">
+              <input id="inp-promo" value="${bk.promoCode}" oninput="state.bkData.promoCode=this.value" placeholder="${t('promoPlaceholder')}" class="flex-1 px-3 py-2 rounded-xl border text-xs ltr-iso uppercase bg-transparent" style="border-color:var(--p-border); color:var(--p-text);" />
+              <button onclick="applyPromo()" class="px-4 py-2 rounded-xl text-xs font-bold text-white shrink-0" style="background:var(--p-brand);">${t('applyBtn')}</button>
+            </div>
+            ${bk.promoApplied ? `<div class="text-xs font-bold" style="color:var(--p-success-text);">✓ SAVE10 (-10% applied)</div>` : ''}
+          </div>
+
+          <!-- Gift Card -->
+          <div class="p-3.5 rounded-2xl border space-y-2" style="background:var(--p-card); border-color:var(--p-border);">
+            <div class="text-xs font-extrabold">🎁 ${t('giftCardTitle')}</div>
+            <div class="flex gap-2">
+              <input id="inp-gc" value="${bk.giftCardCode}" oninput="state.bkData.giftCardCode=this.value" placeholder="${t('giftCardPlaceholder')}" class="flex-1 px-3 py-2 rounded-xl border text-xs ltr-iso uppercase bg-transparent" style="border-color:var(--p-border); color:var(--p-text);" />
+              <button onclick="applyGiftCard()" class="px-4 py-2 rounded-xl text-xs font-bold text-white shrink-0" style="background:var(--p-brand);">${t('applyBtn')}</button>
+            </div>
+            ${bk.giftCardApplied ? `<div class="text-xs font-bold ltr-iso" style="color:var(--p-success-text);">✓ GC500 (-2.000 OMR credit applied)</div>` : ''}
+          </div>
+
+          <!-- Payment Notes -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold">${t('paymentNotesLabel')}</label>
+            <input value="${bk.paymentNotes}" oninput="state.bkData.paymentNotes=this.value" placeholder="${t('paymentNotesPlaceholder')}" class="w-full p-2.5 rounded-xl border text-xs bg-transparent" style="border-color:var(--p-border); background:var(--p-card); color:var(--p-text);" />
+          </div>
+
+          <!-- General Order Note + Save for Upcoming Orders Toggle -->
+          <div class="p-3.5 rounded-2xl border space-y-2.5" style="background:var(--p-card); border-color:var(--p-border);">
+            <label class="text-xs font-extrabold block">📝 ${t('generalOrderNoteLabel')}</label>
+            <textarea oninput="state.bkData.generalOrderNote=this.value" rows="2" placeholder="${t('generalOrderNotePlaceholder')}" class="w-full p-2.5 rounded-xl border text-xs bg-transparent" style="border-color:var(--p-border); color:var(--p-text);">${bk.generalOrderNote}</textarea>
+            <div class="flex items-start justify-between gap-2 pt-1">
+              <div>
+                <div class="text-xs font-bold">${t('saveNoteToggleTitle')}</div>
+                <div class="text-[11px]" style="color:var(--p-text-muted)">${t('saveNoteToggleSub')}</div>
+              </div>
+              <button onclick="toggleSaveGeneralNote()" class="w-11 h-6 rounded-full p-0.5 shrink-0 flex items-center transition" style="background:${bk.saveGeneralNoteForFuture?'var(--p-brand)':'var(--p-border)'}; justify-content:${bk.saveGeneralNoteForFuture?'flex-end':'flex-start'};">
+                <span class="w-5 h-5 rounded-full bg-white shadow"></span>
+              </button>
+            </div>
+          </div>
+        ` : ''}
+
+        ${step === 6 ? `
+          <!-- FULL POS NEW ORDER PARITY REVIEW -->
+          <!-- 1. Order Context -->
+          <div class="p-3.5 rounded-2xl border space-y-1.5 text-xs" style="background:var(--p-card); border-color:var(--p-border);">
+            <div class="font-extrabold flex items-center justify-between">
+              <span>🏪 ${state.lang==='ar'?org.nameAr:org.nameEn} · ${state.lang==='ar'?br.ar:br.en}</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px]" style="background:var(--p-brand-soft); color:var(--p-brand-text);">${bk.speed==='express'?t('speedExpress'):t('speedStandard')}</span>
+            </div>
+            <div style="color:var(--p-text-muted)">${t('pickupSection')}: <strong>${bk.pickupMode==='collect_address'?t('collectFromAddr'):t('storeDropOff')}</strong></div>
+            <div style="color:var(--p-text-muted)">${t('deliverySection')}: <strong>${bk.deliveryMode==='deliver_address'?t('deliverToAddr'):t('storePickup')}</strong></div>
+            <div style="color:var(--p-amber-text)">⏱️ ${t('estReadyTitle')}: <strong>${bk.speed==='express'?(state.lang==='ar'?'السبت 28 نوفمبر 4:00 م':'Sat 28 Nov · 4:00 PM'):(state.lang==='ar'?'الأحد 29 نوفمبر 6:00 م':'Sun 29 Nov · 6:00 PM')}</strong></div>
+          </div>
+
+          <!-- 2. Itemized Lines + Piece Prefs + Notes -->
+          <div class="p-3.5 rounded-2xl border space-y-2 text-xs" style="background:var(--p-card); border-color:var(--p-border);">
+            <div class="font-extrabold">${state.lang==='ar'?'تفاصيل القطع والملاحظات':'Items, Piece Add-ons & Notes'}</div>
+            ${CATALOG.filter(i => (bk.cart[i.id]||0) > 0).map(item => {
+              const qty = bk.cart[item.id];
+              const pIds = bk.itemPrefs[item.id] || [];
+              const note = bk.itemNotes[item.id] || '';
+              return `
+                <div class="pb-2 border-b last:border-b-0 last:pb-0 space-y-0.5" style="border-color:var(--p-border);">
+                  <div class="flex justify-between font-bold">
+                    <span>${qty}× ${state.lang==='ar'?item.ar:item.en}</span>
+                    <span class="ltr-iso">${fmtOMR(qty * item.price)}</span>
+                  </div>
+                  ${pIds.map(pid => {
+                    const pObj = PIECE_PREFS.find(x => x.id === pid);
+                    return pObj ? `<div class="flex justify-between text-[11px]" style="color:var(--p-brand-text);"><span>+ ${state.lang==='ar'?pObj.ar:pObj.en} (${qty}×)</span><span class="ltr-iso">+${fmtOMR(qty * pObj.price)}</span></div>` : '';
+                  }).join('')}
+                  ${note ? `<div class="text-[11px]" style="color:var(--p-text-muted);">📝 ${note}</div>` : ''}
+                </div>
+              `;
+            }).join('')}
+            ${bk.generalOrderNote ? `<div class="pt-1.5 text-[11px] font-semibold" style="color:var(--p-text-muted);">📌 ${t('generalOrderNoteLabel')}: ${bk.generalOrderNote}</div>` : ''}
+          </div>
+
+          <!-- 3. POS Grouped Value Breakdown (OrderValueBreakdownPanel parity) -->
+          <div class="p-3.5 rounded-2xl border space-y-1.5 text-xs" style="background:var(--p-card); border-color:var(--p-border);">
+            <div class="font-extrabold">${t('posGrossTitle')}</div>
+            <div class="text-[11px] pb-1" style="color:var(--p-text-muted)">${t('posGrossHelp')}</div>
+            <div class="flex justify-between"><span style="color:var(--p-text-muted)">${t('subtotal')} (${totals.count})</span><span class="ltr-iso font-semibold">${fmtOMR(totals.itemsSubtotal)}</span></div>
+            ${totals.prefAddons > 0 ? `<div class="flex justify-between"><span style="color:var(--p-text-muted)">${t('prefAddons')}</span><span class="ltr-iso font-semibold">+${fmtOMR(totals.prefAddons)}</span></div>` : ''}
+            ${totals.speedPremium > 0 ? `<div class="flex justify-between"><span style="color:var(--p-text-muted)">${t('speedPremium')}</span><span class="ltr-iso font-semibold">+${fmtOMR(totals.speedPremium)}</span></div>` : ''}
+            ${totals.deliveryFee > 0 ? `<div class="flex justify-between"><span style="color:var(--p-text-muted)">${t('deliveryFee')}</span><span class="ltr-iso font-semibold">+${fmtOMR(totals.deliveryFee)}</span></div>` : ''}
+          </div>
+
+          ${(totals.totalDiscounts > 0 || totals.giftCardUsed > 0) ? `
+            <div class="p-3.5 rounded-2xl border space-y-1.5 text-xs" style="background:var(--p-danger-bg); border-color:var(--p-danger-border); color:var(--p-danger-text);">
+              <div class="font-extrabold">${t('posDiscTitle')}</div>
+              ${totals.bulkDiscount > 0 ? `<div class="flex justify-between"><span>Bulk Discount (5%)</span><span class="ltr-iso font-bold">-${fmtOMR(totals.bulkDiscount)}</span></div>` : ''}
+              ${totals.promoDiscount > 0 ? `<div class="flex justify-between"><span>Promo (SAVE10)</span><span class="ltr-iso font-bold">-${fmtOMR(totals.promoDiscount)}</span></div>` : ''}
+              <div class="flex justify-between font-bold pt-1 border-t" style="border-color:var(--p-danger-border);"><span>${t('afterDiscounts')}</span><span class="ltr-iso">${fmtOMR(totals.afterDiscounts)}</span></div>
+            </div>
+          ` : ''}
+
+          <div class="p-3.5 rounded-2xl border space-y-1.5 text-xs" style="background:var(--p-amber-bg); border-color:var(--p-amber-border); color:var(--p-amber-text);">
+            <div class="font-extrabold">${t('posTaxTitle')}</div>
+            <div class="flex justify-between"><span>${t('vat')}</span><span class="ltr-iso font-bold">+${fmtOMR(totals.vat)}</span></div>
+          </div>
+
+          <div class="p-4 rounded-2xl border-2 space-y-1.5 text-xs" style="background:var(--p-card); border-color:var(--p-brand);">
+            <div class="flex justify-between text-sm font-extrabold"><span>${t('total')}</span><span class="ltr-iso">${fmtOMR(totals.orderTotal)}</span></div>
+            ${totals.giftCardUsed > 0 ? `<div class="flex justify-between font-bold" style="color:var(--p-success-text);"><span>🎁 ${t('giftCardRedeem')}</span><span class="ltr-iso">-${fmtOMR(totals.giftCardUsed)}</span></div>` : ''}
+            <div class="flex justify-between font-extrabold text-sm pt-1 border-t" style="border-color:var(--p-border); color:var(--p-amber-text);">
+              <span>${t('balance')} (${t('balanceCollection')})</span>
+              <span class="ltr-iso">${fmtOMR(totals.balanceDue)}</span>
+            </div>
+            ${bk.paymentNotes ? `<div class="text-[11px] pt-1" style="color:var(--p-text-muted);">💳 ${bk.paymentNotes}</div>` : ''}
+          </div>
+        ` : ''}
+
+        <!-- Sticky Footer -->
+        <div class="p-3 rounded-2xl border flex items-center justify-between gap-3" style="background:var(--p-card); border-color:var(--p-border); box-shadow:var(--p-shadow);">
+          <div>
+            <div class="text-[11px]" style="color:var(--p-text-muted)">${totals.count} ${state.lang==='ar'?'قطع':'items'}</div>
+            <div class="text-sm font-extrabold ltr-iso">${fmtOMR(totals.balanceDue)}</div>
+          </div>
+          <button ${!canNext || state.submitting ? 'disabled' : ''} onclick="${step < 6 ? `state.bkStep++; renderAll()` : `submitDetailedOrder()`}" class="px-5 py-3 rounded-xl font-bold text-xs text-white" style="background:var(--p-brand); opacity:${!canNext || state.submitting ? '0.5' : '1'};">
+            ${state.submitting ? t('submittingBtn') : (step < 6 ? t('continueBtn') : t('placeOrderBtn'))}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function updateCart(id, d) { state.bkData.cart[id] = Math.max(0, (state.bkData.cart[id]||0) + d); if (d > 0) state.bkExpandedItem = id; renderAll(); }
+function toggleItemPref(itemId, prefId) {
+  const arr = state.bkData.itemPrefs[itemId] || [];
+  const idx = arr.indexOf(prefId);
+  if (idx >= 0) arr.splice(idx, 1); else arr.push(prefId);
+  state.bkData.itemPrefs[itemId] = arr;
+  renderAll();
+}
+function applyPromo() {
+  const code = (state.bkData.promoCode || '').trim().toUpperCase();
+  if (code === 'SAVE10' || code.length >= 4) {
+    state.bkData.promoApplied = true;
+    state.bkData.promoDiscountPct = 10;
+    showToast(state.lang==='ar' ? 'تم تطبيق رمز الخصم (10%)' : 'Promo SAVE10 applied (-10%)');
+  } else {
+    showToast(state.lang==='ar' ? 'جرّب الرمز SAVE10' : 'Try code SAVE10');
+  }
+  renderAll();
+}
+function applyGiftCard() {
+  const code = (state.bkData.giftCardCode || '').trim().toUpperCase();
+  if (code === 'GC500' || code.length >= 4) {
+    state.bkData.giftCardApplied = true;
+    state.bkData.giftCardAmount = 2.000;
+    showToast(state.lang==='ar' ? 'تم تطبيق بطاقة الهدايا (2.000 ر.ع)' : 'Gift Card GC500 applied (-2.000 OMR)');
+  } else {
+    showToast(state.lang==='ar' ? 'جرّب الرمز GC500' : 'Try code GC500');
+  }
+  renderAll();
+}
+function toggleSaveGeneralNote() {
+  state.bkData.saveGeneralNoteForFuture = !state.bkData.saveGeneralNoteForFuture;
+  state.customer.autoApplyGeneralNote = state.bkData.saveGeneralNoteForFuture;
+  if (state.bkData.saveGeneralNoteForFuture) state.customer.defaultOrderNote = state.bkData.generalOrderNote;
+  renderAll();
+}
+function submitDetailedOrder() {
+  if (state.submitting) return;
+  if (state.bkData.saveGeneralNoteForFuture) {
+    state.customer.defaultOrderNote = state.bkData.generalOrderNote;
+    state.customer.autoApplyGeneralNote = true;
+  }
+  state.submitting = true; renderAll();
+  setTimeout(() => { state.submitting = false; state.bkStep = 7; renderAll(); }, 450);
+}
+
+// ===================== ORDERS & HORIZONTAL/VERTICAL LIVE TRACKER =====================
+function renderOrdersScreen() {
+  const tab = state.ordersTab;
+  return `
+    <div class="pb-5 screen-anim">
+      <div class="px-4 py-3 border-b sticky top-0 z-10 space-y-2.5" style="background:var(--p-card); border-color:var(--p-border);">
+        <h2 class="text-base font-extrabold">${t('ordersTitle')}</h2>
+        <div class="grid grid-cols-3 gap-1 p-1 rounded-xl text-xs font-bold" style="background:var(--p-muted-bg);">
+          ${[{id:'active',label:t('tabActive')},{id:'requests',label:t('tabRequests')},{id:'history',label:t('tabHistory')}].map(tb => `
+            <button onclick="state.ordersTab='${tb.id}'; renderAll()" class="py-1.5 rounded-lg" style="${tab===tb.id?'background:var(--p-card);color:var(--p-brand-text);':'color:var(--p-text-muted);'}">${tb.label}</button>
+          `).join('')}
+        </div>
+      </div>
+      <div class="p-4 space-y-3">
+        ${tab === 'active' ? `
+          <button onclick="goScreen('orderDetail')" class="w-full text-start p-4 rounded-2xl border space-y-2.5" style="background:var(--p-card); border-color:var(--p-border); box-shadow:var(--p-shadow);">
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-xs font-bold ltr-iso">ORD-26-04182</span>
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full" style="background:var(--p-brand-soft); color:var(--p-brand-text);">🫧 ${t('stages')[state.trackStage-1].title}</span>
+            </div>
+            <div class="text-xs" style="color:var(--p-text-muted)">${t('readyBy')} (${t('tzNote')}) · ${t('itemsCount')}</div>
+            <div class="pt-2 border-t flex justify-between text-xs" style="border-color:var(--p-border);">
+              <span class="font-bold ltr-iso">4.500 OMR · <span style="color:var(--p-amber-text)">${t('balanceDue')}</span></span>
+              <span class="font-bold flip-rtl" style="color:var(--p-brand-text)">→</span>
+            </div>
+          </button>
+        ` : tab === 'requests' ? `
+          ${state.createdRequests.map(r => `
+            <div class="p-4 rounded-2xl border space-y-1.5" style="background:var(--p-card); border-color:var(--p-border);">
+              <div class="flex justify-between"><span class="font-mono text-xs font-bold ltr-iso">${r.code}</span><span class="text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--p-info-bg); color:var(--p-info-text);">📩 ${state.lang==='ar'?'تم الاستلام':'Received'}</span></div>
+              <div class="text-xs" style="color:var(--p-text-muted)">${r.bags} ${state.lang==='ar'?'أكياس':'bags'} · ~${r.pieces} ${state.lang==='ar'?'قطع':'pieces'}</div>
+            </div>
+          `).join('')}
+          <div class="p-4 rounded-2xl border space-y-2" style="background:var(--p-card); border-color:var(--p-amber);">
+            <div class="flex justify-between"><span class="font-mono text-xs font-bold ltr-iso">REQ-26-00914</span><span class="text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--p-amber-bg); color:var(--p-amber-text);">⚠️ ${t('urgentTitle')}</span></div>
+            <div class="text-xs" style="color:var(--p-text-muted)">${t('urgentDesc')}</div>
+            <button onclick="showToast(state.lang==='ar'?'تم تأكيد العنوان للمغسلة':'Address confirmed')" class="w-full py-2 rounded-xl text-xs font-bold" style="background:var(--p-amber); color:#101828;">${t('urgentBtn')}</button>
+          </div>
+        ` : `
+          <div class="p-4 rounded-2xl border space-y-2" style="background:var(--p-card); border-color:var(--p-border);">
+            <div class="flex justify-between"><span class="font-mono text-xs font-bold ltr-iso">ORD-26-03911</span><span class="text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--p-success-bg); color:var(--p-success-text);">✓ ${t('stages')[4].title}</span></div>
+            <div class="text-xs" style="color:var(--p-text-muted)">19 Nov 2026 · <strong style="color:var(--p-success-text)">${t('balanceSettled')}</strong></div>
+            <div class="flex gap-2 pt-1">
+              <button onclick="openAlwaysLightReceipt('ORD-26-03911', '6.200 OMR', true)" class="flex-1 py-2 rounded-xl border text-xs font-bold" style="border-color:var(--p-border);">${t('viewReceipt')}</button>
+              <button onclick="startBooking()" class="flex-1 py-2 rounded-xl text-xs font-bold text-white" style="background:var(--p-brand);">${t('reorder')}</button>
+            </div>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function renderOrderDetailScreen() {
+  const st = state.trackStage;
+  const stages = t('stages');
+  const stageObj = stages[st - 1];
+  const isSettled = st === 5;
+  const isVert = state.trackerLayout === 'vertical';
+
+  return `
+    <div class="pb-5 screen-anim">
+      <div class="px-4 py-3 border-b flex items-center justify-between sticky top-0 z-10" style="background:var(--p-card); border-color:var(--p-border);">
+        <button onclick="goScreen('orders')" class="text-xs font-bold" style="color:var(--p-brand-text);"><span class="inline-block flip-rtl">←</span> ${t('backBtn')}</button>
+        <button onclick="copyCode('ORD-26-04182')" class="font-mono text-xs font-bold ltr-iso px-2 py-1 rounded-lg" style="background:var(--p-muted-bg)">ORD-26-04182 📋</button>
+        <!-- Horizontal / Vertical Layout Switcher -->
+        <div class="inline-flex rounded-lg p-0.5 text-[10px] font-bold" style="background:var(--p-muted-bg);">
+          <button onclick="state.trackerLayout='horizontal'; renderAll()" class="px-1.5 py-1 rounded-md" style="${!isVert?'background:var(--p-brand);color:#fff;':''}">${t('horizontalLbl')}</button>
+          <button onclick="state.trackerLayout='vertical'; renderAll()" class="px-1.5 py-1 rounded-md" style="${isVert?'background:var(--p-brand);color:#fff;':''}">${t('verticalLbl')}</button>
+        </div>
+      </div>
+
+      <div class="p-4 space-y-3.5">
+        <!-- VISUAL TOP TRACKER (Horizontal OR Vertical) -->
+        <div class="p-4 rounded-2xl border space-y-3" style="background:var(--p-card); border-color:var(--p-border); box-shadow:var(--p-shadow);">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold">${t('trackTitle')}</span>
+            <span class="text-[11px]" style="color:var(--p-text-muted)">${t('tzNote')}</span>
+          </div>
+
+          ${!isVert ? `
+            <!-- HORIZONTAL STEPPER TRACKER -->
+            <div class="relative pt-1">
+              <div class="absolute top-4 left-4 right-4 h-0.5" style="background:var(--p-border);"></div>
+              <div class="grid grid-cols-5 relative z-10">
+                ${stages.map((s, idx) => {
+                  const n = idx + 1;
+                  const done = n < st;
+                  const cur = n === st;
+                  return `
+                    <button onclick="state.trackStage=${n}; renderAll()" class="flex flex-col items-center text-center gap-1.5">
+                      <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold border-2 transition" style="background:${done || cur ? 'var(--p-brand)' : 'var(--p-card)'}; color:${done || cur ? '#fff' : 'var(--p-text-muted)'}; border-color:${done || cur ? 'var(--p-brand)' : 'var(--p-border)'}; box-shadow:${cur ? '0 0 0 4px var(--p-brand-soft)' : 'none'};">
+                        ${done ? '✓' : n}
+                      </span>
+                      <span class="text-[10px] font-bold leading-tight" style="color:${cur ? 'var(--p-brand-text)' : (done ? 'var(--p-text)' : 'var(--p-text-muted)')};">${s.short}</span>
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+            <div class="p-3 rounded-xl space-y-1" style="background:var(--p-bg);">
+              <div class="flex items-center justify-between text-xs font-extrabold">
+                <span>${stageObj.title}</span>
+                <span class="text-[11px] font-semibold" style="color:var(--p-brand-text);">${stageObj.time}</span>
+              </div>
+              <p class="text-xs leading-snug" style="color:var(--p-text-muted)">${stageObj.desc}</p>
+            </div>
+          ` : `
+            <!-- VERTICAL TIMELINE TRACKER -->
+            <div class="space-y-0">
+              ${stages.map((s, idx) => {
+                const n = idx + 1;
+                const done = n < st;
+                const cur = n === st;
+                const isLast = n === 5;
+                return `
+                  <button onclick="state.trackStage=${n}; renderAll()" class="w-full text-start flex items-stretch gap-3">
+                    <div class="flex flex-col items-center">
+                      <span class="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-extrabold shrink-0 border-2" style="background:${done || cur ? 'var(--p-brand)' : 'var(--p-card)'}; color:${done || cur ? '#fff' : 'var(--p-text-muted)'}; border-color:${done || cur ? 'var(--p-brand)' : 'var(--p-border)'}; box-shadow:${cur ? '0 0 0 3px var(--p-brand-soft)' : 'none'};">${done ? '✓' : n}</span>
+                      ${!isLast ? `<span class="w-0.5 flex-1 my-1" style="background:${done ? 'var(--p-brand)' : 'var(--p-border)'}; min-height:20px;"></span>` : ''}
+                    </div>
+                    <div class="pb-3 flex-1">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-extrabold" style="color:${cur ? 'var(--p-brand-text)' : (done ? 'var(--p-text)' : 'var(--p-text-muted)')};">${s.title}</span>
+                        <span class="text-[10px]" style="color:var(--p-text-muted)">${s.time}</span>
+                      </div>
+                      ${cur ? `<p class="text-[11px] mt-0.5 leading-snug" style="color:var(--p-text-muted)">${s.desc}</p>` : ''}
+                    </div>
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+
+        ${st === 4 ? `
+          <div class="p-4 rounded-2xl border text-center space-y-2" style="background:var(--p-brand-soft); border-color:var(--p-brand);">
+            <div class="text-xs font-extrabold" style="color:var(--p-brand-text)">${t('pickupQrTitle')}</div>
+            <div class="inline-block p-2 rounded-xl bg-white">
+              <svg width="68" height="68" viewBox="0 0 21 21"><rect width="21" height="21" fill="#FFF"/><path d="M1 1h6v6H1zM2 2v4h4V2zM3 3h2v2H3zM14 1h6v6h-6zM15 2v4h4V2zM16 3h2v2h-2zM1 14h6v6H1zM2 15v4h4v-4zM3 16h2v2H3zM9 3h2v4H9zM12 6h2v4h-2zM9 11h4v2H9zM15 12h4v2h-4zM10 16h3v3h-3zM16 16h3v3h-3z" fill="#0E2A47"/></svg>
+            </div>
+            <div class="text-xs" style="color:var(--p-text-muted)">${t('pickupQrSub')}</div>
+          </div>
+        ` : ''}
+
+        <!-- Financial Summary -->
+        <div class="p-4 rounded-2xl border space-y-2 text-xs" style="background:var(--p-card); border-color:var(--p-border);">
+          <div class="text-sm font-extrabold pb-1">${t('financialSummary')}</div>
+          <div class="flex justify-between"><span style="color:var(--p-text-muted)">${t('subtotal')}</span><span class="ltr-iso">4.200 OMR</span></div>
+          <div class="flex justify-between"><span style="color:var(--p-text-muted)">${t('speedPremium')}</span><span class="ltr-iso">0.400 OMR</span></div>
+          <div class="flex justify-between" style="color:var(--p-success-text)"><span>${t('discounts')}</span><span class="ltr-iso">-0.314 OMR</span></div>
+          <div class="flex justify-between"><span style="color:var(--p-text-muted)">${t('vat')}</span><span class="ltr-iso">0.214 OMR</span></div>
+          <div class="pt-2 border-t flex justify-between text-sm font-extrabold" style="border-color:var(--p-border);"><span>${t('total')}</span><span class="ltr-iso">4.500 OMR</span></div>
+          <div class="flex justify-between font-bold" style="color:${isSettled ? 'var(--p-success-text)' : 'var(--p-amber-text)'}">
+            <span>${t('balance')}</span><span class="ltr-iso">${isSettled ? t('balanceSettled') + ' (0.000 OMR)' : t('balanceDue') + ' 4.500 OMR'}</span>
+          </div>
+          <button onclick="openAlwaysLightReceipt('ORD-26-04182', '4.500 OMR', ${isSettled})" class="w-full mt-2 py-2.5 rounded-xl font-bold text-xs border" style="border-color:var(--p-brand); color:var(--p-brand-text); background:var(--p-brand-soft);">🧾 ${t('viewReceipt')}</button>
+        </div>
+
+        <div class="p-3.5 rounded-2xl border flex items-center justify-between gap-2" style="background:var(--p-card); border-color:var(--p-border);">
+          <span class="text-xs font-semibold">${t('needHelp')}</span>
+          <div class="flex gap-1.5">
+            <button onclick="showToast('WhatsApp opened with ORD-26-04182')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style="background:#1DBF73;">${t('whatsapp')}</button>
+            <button onclick="showToast('Calling laundry branch...')" class="px-3 py-1.5 rounded-lg text-xs font-bold border" style="border-color:var(--p-border);">${t('call')}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderReceiptsScreen() {
+  const list = [
+    { no: 'ORD-26-04182', date: '27 Nov 2026', total: '4.500 OMR', settled: false },
+    { no: 'ORD-26-03911', date: '19 Nov 2026', total: '6.200 OMR', settled: true },
+    { no: 'ORD-26-03502', date: '08 Nov 2026', total: '3.150 OMR', settled: true }
+  ];
+  return `
+    <div class="pb-5 screen-anim">
+      <div class="px-4 py-3 border-b sticky top-0 z-10" style="background:var(--p-card); border-color:var(--p-border);"><h2 class="text-base font-extrabold">${t('receiptsTitle')}</h2></div>
+      <div class="p-4 space-y-3">
+        ${list.map(r => `
+          <button onclick="openAlwaysLightReceipt('${r.no}', '${r.total}', ${r.settled})" class="w-full text-start p-4 rounded-2xl border flex items-center justify-between gap-3" style="background:var(--p-card); border-color:var(--p-border); box-shadow:var(--p-shadow);">
+            <div class="space-y-1"><div class="font-mono text-xs font-bold ltr-iso">${r.no}</div><div class="text-xs" style="color:var(--p-text-muted)">${r.date}</div></div>
+            <div class="text-end space-y-1">
+              <div class="text-sm font-extrabold ltr-iso">${r.total}</div>
+              <span class="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full" style="background:${r.settled?'var(--p-success-bg)':'var(--p-amber-bg)'}; color:${r.settled?'var(--p-success-text)':'var(--p-amber-text)'};">${r.settled ? t('balanceSettled') : t('balanceDue')}</span>
+            </div>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ===================== ACCOUNT PROFILE (FULL DATA + CRUD + PREFS + SAVED ORDER NOTE) =====================
+function renderCarePrefsBlock() {
+  const p = state.carePrefs;
+  return `
+    <div class="p-3.5 rounded-2xl border space-y-3 text-xs" style="background:var(--p-card); border-color:var(--p-border);">
+      <div class="flex items-center justify-between">
+        <span class="font-bold">${t('finishing')}</span>
+        <div class="inline-flex rounded-lg p-0.5" style="background:var(--p-muted-bg)">
+          <button onclick="state.carePrefs.finishing='hanger'; renderAll()" class="px-2.5 py-1 rounded-md font-bold" style="${p.finishing==='hanger'?'background:var(--p-brand);color:#fff;':''}">${t('hanger')}</button>
+          <button onclick="state.carePrefs.finishing='folded'; renderAll()" class="px-2.5 py-1 rounded-md font-bold" style="${p.finishing==='folded'?'background:var(--p-brand);color:#fff;':''}">${t('folded')}</button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="font-bold">${t('starch')}</span>
+        <div class="inline-flex rounded-lg p-0.5" style="background:var(--p-muted-bg)">
+          ${['none','light','med'].map(lv => `<button onclick="state.carePrefs.starch='${lv}'; renderAll()" class="px-2 py-1 rounded-md font-bold" style="${p.starch===lv?'background:var(--p-brand);color:#fff;':''}">${lv==='none'?t('starchNone'):lv==='light'?t('starchLight'):t('starchMed')}</button>`).join('')}
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="font-bold">${t('detergent')}</span>
+        <div class="inline-flex rounded-lg p-0.5" style="background:var(--p-muted-bg)">
+          <button onclick="state.carePrefs.detergent='standard'; renderAll()" class="px-2.5 py-1 rounded-md font-bold" style="${p.detergent==='standard'?'background:var(--p-brand);color:#fff;':''}">${t('detStandard')}</button>
+          <button onclick="state.carePrefs.detergent='sensitive'; renderAll()" class="px-2.5 py-1 rounded-md font-bold" style="${p.detergent==='sensitive'?'background:var(--p-brand);color:#fff;':''}">${t('detSensitive')}</button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="font-bold">${t('fragrance')}</span>
+        <button onclick="state.carePrefs.fragrance=!state.carePrefs.fragrance; renderAll()" class="w-11 h-6 rounded-full p-0.5 flex items-center" style="background:${p.fragrance?'var(--p-brand)':'var(--p-border)'}; justify-content:${p.fragrance?'flex-end':'flex-start'};"><span class="w-5 h-5 rounded-full bg-white shadow"></span></button>
+      </div>
+    </div>
+  `;
+}
+
+function renderProfileScreen() {
+  const c = state.customer;
+  const org = activeOrg();
+  const br = getBranch(org, org.lastBranchId);
+  return `
+    <div class="pb-5 screen-anim">
+      <div class="px-4 py-3 border-b sticky top-0 z-10 flex items-center justify-between" style="background:var(--p-card); border-color:var(--p-border);">
+        <h2 class="text-base font-extrabold">${t('accountTitle')}</h2>
+        <button onclick="goScreen('entry')" class="text-xs font-bold" style="color:var(--p-danger-text)">${state.lang==='ar'?'خروج':'Sign Out'}</button>
+      </div>
+
+      <div class="p-4 space-y-4">
+        <!-- Customer Identity & Code Header -->
+        <div class="p-4 rounded-2xl border space-y-3" style="background:var(--p-card); border-color:var(--p-border); box-shadow:var(--p-shadow);">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-extrabold text-base shrink-0" style="background:var(--p-brand);">A</div>
+              <div>
+                <div class="text-sm font-extrabold">${state.lang==='ar'?c.nameAr:c.nameEn}</div>
+                <button onclick="copyCode('${c.customerCode}')" class="mt-0.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold ltr-iso" style="background:var(--p-brand-soft); color:var(--p-brand-text);">
+                  ${c.customerCode} 📋
+                </button>
+              </div>
+            </div>
+            <button onclick="openEditContactModal()" class="px-2.5 py-1.5 rounded-lg border text-[11px] font-bold shrink-0" style="border-color:var(--p-brand); color:var(--p-brand-text);">${t('editContact')}</button>
+          </div>
+
+          <!-- All Registered CleanMateX Customer Data -->
+          <div class="pt-2.5 border-t space-y-1.5 text-xs" style="border-color:var(--p-border);">
+            <div class="text-[11px] font-bold uppercase" style="color:var(--p-text-muted)">${t('registeredData')}</div>
+            <div class="flex justify-between gap-2"><span style="color:var(--p-text-muted)">${state.lang==='ar'?'الجوال':'Mobile'}</span><span class="ltr-iso font-semibold">${c.mobile} ${c.mobileVerified ? '✅' : ''}</span></div>
+            <div class="flex justify-between gap-2"><span style="color:var(--p-text-muted)">${state.lang==='ar'?'البريد':'Email'}</span><span class="ltr-iso font-semibold truncate">${c.email} ${c.emailVerified ? '✅' : ''}</span></div>
+            <div class="flex justify-between gap-2"><span style="color:var(--p-text-muted)">${state.lang==='ar'?'نوع الحساب':'Profile Status'}</span><span class="font-bold" style="color:var(--p-success-text)">${state.lang==='ar'?'ملف مكتمل (عالمي)':'Full Profile (Global ID)'}</span></div>
+            <div class="flex justify-between gap-2"><span style="color:var(--p-text-muted)">${state.lang==='ar'?'نقاط الولاء':'Loyalty Points'}</span><span class="font-bold ltr-iso" style="color:var(--p-brand-text)">⭐ ${c.loyaltyPoints} pts (${state.lang==='ar'?c.tierAr:c.tierEn})</span></div>
+            <div class="flex justify-between gap-2"><span style="color:var(--p-text-muted)">${state.lang==='ar'?'عضو منذ':'Member Since'}</span><span class="ltr-iso">${c.memberSince}</span></div>
+            <div class="flex justify-between gap-2"><span style="color:var(--p-text-muted)">${t('lastBranchTag')}</span><span class="font-semibold">${state.lang==='ar'?br.ar:br.en}</span></div>
+          </div>
+        </div>
+
+        <button onclick="openOrgSwitcher()" class="w-full p-3.5 rounded-2xl border flex items-center justify-between text-xs font-bold" style="background:var(--p-card); border-color:var(--p-border);">
+          <span>🏪 ${t('myLaundries')} (${ORGS.length})</span>
+          <span class="flip-rtl" style="color:var(--p-brand-text)">→</span>
+        </button>
+
+        <!-- Saved Addresses + Add Address -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-bold" style="color:var(--p-text-muted)">${t('savedAddresses')} (${state.addresses.length})</div>
+            <button onclick="openAddAddressModal()" class="text-xs font-bold" style="color:var(--p-brand-text)">${t('addAddress')}</button>
+          </div>
+          ${state.addresses.map(a => `
+            <div class="p-3 rounded-2xl border space-y-1 text-xs" style="background:var(--p-card); border-color:var(--p-border);">
+              <div class="flex items-center justify-between">
+                <span class="font-bold">📍 ${state.lang==='ar'?a.labelAr:a.labelEn}</span>
+                ${a.isDefault ? `<span class="text-[10px] px-1.5 py-0.5 rounded-md font-bold" style="background:var(--p-brand-soft); color:var(--p-brand-text);">${state.lang==='ar'?'افتراضي':'Default'}</span>` : ''}
+              </div>
+              <div style="color:var(--p-text-muted)">${state.lang==='ar'?a.detailsAr:a.detailsEn}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Default Care Preferences -->
+        <div class="space-y-2">
+          <div class="text-xs font-bold" style="color:var(--p-text-muted)">${t('defaultCarePrefs')}</div>
+          ${renderCarePrefsBlock()}
+        </div>
+
+        <!-- Saved General Order Note + Auto-apply Flag -->
+        <div class="p-3.5 rounded-2xl border space-y-2 text-xs" style="background:var(--p-card); border-color:var(--p-border);">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <div class="font-extrabold">📌 ${t('savedDefaultNoteTitle')}</div>
+              <div class="text-[11px]" style="color:var(--p-text-muted)">${t('autoShowNoteLbl')}</div>
+            </div>
+            <button onclick="state.customer.autoApplyGeneralNote=!state.customer.autoApplyGeneralNote; renderAll()" class="w-11 h-6 rounded-full p-0.5 shrink-0 flex items-center" style="background:${c.autoApplyGeneralNote?'var(--p-brand)':'var(--p-border)'}; justify-content:${c.autoApplyGeneralNote?'flex-end':'flex-start'};"><span class="w-5 h-5 rounded-full bg-white shadow"></span></button>
+          </div>
+          <textarea oninput="state.customer.defaultOrderNote=this.value" rows="2" class="w-full p-2.5 rounded-xl border text-xs bg-transparent" style="border-color:var(--p-border); color:var(--p-text); opacity:${c.autoApplyGeneralNote?'1':'0.5'};">${c.defaultOrderNote}</textarea>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ===================== RENDER LOOP =====================
+function renderAll() {
+  const root = document.getElementById('phone-root');
+  root.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
+  root.classList.toggle('is-rtl', state.lang === 'ar');
+  root.classList.toggle('theme-dark', state.phoneTheme === 'dark');
+  root.classList.remove('org-noor', 'org-royal');
+  if (state.orgBrand === 'noor') root.classList.add('org-noor');
+  if (state.orgBrand === 'royal') root.classList.add('org-royal');
+
+  ['en','ar'].forEach(l => {
+    const b = document.getElementById('btn-' + l);
+    b.style.background = state.lang === l ? 'var(--primary)' : 'transparent';
+    b.style.color = state.lang === l ? 'var(--primary-foreground)' : 'var(--muted-foreground)';
+  });
+  ['light','dark'].forEach(m => {
+    const b = document.getElementById('btn-' + m);
+    b.style.background = state.phoneTheme === m ? 'var(--primary)' : 'transparent';
+    b.style.color = state.phoneTheme === m ? 'var(--primary-foreground)' : 'var(--muted-foreground)';
+  });
+
+  const offBanner = document.getElementById('offline-banner');
+  if (state.simState === 'offline') {
+    offBanner.classList.remove('hidden');
+    document.getElementById('offline-banner-text').textContent = '📡 ' + t('offlineMsg');
+    document.getElementById('offline-retry-btn').textContent = t('offlineRetry');
+  } else {
+    offBanner.classList.add('hidden');
+  }
+
+  const vp = document.getElementById('phone-viewport');
+  const map = { entry: renderEntryScreen, home: renderHomeScreen, quickDrop: renderQuickDropScreen, booking: renderBookingScreen, orders: renderOrdersScreen, orderDetail: renderOrderDetailScreen, receipts: renderReceiptsScreen, profile: renderProfileScreen };
+  vp.innerHTML = (map[state.screen] || renderHomeScreen)();
+
+  const nav = document.getElementById('phone-bottom-nav');
+  const showNav = ['home','orders','orderDetail','receipts','profile'].includes(state.screen);
+  nav.classList.toggle('hidden', !showNav);
+  if (showNav) {
+    const tabs = [
+      { id: 'home', icon: '🏠', label: t('navHome') },
+      { id: 'orders', icon: '📦', label: t('navOrders') },
+      { id: 'receipts', icon: '🧾', label: t('navReceipts') },
+      { id: 'profile', icon: '👤', label: t('navAccount') }
+    ];
+    nav.innerHTML = tabs.map(tb => {
+      const active = state.screen === tb.id || (tb.id === 'orders' && state.screen === 'orderDetail');
+      return `<button onclick="goScreen('${tb.id}')" class="flex flex-col items-center justify-center py-1 rounded-xl" style="color:${active ? 'var(--p-brand-text)' : 'var(--p-text-muted)'};"><span class="px-3 py-0.5 rounded-full text-sm" style="background:${active ? 'var(--p-brand-soft)' : 'transparent'}">${tb.icon}</span><span class="text-[11px] font-bold mt-0.5">${tb.label}</span></button>`;
+    }).join('');
+  }
+
+  document.getElementById('screen-nav').innerHTML = SCREENS_META.map(s => {
+    const active = state.screen === s.id;
+    return `<button onclick="goScreen('${s.id}')" class="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between border" style="background:${active ? 'var(--primary)' : 'var(--content)'}; color:${active ? 'var(--primary-foreground)' : 'var(--foreground)'}; border-color:${active ? 'var(--primary)' : 'var(--border)'};"><span>${s.label}</span><span class="opacity-75">›</span></button>`;
+  }).join('');
+
+  const meta = SCREENS_META.find(s => s.id === state.screen) || SCREENS_META[1];
+  document.getElementById('spec-panel').innerHTML = `
+    <div class="flex items-center justify-between gap-2">
+      <span class="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Active Screen Spec</span>
+      <code class="text-xs px-2 py-0.5 rounded-md bg-[var(--content)] border border-[var(--border)] font-mono">${meta.route}</code>
+    </div>
+    <h3 class="text-sm font-bold">${meta.label}</h3>
+    <div class="space-y-2 text-xs">
+      <div class="p-2.5 rounded-xl bg-[var(--content)] border border-[var(--border)]">
+        <div class="font-semibold text-[var(--foreground)]">Primary User Action</div>
+        <div class="text-[var(--muted-foreground)] mt-0.5">${meta.primaryAction}</div>
+      </div>
+      <div class="p-2.5 rounded-xl bg-[var(--content)] border border-[var(--border)]">
+        <div class="font-semibold text-[var(--foreground)]">Reassurance &amp; Trust Signal</div>
+        <div class="text-[var(--muted-foreground)] mt-0.5">${meta.trust}</div>
+      </div>
+      <div class="space-y-1.5 pt-1">
+        <div class="font-semibold text-[var(--foreground)]">CleanMateX Rules Enforced</div>
+        ${meta.rules.map(r => `<div class="flex gap-2 text-[var(--muted-foreground)]"><span class="text-[var(--primary)]">•</span><span>${r}</span></div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+renderAll();
+</script>
+</body>
+</html>

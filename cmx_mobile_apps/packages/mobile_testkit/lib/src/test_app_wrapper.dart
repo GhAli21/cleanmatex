@@ -9,18 +9,26 @@ class TestAppWrapper extends StatelessWidget {
     super.key,
     required this.child,
     this.overrides = const [],
+    this.locale,
+    this.theme,
+    this.themeMode = ThemeMode.light,
   });
 
   final Widget child;
   final List<Override> overrides;
+  final Locale? locale;
+  final ThemeData? theme;
+  final ThemeMode themeMode;
 
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
       overrides: overrides,
       child: MaterialApp(
-        theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
+        locale: locale,
+        theme: theme ?? AppTheme.light(locale: locale),
+        darkTheme: AppTheme.dark(locale: locale),
+        themeMode: themeMode,
         supportedLocales: AppLocale.supportedLocales,
         localizationsDelegates: const [
           AppLocalizations.delegate,

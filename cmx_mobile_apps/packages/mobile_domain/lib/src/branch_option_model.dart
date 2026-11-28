@@ -7,6 +7,8 @@ class BranchOptionModel {
     this.address,
     this.area,
     this.city,
+    this.timeZone,
+    this.deliveryFee = 0,
   });
 
   final String id;
@@ -16,6 +18,8 @@ class BranchOptionModel {
   final String? address;
   final String? area;
   final String? city;
+  final String? timeZone;
+  final double deliveryFee;
 
   factory BranchOptionModel.fromJson(Map<String, Object?> json) {
     return BranchOptionModel(
@@ -26,6 +30,8 @@ class BranchOptionModel {
       address: json['address'] as String?,
       area: json['area'] as String?,
       city: json['city'] as String?,
+      timeZone: json['timeZone'] as String?,
+      deliveryFee: (json['deliveryFee'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -38,6 +44,8 @@ class BranchOptionModel {
       if (address != null) 'address': address,
       if (area != null) 'area': area,
       if (city != null) 'city': city,
+      if (timeZone != null) 'timeZone': timeZone,
+      'deliveryFee': deliveryFee,
     };
   }
 }

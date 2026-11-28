@@ -30,8 +30,9 @@ and packs** on the product page holds conversions for this product only, for exa
 A fixed price is only possible with a count unit. A measured product needs a price; Setup Health warns you if one
 has none.
 
-An area product is priced per **square metre** (you enter length and width in metres) or per **square foot** (in
-feet).
+An area product can be priced in any area unit (m², ft², yd², hectare, or one of your own). In the measure window,
+choose **Enter as**: *Length × width* (in any length unit; the area is worked out for you) or *Area* (type the
+area itself).
 
 ## Take an order
 
@@ -90,7 +91,8 @@ cannot be booked from the customer app; create those orders at the counter.
 
 السعر الثابت متاح لوحدات العدد فقط. المنتج الذي يُقاس يحتاج إلى سعر، وينبّهك فحص الإعدادات إن لم يكن له سعر.
 
-يُسعَّر منتج المساحة **بالمتر المربع** (تُدخل الطول والعرض بالمتر) أو **بالقدم المربع** (بالقدم).
+يمكن تسعير منتج المساحة بأي وحدة مساحة (م²، قدم²، ياردة²، هكتار، أو وحدة خاصة بك). في نافذة القياس اختر
+**طريقة الإدخال**: *الطول × العرض* (بأي وحدة طول، وتُحسب المساحة تلقائياً) أو *المساحة* (اكتب المساحة نفسها).
 
 ### إنشاء الطلب
 

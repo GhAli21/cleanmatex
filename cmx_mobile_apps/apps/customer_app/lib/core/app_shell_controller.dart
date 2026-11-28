@@ -261,6 +261,12 @@ class CustomerLocaleNotifier extends Notifier<Locale> {
     state =
         state.languageCode == 'en' ? const Locale('ar') : const Locale('en');
   }
+
+  void setLocale(Locale locale) {
+    if (AppLocale.supportedLanguages.contains(locale.languageCode)) {
+      state = Locale(locale.languageCode);
+    }
+  }
 }
 
 final customerSessionFlowProvider =

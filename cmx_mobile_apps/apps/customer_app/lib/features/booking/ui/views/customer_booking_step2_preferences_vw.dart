@@ -24,11 +24,30 @@ class CustomerBookingStep2PreferencesVw extends ConsumerStatefulWidget {
 
 class _CustomerBookingStep2PreferencesVwState
     extends ConsumerState<CustomerBookingStep2PreferencesVw> {
+  late final TextEditingController _prefsNoteController;
+
+  @override
+  void initState() {
+    super.initState();
+    _prefsNoteController = TextEditingController(
+      text: ref.read(customerOrderBookingProvider).draft.preferencesNote,
+    );
+  }
+
+  @override
+  void dispose() {
+    _prefsNoteController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final booking = ref.watch(customerOrderBookingProvider);
     final notifier = ref.read(customerOrderBookingProvider.notifier);
+    final theme = Theme.of(context);
+    final ext = CmxStatusThemeExtension.of(context);
+    final profile = booking.customerProfile;
 
     AppLogger.info(
       'booking_step2.render cartItems=${booking.draft.cartItems.length} '
@@ -50,6 +69,81 @@ class _CustomerBookingStep2PreferencesVwState
         CustomerBookingStepHeaderWidget(
           title: l10n.text('booking.step2Title'),
           description: l10n.text('booking.step2.perPieceTitle'),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        // Predefined Profile Preferences Card + One Master Toggle + Preferences Note
+        AppCardWidget(
+          accentColor: booking.draft.applyProfilePrefsToAll
+              ? theme.colorScheme.primary
+              : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.auto_awesome_outlined,
+                      size: 20, color: theme.colorScheme.primary),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      l10n.text('booking.profilePrefsCardTitle'),
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  AppStatusBadgeWidget(
+                    label:
+                        '${l10n.text('profile.prefFinishingLabel')}: ${profile?.finishingPref ?? 'hanger'}',
+                    tone: CmxSemanticTone.brand,
+                  ),
+                  AppStatusBadgeWidget(
+                    label:
+                        '${l10n.text('profile.prefStarchLabel')}: ${profile?.starchPref ?? 'light'}',
+                    tone: CmxSemanticTone.neutral,
+                  ),
+                  AppStatusBadgeWidget(
+                    label:
+                        '${l10n.text('profile.prefDetergentLabel')}: ${profile?.detergentPref ?? 'standard'}',
+                    tone: CmxSemanticTone.neutral,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  l10n.text('booking.applyProfilePrefsToggleTitle'),
+                  style: theme.textTheme.titleSmall,
+                ),
+                subtitle: Text(
+                  l10n.text('booking.applyProfilePrefsToggleSubtitle'),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: ext.textMuted),
+                ),
+                value: booking.draft.applyProfilePrefsToAll,
+                onChanged: notifier.setApplyProfilePrefsToAll,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: _prefsNoteController,
+                onChanged: notifier.setPreferencesNote,
+                maxLines: 2,
+                maxLength: 500,
+                decoration: InputDecoration(
+                  labelText: l10n.text('booking.preferencesNoteLabel'),
+                  hintText: l10n.text('booking.preferencesNoteHint'),
+                  counterText: '',
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: AppSpacing.lg),
         if (booking.isLoading)

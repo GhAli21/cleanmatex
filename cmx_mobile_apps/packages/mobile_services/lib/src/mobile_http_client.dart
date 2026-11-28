@@ -70,6 +70,23 @@ class MobileHttpClient {
     );
   }
 
+  Future<Map<String, Object?>> patchJson(
+    String path, {
+    Map<String, String>? headers,
+    Object? body,
+    Map<String, String>? queryParameters,
+    bool isRetryAfterTokenRefresh = false,
+  }) async {
+    return _sendJson(
+      method: 'PATCH',
+      path: path,
+      headers: headers,
+      body: body,
+      queryParameters: queryParameters,
+      isRetryAfterTokenRefresh: isRetryAfterTokenRefresh,
+    );
+  }
+
   Future<CustomerSessionModel?> _coordinatedSessionRefresh() {
     if (_refreshInFlight != null) {
       return _refreshInFlight!;
@@ -136,6 +153,13 @@ class MobileHttpClient {
       switch (method) {
         case 'POST':
           response = await _client.post(
+            uri,
+            headers: requestHeaders,
+            body: jsonEncode(body),
+          );
+          break;
+        case 'PATCH':
+          response = await _client.patch(
             uri,
             headers: requestHeaders,
             body: jsonEncode(body),

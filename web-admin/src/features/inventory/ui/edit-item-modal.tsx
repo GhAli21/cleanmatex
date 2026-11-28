@@ -14,7 +14,6 @@ import { CmxTabsPanel } from '@ui/navigation';
 import { Package, MapPin } from 'lucide-react';
 import { cmxMessage } from '@ui/feedback';
 import { CmxUomSelect } from '@ui/forms/cmx-uom-select';
-import { canBeProductUnit } from '@/lib/constants/uom';
 import { useUomUnits } from '@features/uom/hooks/use-uom-units';
 import { UOM_DEFAULT_COUNT_CODE } from '@/lib/constants/uom';
 import {
@@ -187,7 +186,7 @@ export default function EditItemModal({
           <Label className="block text-sm font-medium text-foreground mb-1">
             {t('labels.unit')}
           </Label>
-          <CmxUomSelect units={units.filter(canBeProductUnit)} value={productUnit} onChange={setProductUnit} />
+          <CmxUomSelect units={units} value={productUnit} onChange={setProductUnit} />
         </div>
         <div>
           <Label className="block text-sm font-medium text-foreground mb-1">

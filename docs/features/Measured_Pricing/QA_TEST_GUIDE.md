@@ -248,7 +248,8 @@ Use an organization with a product priced per kg: price 1.200, minimum 3, step 0
 90. Open Keypad, enter 4.2, press Escape. **Expected:** the keypad closes, the window stays. Try on a touch screen: the device keyboard does not cover the keypad. Arabic: right-to-left.
 91. Edit a saved order, add a weighed item (1.8 kg) and open Review. **Expected:** the added line shows "Measured: 1.8"; an area item shows length and width.
 
-## Area units (steps 92-93, after applying 0859)
+## Area units (steps 92-94, 0860)
 
-92. Add "Square foot" from the system catalog, create a product priced 1.000 per ft², order it. **Expected:** the measure window asks "Length (ft)" and "Width (ft)"; 8 and 10 bill 80 ft² = 80.000 before tax. Under Enter in, choose m: 2 × 3 shows "= 6.5617 ft × 9.8425 ft".
-93. Create a custom Area unit. **Expected:** it is not offered as a product unit (product form and inventory). An HQ template cannot take it: the refusal shows on the unit field.
+92. Add "Square foot" from the system catalog and create a product priced 1.000 per ft². Order it. **Expected:** the measure window shows "Enter as: Length × width" and "Enter in: M". 2 × 3 shows "2 m × 3 m = 64.58 ft²" and bills 64.580 before tax. Under Enter in, choose FT: 8 × 10 shows "= 80 ft²".
+93. In the same window choose Enter as: Area (ft²) and type 64.6. **Expected:** one field "Measure (ft²)", billed 64.6 ft². Reopen the line from the cart: it opens on the area field with 64.6.
+94. Add "Hectare" (or create a custom Area unit with a conversion to m²) and use it as a product unit. **Expected:** the product form and inventory offer it; an order line of 50 m × 20 m bills 0.1 ha. HQ: a product template can take it.

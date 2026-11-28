@@ -1756,7 +1756,7 @@ export function NewOrderContent() {
         productName={measureTarget ? lineTitle(getBilingual(measureTarget.product.product_name, measureTarget.product.product_name2) || measureTarget.product.product_code, measureTarget.lineKey) : ''}
         uom={measureTarget?.uom ?? { code: '', dimension: 'MASS', qtyDecimals: 0, symbol: '', symbol2: null, minBillableQty: null, billingIncrement: null }}
         initial={measureDialogInitial(state.state.items, measureTarget?.lineKey)}
-        entryUnits={measureEntry}
+        {...measureEntry}
         mergeChoice={measureMergeChoice}
         onMerge={mergeMeasuredArticle}
         onConfirm={confirmMeasure}
@@ -1768,7 +1768,7 @@ export function NewOrderContent() {
           productName={lineTitle(getBilingual(recheckItem.productName, recheckItem.productName2) || recheckItem.productId, recheckItem.lineKey)}
           uom={recheckItem.uom}
           initial={recheckItem.measure}
-          entryUnits={recheckEntry}
+          {...recheckEntry}
           notice={tUom('measure.recheckNotice', { from: recheck.from, to: recheck.to })}
           refusal={recheckRefusal}
           onConfirm={confirmRecheck}

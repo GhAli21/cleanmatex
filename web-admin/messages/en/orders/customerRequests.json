@@ -1,0 +1,54 @@
+{
+  "title": "Customer Quick Drop Requests",
+  "subtitle": "Review incoming Customer App bag requests and convert them into priced POS orders.",
+  "toggleQueue": "Customer Requests ({count})",
+  "refresh": "Refresh",
+  "emptyTitle": "No pending customer requests",
+  "emptyDescription": "Fast Quick Drop requests submitted from CleanMateX Go will appear here for staff intake.",
+  "loadError": "Could not load customer requests.",
+  "status": {
+    "SUBMITTED": "Submitted",
+    "IN_REVIEW": "In review",
+    "AWAITING_CUSTOMER": "Awaiting customer",
+    "CONVERTED": "Converted",
+    "DECLINED": "Declined",
+    "CANCELLED": "Cancelled"
+  },
+  "collection": {
+    "COLLECT_FROM_ADDRESS": "Collect from address",
+    "DROP_OFF": "Store drop-off"
+  },
+  "delivery": {
+    "DELIVER_ADDRESS": "Deliver to address",
+    "STORE_PICKUP": "Store pickup"
+  },
+  "bagsAndPieces": "{bags} bags · ~{pieces} pieces",
+  "declaredItemsCount": "{count} declared items",
+  "actions": {
+    "markInReview": "Mark in review",
+    "askCustomer": "Ask customer to confirm",
+    "decline": "Decline",
+    "convertInPos": "Convert in POS New Order",
+    "viewLinkedOrder": "Open order {orderNo}"
+  },
+  "confirmDeclineTitle": "Decline customer request?",
+  "confirmDeclineDescription": "This closes the request so it can no longer be converted into an order.",
+  "messages": {
+    "markedInReview": "Request marked as in review.",
+    "askedCustomer": "Request flagged as awaiting customer confirmation.",
+    "declined": "Customer request declined.",
+    "actionFailed": "Could not update the customer request."
+  },
+  "intakeBanner": {
+    "title": "Converting Customer Quick Drop Request",
+    "verifyHint": "Verify actual garment counts and condition after branch inspection before submitting. Prices are calculated live by POS.",
+    "declaredHintsTitle": "Customer-declared intake hints",
+    "catalogMatched": "Catalog item",
+    "freeTextHint": "Free-text hint",
+    "alreadyConverted": "This request was already converted into order {orderNo}.",
+    "closedWarning": "This request is closed ({status}) and cannot be converted.",
+    "pickupAddress": "Pickup address",
+    "deliveryAddress": "Delivery address",
+    "customerNotes": "Customer notes"
+  }
+}

@@ -6,10 +6,10 @@
 
 | Field | Value |
 |---|---|
-| **Version** | v2.2.21 |
-| **Date** | 2026-04-22 |
+| **Version** | v2.3.0 |
+| **Date** | 2026-11-28 |
 | **Status** | PROPOSED TARGET STATE |
-| **Supersedes** | v1.0.0 |
+| **Supersedes** | v2.2.21 |
 | **Applies To** | Current mobile workspace under `cmx_mobile_apps/` and the planned mobile apps/packages described in this document |
 | **Audience** | Mobile developers, AI assistants (Claude, Cursor, Codex), code reviewers, external contractors |
 | **Enforcement** | Existing repository state is authoritative. LOCKED sections describe approved target architecture and become review gates only after the relevant module exists. |
@@ -18,6 +18,7 @@
 
 | Version | Date | Summary |
 |---|---|---|
+| v2.3.0 | 2026-11-28 | Approved `web-admin/app/api/v1/public/customer/*` as the active Customer App gateway for Phases 1–4 (reusing POS commercial, tax, and Order Fin services with $0 extra hosting cost; `cmx-api` retained as the zero-lock-in scale-out target); adopted an open best-practices evolution mindset (no rigid locks blocking genuine UX/engineering improvements); exported approved Customer App design blueprint, v3 implementation plan, and v2 interactive mockup into `docs/customer_app_docs/`; drafted forward-only migration `0859_customer_app_branch_prefs_addresses.sql` for owner review |
 | v2.2.21 | 2026-04-22 | Completed the repo-scoped Milestone 7 hardening baseline: added connectivity-aware offline routing, shared accessibility touch-target semantics, generated native Android and iOS customer-app targets, validated the Android release APK, and revalidated analysis, tests, and the `web-admin` production build |
 | v2.2.20 | 2026-04-21 | Completed the Milestone 6 booking baseline: added a real public customer-booking API in `web-admin`, switched mobile booking to repository-backed remote/demo contracts, expanded booking UX states and tests, and revalidated mobile analysis/tests plus the `web-admin` production build |
 | v2.2.19 | 2026-04-21 | Completed the Milestone 4 auth/session integration and Milestone 5 tracking integration baseline: added secure mobile session persistence wiring, repository-backed auth/tracking boundaries, public customer session and orders APIs in `web-admin`, expanded mobile tests, and revalidated the mobile app plus `web-admin` production build |

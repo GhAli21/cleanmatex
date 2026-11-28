@@ -8,6 +8,7 @@ import 'package:mobile_ui/mobile_ui.dart';
 import 'core/app_shell_controller.dart';
 import 'core/navigation/app_route.dart';
 import 'core/navigation/app_router.dart';
+import 'core/providers/theme_mode_provider.dart';
 import 'features/tenant/providers/tenant_provider.dart';
 
 class CustomerApp extends ConsumerStatefulWidget {
@@ -26,6 +27,9 @@ class _CustomerAppState extends ConsumerState<CustomerApp> {
   Widget build(BuildContext context) {
     final config = AppConfig.fromEnvironment();
     final locale = ref.watch(customerLocaleProvider);
+    final themeMode = ref.watch(customerThemeModeProvider);
+    final orgOverride = ref.watch(activeOrgThemeOverrideProvider);
+
     ref.listen<CustomerSessionFlowState>(
       customerSessionFlowProvider,
       (previous, next) {
@@ -70,11 +74,12 @@ class _CustomerAppState extends ConsumerState<CustomerApp> {
       debugShowCheckedModeBanner: false,
       navigatorKey: _navigatorKey,
       locale: locale,
+      themeMode: themeMode,
       onGenerateTitle: (context) => AppLocalizations.of(context).text(
         'app.title',
       ),
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      theme: AppTheme.light(locale: locale, orgOverride: orgOverride),
+      darkTheme: AppTheme.dark(locale: locale, orgOverride: orgOverride),
       supportedLocales: AppLocale.supportedLocales,
       localizationsDelegates: const [
         AppLocalizations.delegate,

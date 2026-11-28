@@ -1,0 +1,54 @@
+{
+  "title": "طلبات التوصيل السريع من العملاء",
+  "subtitle": "مراجعة طلبات الأكياس الواردة من تطبيق العميل وتحويلها إلى طلبات مسعّرة في نقطة البيع.",
+  "toggleQueue": "طلبات العملاء ({count})",
+  "refresh": "تحديث",
+  "emptyTitle": "لا توجد طلبات عملاء قيد الانتظار",
+  "emptyDescription": "ستظهر هنا طلبات التوصيل السريع المرسلة من تطبيق CleanMateX Go لمراجعتها وتحويلها.",
+  "loadError": "تعذر تحميل طلبات العملاء.",
+  "status": {
+    "SUBMITTED": "تم الاستلام",
+    "IN_REVIEW": "قيد المراجعة",
+    "AWAITING_CUSTOMER": "بانتظار تأكيد العميل",
+    "CONVERTED": "تم التحويل",
+    "DECLINED": "مرفوض",
+    "CANCELLED": "ملغى"
+  },
+  "collection": {
+    "COLLECT_FROM_ADDRESS": "استلام من عنوان العميل",
+    "DROP_OFF": "تسليم في الفرع"
+  },
+  "delivery": {
+    "DELIVER_ADDRESS": "توصيل إلى عنوان العميل",
+    "STORE_PICKUP": "استلام من الفرع"
+  },
+  "bagsAndPieces": "{bags} أكياس · ~{pieces} قطعة",
+  "declaredItemsCount": "{count} أصناف مصرّح بها",
+  "actions": {
+    "markInReview": "بدء المراجعة",
+    "askCustomer": "طلب تأكيد من العميل",
+    "decline": "رفض",
+    "convertInPos": "تحويل في طلب جديد (POS)",
+    "viewLinkedOrder": "فتح الطلب {orderNo}"
+  },
+  "confirmDeclineTitle": "رفض طلب العميل؟",
+  "confirmDeclineDescription": "سيتم إغلاق هذا الطلب ولن يمكن تحويله لاحقاً إلى طلب تشغيلي.",
+  "messages": {
+    "markedInReview": "تم تحديث حالة الطلب إلى قيد المراجعة.",
+    "askedCustomer": "تم تحديث الحالة إلى بانتظار تأكيد العميل.",
+    "declined": "تم رفض طلب العميل.",
+    "actionFailed": "تعذر تحديث حالة طلب العميل."
+  },
+  "intakeBanner": {
+    "title": "تحويل طلب توصيل سريع من العميل",
+    "verifyHint": "يرجى التحقق من العدد الفعلي وحالة القطع بعد الفحص في الفرع قبل الاعتماد. يتم احتساب الأسعار مباشرة عبر نقطة البيع.",
+    "declaredHintsTitle": "الأصناف المصرّح بها من العميل (استرشادية)",
+    "catalogMatched": "صنف من القائمة",
+    "freeTextHint": "ملاحظة نصية",
+    "alreadyConverted": "تم تحويل هذا الطلب مسبقاً إلى الطلب رقم {orderNo}.",
+    "closedWarning": "هذا الطلب مغلق ({status}) ولا يمكن تحويله.",
+    "pickupAddress": "عنوان الاستلام",
+    "deliveryAddress": "عنوان التوصيل",
+    "customerNotes": "ملاحظات العميل"
+  }
+}

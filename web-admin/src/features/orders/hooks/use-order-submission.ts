@@ -456,6 +456,11 @@ export function useOrderSubmission() {
                     ...(payload.overpaymentResolution && {
                         overpaymentResolution: payload.overpaymentResolution,
                     }),
+                    ...(() => {
+                        if (typeof window === 'undefined') return {};
+                        const reqId = new URLSearchParams(window.location.search).get('requestId')?.trim();
+                        return reqId && /^[0-9a-f-]{36}$/i.test(reqId) ? { sourceRequestId: reqId } : {};
+                    })(),
                     idempotencyKey: idempotencyKeyRef.current,
                 };
 

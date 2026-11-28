@@ -351,8 +351,8 @@
     "fields": {
       "priceOverride": "تجاوز السعر",
       "measuredQty": "المقاس",
-      "measureLength": "الطول",
-      "measureWidth": "العرض",
+      "measureLength": "الطول (م)",
+      "measureWidth": "العرض (م)",
       "preferenceCharge": "رسوم التفضيل",
       "service": "الخدمة",
       "pieceNumber": "رقم القطعة",

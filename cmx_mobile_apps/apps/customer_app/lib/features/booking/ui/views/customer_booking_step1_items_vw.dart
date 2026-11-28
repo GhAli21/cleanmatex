@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile_core/mobile_core.dart';
+import 'package:mobile_domain/mobile_domain.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
@@ -10,8 +10,19 @@ import '../widgets/customer_booking_item_card.dart';
 import '../widgets/customer_booking_search_field_widget.dart';
 import '../widgets/customer_booking_step_header_widget.dart';
 
-class CustomerBookingStep1ItemsVw extends ConsumerWidget {
+/// Step 2/6: Select Items + expandable optional per-piece preferences (showing
+/// extra price) and per-item notes.
+class CustomerBookingStep1ItemsVw extends ConsumerStatefulWidget {
   const CustomerBookingStep1ItemsVw({super.key});
+
+  @override
+  ConsumerState<CustomerBookingStep1ItemsVw> createState() =>
+      _CustomerBookingStep1ItemsVwState();
+}
+
+class _CustomerBookingStep1ItemsVwState
+    extends ConsumerState<CustomerBookingStep1ItemsVw> {
+  int _selectedCategoryIndex = 0;
 
   String _localizedName(
     AppLocalizations l10n,
@@ -36,15 +47,16 @@ class CustomerBookingStep1ItemsVw extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     final booking = ref.watch(customerOrderBookingProvider);
     final notifier = ref.read(customerOrderBookingProvider.notifier);
     final isSearching = booking.itemSearchQuery.isNotEmpty;
-    AppLogger.info(
-      'booking_step1.render categories=${booking.categories.length} '
-      'cartItems=${booking.draft.cartItems.length} searching=$isSearching',
-    );
+
+    if (_selectedCategoryIndex >= booking.categories.length &&
+        booking.categories.isNotEmpty) {
+      _selectedCategoryIndex = 0;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -74,143 +86,114 @@ class CustomerBookingStep1ItemsVw extends ConsumerWidget {
             ),
           )
         else if (isSearching)
-          _buildSearchResults(context, localizations, booking, notifier)
-        else
-          _buildCategoryTabs(context, localizations, booking, notifier),
+          _buildItemList(
+            context,
+            localizations,
+            booking,
+            notifier,
+            booking.filteredItems,
+            emptyTitleKey: 'booking.searchEmptyTitle',
+            emptyBodyKey: 'booking.searchEmptyBody',
+          )
+        else ...[
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (var i = 0; i < booking.categories.length; i++)
+                  Padding(
+                    padding:
+                        const EdgeInsetsDirectional.only(end: AppSpacing.xs),
+                    child: ChoiceChip(
+                      label: Text(
+                        _localizedName(
+                          localizations,
+                          booking.categories[i].name,
+                          booking.categories[i].name2,
+                        ),
+                      ),
+                      selected: i == _selectedCategoryIndex,
+                      onSelected: (_) =>
+                          setState(() => _selectedCategoryIndex = i),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _buildItemList(
+            context,
+            localizations,
+            booking,
+            notifier,
+            booking.categories[_selectedCategoryIndex].items,
+            emptyTitleKey: 'booking.itemsEmptyTitle',
+            emptyBodyKey: 'booking.itemsEmptyBody',
+          ),
+        ],
         const SizedBox(height: AppSpacing.md),
         const CustomerBookingCartSummaryWidget(),
       ],
     );
   }
 
-  Widget _buildSearchResults(
+  Widget _buildItemList(
     BuildContext context,
     AppLocalizations l10n,
     BookingState booking,
     CustomerOrderBookingNotifier notifier,
-  ) {
-    final items = booking.filteredItems;
-    AppLogger.info(
-      'booking_step1.search_results_rendered queryLength=${booking.itemSearchQuery.trim().length} resultCount=${items.length}',
-    );
+    List<BookingCatalogItemModel> items, {
+    required String emptyTitleKey,
+    required String emptyBodyKey,
+  }) {
     if (items.isEmpty) {
       return AppCardWidget(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              l10n.text('booking.searchEmptyTitle'),
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text(l10n.text(emptyTitleKey),
+                style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.text('booking.searchEmptyBody'),
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
+            Text(l10n.text(emptyBodyKey),
+                style: Theme.of(context).textTheme.bodyLarge),
           ],
         ),
       );
     }
 
     return Column(
-      children: items
-          .map(
-            (item) => Padding(
-              padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
-              child: CustomerBookingItemCard(
-                item: item,
-                quantity: booking.draft.cartItems[item.id] ?? 0,
-                onAdd: () => notifier.addItem(item.id),
-                onRemove: () => notifier.removeItem(item.id),
-                unitLabel: _unitLabel(l10n, item.unit),
-                localizedName: _localizedName(l10n, item.name, item.name2),
-                localizedDescription: _localizedName(
-                    l10n, item.description ?? '', item.description2),
-                currencyCode: booking.currencyCode,
-              ),
+      children: items.map((item) {
+        final pieces = booking.piecePreferences[item.id] ?? const [];
+        final firstPiecePrefIds = pieces.isNotEmpty
+            ? pieces.first.servicePreferenceIds
+            : const <String>[];
+        return Padding(
+          padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
+          child: CustomerBookingItemCard(
+            item: item,
+            quantity: booking.draft.cartItems[item.id] ?? 0,
+            onAdd: () => notifier.addItem(item.id),
+            onRemove: () => notifier.removeItem(item.id),
+            unitLabel: _unitLabel(l10n, item.unit),
+            localizedName: _localizedName(l10n, item.name, item.name2),
+            localizedDescription: _localizedName(
+              l10n,
+              item.description ?? '',
+              item.description2,
             ),
-          )
-          .toList(),
-    );
-  }
-
-  Widget _buildCategoryTabs(
-    BuildContext context,
-    AppLocalizations l10n,
-    BookingState booking,
-    CustomerOrderBookingNotifier notifier,
-  ) {
-    final categories = booking.categories;
-    AppLogger.info(
-        'booking_step1.category_tabs_rendered count=${categories.length}');
-
-    return DefaultTabController(
-      length: categories.length,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            tabs: categories
-                .map(
-                  (cat) => Tab(
-                    text: _localizedName(l10n, cat.name, cat.name2),
-                  ),
-                )
-                .toList(),
+            currencyCode: booking.currencyCode,
+            itemNote: booking.draft.itemNotes[item.id] ?? '',
+            onItemNoteChanged: (note) => notifier.setItemNote(item.id, note),
+            servicePreferenceOptions: booking.servicePreferenceOptions,
+            selectedPiecePrefIds: firstPiecePrefIds,
+            onToggleQuickPiecePref: (prefId) {
+              final qty = booking.draft.cartItems[item.id] ?? 1;
+              notifier.initPiecePreferences(item.id, qty);
+              notifier.togglePieceServicePref(item.id, 1, prefId);
+            },
           ),
-          const SizedBox(height: AppSpacing.sm),
-          SizedBox(
-            // Height-bound TabBarView: use shrinkwrap with a fixed height.
-            // Each tab list is short enough that a fixed bound works cleanly.
-            // The outer ListView in the screen handles scrolling.
-            height: _estimateTabHeight(categories
-                .map((c) => c.items.length)
-                .fold(0, (a, b) => a > b ? a : b)),
-            child: TabBarView(
-              children: categories.map((category) {
-                return ListView.builder(
-                  padding: EdgeInsets.zero,
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  itemCount: category.items.length,
-                  itemBuilder: (context, index) {
-                    final item = category.items[index];
-                    return Padding(
-                      padding: const EdgeInsetsDirectional.only(
-                        bottom: AppSpacing.sm,
-                      ),
-                      child: CustomerBookingItemCard(
-                        item: item,
-                        quantity: booking.draft.cartItems[item.id] ?? 0,
-                        onAdd: () => notifier.addItem(item.id),
-                        onRemove: () => notifier.removeItem(item.id),
-                        unitLabel: _unitLabel(l10n, item.unit),
-                        localizedName:
-                            _localizedName(l10n, item.name, item.name2),
-                        localizedDescription: _localizedName(
-                          l10n,
-                          item.description ?? '',
-                          item.description2,
-                        ),
-                        currencyCode: booking.currencyCode,
-                      ),
-                    );
-                  },
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
+        );
+      }).toList(growable: false),
     );
-  }
-
-  // Estimate height based on item count so TabBarView has enough room.
-  double _estimateTabHeight(int maxItems) {
-    const itemCardHeight = 100.0;
-    const itemSpacing = AppSpacing.sm;
-    return (itemCardHeight + itemSpacing) * maxItems.clamp(1, 20);
   }
 }

@@ -445,6 +445,7 @@ model org_branches_mst {
   org_cash_drawer_cnt_mst                                                                      org_cash_drawer_cnt_mst[]
   org_cash_drawer_transit_tr                                                                   org_cash_drawer_transit_tr[]
   org_cash_drawer_trx_mst                                                                      org_cash_drawer_trx_mst[]
+  org_customers_mst                                                                            org_customers_mst[]
   org_dlv_pod_tr                                                                               org_dlv_pod_tr[]
   org_dlv_routes_mst                                                                           org_dlv_routes_mst[]
   org_dlv_slots_mst                                                                            org_dlv_slots_mst[]
@@ -572,80 +573,84 @@ model org_customer_merge_log {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_customers_mst {
-  id                         String                       @id(map: "pk_org_customers_mst") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id              String                       @db.Uuid
-  customer_id                String?                      @db.Uuid
-  name                       String?
-  name2                      String?
-  display_name               String?
-  first_name                 String?
-  last_name                  String?
-  phone                      String?
-  email                      String?
-  type                       String?                      @default("walk_in")
-  address                    String?
-  area                       String?
-  building                   String?
-  floor                      String?
-  preferences                Json?                        @default("{}")
-  customer_source_type       String                       @default("DIRECT")
-  s_date                     DateTime                     @default(now()) @db.Timestamptz(6)
-  loyalty_points             Int?                         @default(0)
-  rec_order                  Int?
-  rec_status                 Int?                         @default(1) @db.SmallInt
-  is_active                  Boolean                      @default(true)
-  rec_notes                  String?
-  created_at                 DateTime?                    @default(now()) @db.Timestamptz(6)
-  created_by                 String?                      @db.Uuid
-  created_info               String?
-  updated_at                 DateTime?                    @db.Timestamptz(6)
-  updated_by                 String?                      @db.Uuid
-  updated_info               String?
-  company_name               String?                      @db.VarChar(255)
-  company_name2              String?                      @db.VarChar(255)
-  tax_id                     String?                      @db.VarChar(50)
-  cr_id                      String?                      @db.VarChar(50)
-  credit_limit               Decimal?                     @db.Decimal(19, 4)
-  payment_terms_days         Int?
-  cost_center_code           String?                      @db.VarChar(50)
-  is_credit_hold             Boolean?                     @default(false)
-  customer_category_id       String?                      @db.Uuid
-  password_hash              String?
-  password_updated_at        DateTime?                    @db.Timestamptz(6)
-  preferred_language         String?                      @db.VarChar(2)
-  tax_party_class_code       String?
-  tax_country                String?
-  is_hidden_by_customer      Boolean                      @default(false)
-  customer_code              String
-  org_ar_appr_policies_cf    org_ar_appr_policies_cf[]
-  org_ar_credit_allocs_dtl   org_ar_credit_allocs_dtl[]
-  org_ar_disputes_mst        org_ar_disputes_mst[]
-  org_ar_dunning_runs_mst    org_ar_dunning_runs_mst[]
-  org_ar_stmt_cycle_cust_dtl org_ar_stmt_cycle_cust_dtl[]
-  org_b2b_contacts_dtl       org_b2b_contacts_dtl[]
-  org_b2b_contracts_mst      org_b2b_contracts_mst[]
-  org_b2b_statements_mst     org_b2b_statements_mst[]
-  org_credit_notes_mst       org_credit_notes_mst[]
-  org_customer_addresses     org_customer_addresses[]
-  org_customer_advances_mst  org_customer_advances_mst[]
-  org_customer_ar_ledger_dtl org_customer_ar_ledger_dtl[]
-  org_customer_audit_dtl     org_customer_audit_dtl[]
-  org_customer_service_prefs org_customer_service_prefs[]
-  org_customer_wallets_mst   org_customer_wallets_mst[]
-  sys_language_cd            sys_language_cd?             @relation(fields: [preferred_language], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_cust_pref_lang")
-  sys_country_cd             sys_country_cd?              @relation(fields: [tax_country], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_ocm_tax_country")
-  sys_tax_party_class_cd     sys_tax_party_class_cd?      @relation(fields: [tax_party_class_code], references: [party_class_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_ocm_tax_party_class")
-  sys_customers_mst          sys_customers_mst?           @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_sys")
-  org_tenants_mst            org_tenants_mst              @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_tenant")
-  org_customer_category_cf   org_customer_category_cf?    @relation(fields: [customer_category_id], references: [id], onUpdate: NoAction, map: "fk_org_cust_category")
-  org_fin_vouchers_mst       org_fin_vouchers_mst[]
-  gc_purchased_by            org_gift_cards_mst[]         @relation("gc_purchased_by")
-  org_invoice_mst            org_invoice_mst[]
-  org_loyalty_accounts_mst   org_loyalty_accounts_mst[]
-  org_ntf_camp_targets_dtl   org_ntf_camp_targets_dtl[]
-  org_ntf_cust_consent_dtl   org_ntf_cust_consent_dtl[]
-  org_ord_requests_mst       org_ord_requests_mst[]
-  org_orders_mst             org_orders_mst[]
+  id                            String                       @id(map: "pk_org_customers_mst") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                 String                       @db.Uuid
+  customer_id                   String?                      @db.Uuid
+  name                          String?
+  name2                         String?
+  display_name                  String?
+  first_name                    String?
+  last_name                     String?
+  phone                         String?
+  email                         String?
+  type                          String?                      @default("walk_in")
+  address                       String?
+  area                          String?
+  building                      String?
+  floor                         String?
+  preferences                   Json?                        @default("{}")
+  customer_source_type          String                       @default("DIRECT")
+  s_date                        DateTime                     @default(now()) @db.Timestamptz(6)
+  loyalty_points                Int?                         @default(0)
+  rec_order                     Int?
+  rec_status                    Int?                         @default(1) @db.SmallInt
+  is_active                     Boolean                      @default(true)
+  rec_notes                     String?
+  created_at                    DateTime?                    @default(now()) @db.Timestamptz(6)
+  created_by                    String?                      @db.Uuid
+  created_info                  String?
+  updated_at                    DateTime?                    @db.Timestamptz(6)
+  updated_by                    String?                      @db.Uuid
+  updated_info                  String?
+  company_name                  String?                      @db.VarChar(255)
+  company_name2                 String?                      @db.VarChar(255)
+  tax_id                        String?                      @db.VarChar(50)
+  cr_id                         String?                      @db.VarChar(50)
+  credit_limit                  Decimal?                     @db.Decimal(19, 4)
+  payment_terms_days            Int?
+  cost_center_code              String?                      @db.VarChar(50)
+  is_credit_hold                Boolean?                     @default(false)
+  customer_category_id          String?                      @db.Uuid
+  password_hash                 String?
+  password_updated_at           DateTime?                    @db.Timestamptz(6)
+  preferred_language            String?                      @db.VarChar(2)
+  tax_party_class_code          String?
+  tax_country                   String?
+  is_hidden_by_customer         Boolean                      @default(false)
+  customer_code                 String
+  last_branch_id                String?                      @db.Uuid
+  default_order_note            String?
+  auto_apply_order_default_note Boolean                      @default(false)
+  org_ar_appr_policies_cf       org_ar_appr_policies_cf[]
+  org_ar_credit_allocs_dtl      org_ar_credit_allocs_dtl[]
+  org_ar_disputes_mst           org_ar_disputes_mst[]
+  org_ar_dunning_runs_mst       org_ar_dunning_runs_mst[]
+  org_ar_stmt_cycle_cust_dtl    org_ar_stmt_cycle_cust_dtl[]
+  org_b2b_contacts_dtl          org_b2b_contacts_dtl[]
+  org_b2b_contracts_mst         org_b2b_contracts_mst[]
+  org_b2b_statements_mst        org_b2b_statements_mst[]
+  org_credit_notes_mst          org_credit_notes_mst[]
+  org_customer_addresses        org_customer_addresses[]
+  org_customer_advances_mst     org_customer_advances_mst[]
+  org_customer_ar_ledger_dtl    org_customer_ar_ledger_dtl[]
+  org_customer_audit_dtl        org_customer_audit_dtl[]
+  org_customer_service_prefs    org_customer_service_prefs[]
+  org_customer_wallets_mst      org_customer_wallets_mst[]
+  sys_language_cd               sys_language_cd?             @relation(fields: [preferred_language], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_cust_pref_lang")
+  org_branches_mst              org_branches_mst?            @relation(fields: [last_branch_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ocm_last_branch_tenant")
+  sys_country_cd                sys_country_cd?              @relation(fields: [tax_country], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_ocm_tax_country")
+  sys_tax_party_class_cd        sys_tax_party_class_cd?      @relation(fields: [tax_party_class_code], references: [party_class_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_ocm_tax_party_class")
+  sys_customers_mst             sys_customers_mst?           @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_sys")
+  org_tenants_mst               org_tenants_mst              @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_tenant")
+  org_customer_category_cf      org_customer_category_cf?    @relation(fields: [customer_category_id], references: [id], onUpdate: NoAction, map: "fk_org_cust_category")
+  org_fin_vouchers_mst          org_fin_vouchers_mst[]
+  gc_purchased_by               org_gift_cards_mst[]         @relation("gc_purchased_by")
+  org_invoice_mst               org_invoice_mst[]
+  org_loyalty_accounts_mst      org_loyalty_accounts_mst[]
+  org_ntf_camp_targets_dtl      org_ntf_camp_targets_dtl[]
+  org_ntf_cust_consent_dtl      org_ntf_cust_consent_dtl[]
+  org_ord_requests_mst          org_ord_requests_mst[]
+  org_orders_mst                org_orders_mst[]
 
   @@unique([tenant_org_id, customer_id], map: "ak_global_customer_id_org_cust")
   @@unique([id, tenant_org_id], map: "uq_org_cust_id_tenant")
@@ -2074,48 +2079,51 @@ model sys_audit_log {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model sys_customers_mst {
-  id                           String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  customer_source_type         String                      @default("DIRECT")
-  first_name                   String?
-  last_name                    String?
-  display_name                 String?
-  name                         String?
-  name2                        String?
-  phone                        String?
-  email                        String?
-  type                         String?                     @default("walk_in")
-  address                      String?
-  area                         String?
-  building                     String?
-  floor                        String?
-  preferences                  Json?                       @default("{}")
-  first_tenant_org_id          String?                     @db.Uuid
-  created_at                   DateTime?                   @default(now()) @db.Timestamp(6)
-  updated_at                   DateTime?                   @default(now()) @db.Timestamp(6)
-  created_by                   String?
-  created_info                 String?
-  updated_by                   String?
-  updated_info                 String?
-  customer_number              String?                     @db.VarChar(50)
-  profile_status               String?                     @default("guest") @db.VarChar(20)
-  phone_verified               Boolean?                    @default(false)
-  email_verified               Boolean?                    @default(false)
-  avatar_url                   String?                     @db.VarChar(500)
-  mobile_e164                  String?
-  email_normalized             String?
-  app_password_hash            String?
-  app_password_changed_at      DateTime?                   @db.Timestamptz(6)
-  app_password_must_change     Boolean                     @default(false)
-  app_temp_password_expires_at DateTime?                   @db.Timestamptz(6)
-  app_failed_sign_in_count     Int                         @default(0) @db.SmallInt
-  app_locked_until             DateTime?                   @db.Timestamptz(6)
-  app_session_version          Int                         @default(1)
-  customer_code                String                      @unique(map: "uq_sys_cust_code")
-  is_active                    Boolean                     @default(true)
-  org_customer_audit_dtl       org_customer_audit_dtl[]
-  org_customers_mst            org_customers_mst[]
-  sys_cust_app_sessions_mst    sys_cust_app_sessions_mst[]
-  sys_customer_audit_dtl       sys_customer_audit_dtl[]
+  id                            String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_source_type          String                       @default("DIRECT")
+  first_name                    String?
+  last_name                     String?
+  display_name                  String?
+  name                          String?
+  name2                         String?
+  phone                         String?
+  email                         String?
+  type                          String?                      @default("walk_in")
+  address                       String?
+  area                          String?
+  building                      String?
+  floor                         String?
+  preferences                   Json?                        @default("{}")
+  first_tenant_org_id           String?                      @db.Uuid
+  created_at                    DateTime?                    @default(now()) @db.Timestamp(6)
+  updated_at                    DateTime?                    @default(now()) @db.Timestamp(6)
+  created_by                    String?
+  created_info                  String?
+  updated_by                    String?
+  updated_info                  String?
+  customer_number               String?                      @db.VarChar(50)
+  profile_status                String?                      @default("guest") @db.VarChar(20)
+  phone_verified                Boolean?                     @default(false)
+  email_verified                Boolean?                     @default(false)
+  avatar_url                    String?                      @db.VarChar(500)
+  mobile_e164                   String?
+  email_normalized              String?
+  app_password_hash             String?
+  app_password_changed_at       DateTime?                    @db.Timestamptz(6)
+  app_password_must_change      Boolean                      @default(false)
+  app_temp_password_expires_at  DateTime?                    @db.Timestamptz(6)
+  app_failed_sign_in_count      Int                          @default(0) @db.SmallInt
+  app_locked_until              DateTime?                    @db.Timestamptz(6)
+  app_session_version           Int                          @default(1)
+  customer_code                 String                       @unique(map: "uq_sys_cust_code")
+  is_active                     Boolean                      @default(true)
+  default_order_note            String?
+  auto_apply_order_default_note Boolean                      @default(false)
+  org_customer_audit_dtl        org_customer_audit_dtl[]
+  org_customers_mst             org_customers_mst[]
+  sys_cust_app_sessions_mst     sys_cust_app_sessions_mst[]
+  sys_customer_addresses_dtl    sys_customer_addresses_dtl[]
+  sys_customer_audit_dtl        sys_customer_audit_dtl[]
 
   @@index([profile_status], map: "idx_customers_status")
   @@schema("public")
@@ -19805,6 +19813,13 @@ model org_ord_requests_mst {
   rec_order                   Int?
   rec_notes                   String?
   is_active                   Boolean                     @default(true)
+  delivery_mode_code          String                      @default("STORE_PICKUP")
+  pickup_address_id           String?                     @db.Uuid
+  pickup_address_source       String?
+  delivery_address_id         String?                     @db.Uuid
+  delivery_address_source     String?
+  delivery_address_snapshot   Json                        @default("{}")
+  estimated_total_bags        Int                         @default(0)
   org_ord_request_lines_dtl   org_ord_request_lines_dtl[]
   org_branches_mst            org_branches_mst?           @relation(fields: [requested_branch_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_orq_branch_tenant")
   org_customers_mst           org_customers_mst           @relation(fields: [customer_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_orq_cust_tenant")
@@ -19884,6 +19899,41 @@ model sys_customer_audit_dtl {
   sys_customers_mst   sys_customers_mst @relation(fields: [sys_customer_id], references: [id], onUpdate: NoAction, map: "fk_sys_cust_aud_cust")
 
   @@index([sys_customer_id, changed_at(sort: Desc)], map: "idx_sys_cust_aud_cust")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_customer_addresses_dtl {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_id       String            @db.Uuid
+  address_type      String?           @default("home")
+  label             String?
+  building          String?
+  floor             String?
+  apartment         String?
+  street            String?
+  area              String?
+  city              String?
+  country           String?
+  postal_code       String?
+  latitude          Decimal?          @db.Decimal(10, 8)
+  longitude         Decimal?          @db.Decimal(11, 8)
+  delivery_notes    String?
+  is_default        Boolean           @default(false)
+  is_active         Boolean           @default(true)
+  rec_status        Int               @default(1) @db.SmallInt
+  rec_order         Int?
+  rec_notes         String?
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+  created_by        String?
+  created_info      String?
+  updated_at        DateTime?         @db.Timestamptz(6)
+  updated_by        String?
+  updated_info      String?
+  sys_customers_mst sys_customers_mst @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_scad_customer")
+
   @@schema("public")
 }
 

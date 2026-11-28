@@ -8,8 +8,11 @@ class CustomerOrderBookingRepository {
 
   final OrderBookingService _bookingService;
 
-  Future<BookingBootstrapModel> loadBootstrap(CustomerSessionModel? session) {
-    return _bookingService.loadBootstrap(session);
+  Future<BookingBootstrapModel> loadBootstrap(
+    CustomerSessionModel? session, {
+    String? branchId,
+  }) {
+    return _bookingService.loadBootstrap(session, branchId: branchId);
   }
 
   Future<BookingConfirmationModel> submit(

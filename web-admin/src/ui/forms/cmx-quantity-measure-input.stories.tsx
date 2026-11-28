@@ -26,5 +26,6 @@ type Story = StoryObj<typeof meta>
 export const Weight: Story = { args: { billedPreview: '3.5 kg' } }
 export const Area: Story = { args: { dimension: 'AREA', unitSymbol: 'm²', qtyDecimals: 2 } }
 export const AreaInFeet: Story = { args: { dimension: 'AREA', unitSymbol: 'm²', lengthSymbol: 'ft', qtyDecimals: 2 } }
+export const AreaTyped: Story = { args: { dimension: 'AREA', unitSymbol: 'ft²', sizeEntry: false, qtyDecimals: 2 } }
 export const WithError: Story = { args: { error: 'Enter the measure' } }
 export const RTL: Story = { decorators: [(Story) => <div dir="rtl"><Story /></div>] }

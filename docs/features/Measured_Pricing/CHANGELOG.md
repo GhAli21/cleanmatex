@@ -2,8 +2,10 @@
 
 ## 2026-11-28
 
-- **Fixed (pricing):** a square-foot or custom area product was measured in metres and charged as its unit. Only
-  square metres and square feet price products now, each measured in its own side unit (0859).
+- **Fixed (pricing):** a square-foot or custom area product was measured in metres and charged as its unit. Any
+  area unit now prices correctly: staff type the area, or length × width in any length unit and the area is worked
+  out in the product's unit (0860). Added square millimetre, centimetre, inch, yard, are, hectare and acre to the
+  system catalog.
 - Edit review shows the measure of a newly added line.
 - Receipts, prints, order page, tracking, money view, cart and customer app show the billed quantity, why it differs
   (minimum or billing step) and the unit price. Tax documents print the invoiced unit.

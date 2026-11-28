@@ -7,12 +7,18 @@ import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
 import '../../../common/ui/widgets/customer_locale_switch_widget.dart';
+import '../../../receipts/ui/widgets/customer_always_light_receipt_sheet_widget.dart';
 import '../../providers/customer_order_detail_provider.dart';
 import '../../providers/customer_order_statement_provider.dart';
 import '../cards/customer_order_statement_card.dart';
-import '../cards/customer_order_timeline_step_card.dart';
 import '../widgets/customer_order_item_row_vw.dart';
 
+/// Order Detail Screen with:
+/// - Flexible N-stage [AppProgressStepperWidget] at the TOP (Horizontal / Vertical
+///   toggle + responsive default, built directly from [order.timeline])
+/// - Counter Pickup QR code when order is Ready
+/// - POS-parity Financial Summary + Server Statement
+/// - 1-tap "View Digital Receipt" opening the Always-Light VAT receipt modal
 class CustomerOrderDetailScreen extends ConsumerWidget {
   const CustomerOrderDetailScreen({
     super.key,
@@ -30,77 +36,51 @@ class CustomerOrderDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations.text('orders.detailTitle')),
-        actions: const [
-          CustomerLocaleSwitchWidget(),
-        ],
+        actions: const [CustomerLocaleSwitchWidget()],
       ),
       body: SafeArea(
         child: async.when(
           data: (order) {
-            AppLogger.info(
-              'order_detail_screen.data_rendered orderNumber=${order.orderNumber}',
+            final statement = ref
+                .watch(customerOrderStatementProvider(orderId))
+                .valueOrNull;
+            return RefreshIndicator(
+              onRefresh: () =>
+                  ref.refresh(customerOrderDetailProvider(orderId).future),
+              child: _OrderDetailBody(
+                order: order,
+                localizations: localizations,
+                statement: statement,
+              ),
             );
-            // P6-12: the server's money statement; null until it loads or when it has no figures.
-            final statement = ref.watch(customerOrderStatementProvider(orderId)).valueOrNull;
-            return _OrderDetailBody(order: order, localizations: localizations, statement: statement);
           },
           error: (e, _) {
-            AppLogger.error(
-              'order_detail_screen.error_rendered orderId=$orderId',
-              error: e,
-            );
             final key = e is AppException
                 ? e.messageKey
                 : 'common.remoteRequestError';
             return ListView(
               padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
-                AppCardWidget(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        localizations.text('orders.detailErrorTitle'),
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        localizations.text(key),
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      SizedBox(
-                        width: double.infinity,
-                        child: AppCustomButtonWidget(
-                          label: localizations.text('orders.retryAction'),
-                          onPressed: () {
-                            AppLogger.info(
-                              'order_detail_screen.retry_requested orderId=$orderId',
-                            );
-                            ref.invalidate(
-                              customerOrderDetailProvider(orderId),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
+                AppErrorWidget(
+                  title: localizations.text('orders.detailErrorTitle'),
+                  message: localizations.text(key),
+                  retryLabel: localizations.text('orders.retryAction'),
+                  onRetry: () =>
+                      ref.invalidate(customerOrderDetailProvider(orderId)),
                 ),
               ],
             );
           },
-          loading: () {
-            AppLogger.info(
-                'order_detail_screen.loading_rendered orderId=$orderId');
-            return ListView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              children: [
-                AppLoadingIndicator(
-                  label: localizations.text('orders.detailLoading'),
-                ),
-              ],
-            );
-          },
+          loading: () => ListView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            children: const [
+              AppSkeletonWidget(height: 150),
+              SizedBox(height: AppSpacing.md),
+              AppSkeletonWidget(height: 120),
+              SizedBox(height: AppSpacing.md),
+              AppSkeletonWidget(height: 160),
+            ],
+          ),
         ),
       ),
     );
@@ -116,8 +96,6 @@ class _OrderDetailBody extends StatelessWidget {
 
   final OrderDetailModel order;
   final AppLocalizations localizations;
-
-  /// The server statement; when present it replaces the plain totals.
   final OrderFinancialStatementModel? statement;
 
   Color _paymentColor(String? status) {
@@ -151,8 +129,6 @@ class _OrderDetailBody extends StatelessWidget {
         : formatted;
   }
 
-  /// A unit price keeps the decimals it carries (up to 6), never fewer than the
-  /// currency's, so a small price per gram is not rounded away.
   String? _formatUnitPrice(
     BuildContext context,
     double? price,
@@ -168,9 +144,41 @@ class _OrderDetailBody extends StatelessWidget {
     return _formatAmount(context, price, currency, digits);
   }
 
+  bool get _isReadyForPickup {
+    final code = order.statusCode.toUpperCase();
+    return code == 'READY' || code == 'OUT_FOR_DELIVERY';
+  }
+
+  List<AppProgressStepItem> _buildStepperItems() {
+    if (order.timeline.isEmpty) {
+      return [
+        AppProgressStepItem(
+          title: localizations.text(order.statusLabelKey),
+          subtitle: order.promisedWindow,
+          isActive: true,
+        ),
+      ];
+    }
+
+    // Find the latest completed stage index.
+    var activeIdx = order.timeline.lastIndexWhere((s) => s.isCompleted);
+    if (activeIdx < 0) activeIdx = 0;
+
+    return [
+      for (var i = 0; i < order.timeline.length; i++)
+        AppProgressStepItem(
+          title: localizations.text(order.timeline[i].titleKey),
+          subtitle: localizations.text(order.timeline[i].descriptionKey),
+          isCompleted: order.timeline[i].isCompleted && i != activeIdx,
+          isActive: i == activeIdx,
+        ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final ext = CmxStatusThemeExtension.of(context);
     final hasFinancials = order.total != null || order.subtotal != null;
     final hasItems = order.items.isNotEmpty;
     final decimals = order.currencyDecimalPlaces;
@@ -179,15 +187,49 @@ class _OrderDetailBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        // Header
-        AppHeaderWidget(
-          title: ltrCode(order.orderNumber),
-          subtitle:
-              '${localizations.text(order.statusLabelKey)} • ${order.promisedWindow}',
+        // Order Code + Status Pill Header
+        Row(
+          children: [
+            AppCodeChipWidget(
+              code: ltrCode(order.orderNumber),
+              copiedFeedbackMessage:
+                  localizations.text('common.copiedToClipboard'),
+            ),
+            const Spacer(),
+            AppStatusBadgeWidget(
+              label: localizations.text(order.statusLabelKey),
+              tone: _isReadyForPickup
+                  ? CmxSemanticTone.success
+                  : CmxSemanticTone.brand,
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        // 1. TOP Flexible N-Stage Horizontal/Vertical Live Tracker!
+        AppProgressStepperWidget(
+          title: localizations.text('orders.timelineTitle'),
+          trailingMeta: order.promisedWindow,
+          steps: _buildStepperItems(),
+          horizontalLabel: localizations.text('tracker.horizontalLabel'),
+          verticalLabel: localizations.text('tracker.verticalLabel'),
         ),
         const SizedBox(height: AppSpacing.lg),
 
-        // Summary card
+        // 2. Pickup QR Code when Ready
+        if (_isReadyForPickup) ...[
+          AppQrCardWidget(
+            payload: 'CMX-PICKUP|${order.orderNumber}',
+            title: localizations.text('orders.readyQrTitle'),
+            subtitle: localizations.text('orders.readyQrSubtitle'),
+            displayCode: ltrCode(order.orderNumber),
+            copiedFeedbackMessage:
+                localizations.text('common.copiedToClipboard'),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+
+        // 3. Summary card
         AppCardWidget(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,17 +246,17 @@ class _OrderDetailBody extends StatelessWidget {
                 ),
                 style: textTheme.bodyLarge,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 localizations.text(order.deliveryModeLabelKey),
-                style: textTheme.bodyLarge,
+                style: textTheme.bodyLarge?.copyWith(color: ext.textMuted),
               ),
             ],
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
 
-        // Financial card
+        // 4. Financial card
         if (hasFinancials || hasItems)
           AppCardWidget(
             accentColor: _paymentColor(order.paymentStatus),
@@ -230,33 +272,21 @@ class _OrderDetailBody extends StatelessWidget {
                       ),
                     ),
                     if (order.paymentStatus != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: 3,
+                      AppStatusBadgeWidget(
+                        label: localizations.text(
+                          'orders.paymentStatus.${order.paymentStatus}',
                         ),
-                        decoration: BoxDecoration(
-                          color: _paymentColor(order.paymentStatus)
-                              .withValues(alpha: 0.10),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          localizations.text(
-                            'orders.paymentStatus.${order.paymentStatus}',
-                          ),
-                          style: textTheme.bodySmall?.copyWith(
-                            color: _paymentColor(order.paymentStatus),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        tone: order.paymentStatus == 'paid'
+                            ? CmxSemanticTone.success
+                            : order.paymentStatus == 'partial'
+                                ? CmxSemanticTone.warning
+                                : CmxSemanticTone.danger,
                       ),
                   ],
                 ),
-
-                // Line items
                 if (hasItems) ...[
                   const SizedBox(height: AppSpacing.md),
-                  const Divider(height: 1, color: AppColors.border),
+                  Divider(height: 1, color: ext.border),
                   const SizedBox(height: AppSpacing.md),
                   ...order.items.map(
                     (item) => Padding(
@@ -279,52 +309,46 @@ class _OrderDetailBody extends StatelessWidget {
                     ),
                   ),
                 ],
-
-                // Totals (server figures); the statement card below replaces them when it loads.
                 if (statement == null) ...[
-                // Totals
-                const SizedBox(height: AppSpacing.sm),
-                const Divider(height: 1, color: AppColors.border),
-                const SizedBox(height: AppSpacing.md),
-
-                if (order.subtotal != null && order.subtotal != order.total)
+                  const SizedBox(height: AppSpacing.sm),
+                  Divider(height: 1, color: ext.border),
+                  const SizedBox(height: AppSpacing.md),
+                  if (order.subtotal != null && order.subtotal != order.total)
+                    _TotalRow(
+                      label: localizations.text('orders.subtotal'),
+                      value: _formatAmount(
+                        context,
+                        order.subtotal,
+                        currency,
+                        decimals,
+                      ),
+                      textTheme: textTheme,
+                    ),
                   _TotalRow(
-                    label: localizations.text('orders.subtotal'),
+                    label: localizations.text('orders.total'),
                     value: _formatAmount(
                       context,
-                      order.subtotal,
+                      order.total,
                       currency,
                       decimals,
                     ),
                     textTheme: textTheme,
+                    isHighlighted: true,
                   ),
-
-                _TotalRow(
-                  label: localizations.text('orders.total'),
-                  value: _formatAmount(
-                    context,
-                    order.total,
-                    currency,
-                    decimals,
-                  ),
-                  textTheme: textTheme,
-                  isHighlighted: true,
-                ),
-
-                if (order.paidAmount != null && order.paidAmount! > 0) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  _TotalRow(
-                    label: localizations.text('orders.paidAmount'),
-                    value: _formatAmount(
-                      context,
-                      order.paidAmount,
-                      currency,
-                      decimals,
+                  if (order.paidAmount != null && order.paidAmount! > 0) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    _TotalRow(
+                      label: localizations.text('orders.paidAmount'),
+                      value: _formatAmount(
+                        context,
+                        order.paidAmount,
+                        currency,
+                        decimals,
+                      ),
+                      textTheme: textTheme,
+                      valueColor: AppColors.success,
                     ),
-                    textTheme: textTheme,
-                    valueColor: AppColors.success,
-                  ),
-                ],
+                  ],
                 ],
               ],
             ),
@@ -337,23 +361,17 @@ class _OrderDetailBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
         ],
 
-        // Timeline card
-        AppCardWidget(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                localizations.text('orders.timelineTitle'),
-                style: textTheme.titleLarge,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ...order.timeline.map(
-                (step) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  child: CustomerOrderTimelineStepCard(step: step),
-                ),
-              ),
-            ],
+        // 5. View Always-Light Digital VAT Receipt CTA
+        SizedBox(
+          width: double.infinity,
+          child: AppCustomButtonWidget(
+            label: localizations.text('receipts.viewDigitalReceiptAction'),
+            icon: Icons.receipt_long_rounded,
+            isPrimary: false,
+            onPressed: () => showCustomerAlwaysLightReceiptSheet(
+              context,
+              orderNo: order.orderNumber,
+            ),
           ),
         ),
       ],
@@ -378,6 +396,7 @@ class _TotalRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ext = CmxStatusThemeExtension.of(context);
     return Row(
       children: [
         Expanded(
@@ -385,13 +404,13 @@ class _TotalRow extends StatelessWidget {
             label,
             style: isHighlighted
                 ? textTheme.titleMedium
-                : textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+                : textTheme.bodyMedium?.copyWith(color: ext.textMuted),
           ),
         ),
         Text(
           value,
           style: isHighlighted
-              ? textTheme.titleMedium?.copyWith(color: AppColors.primary)
+              ? textTheme.titleMedium?.copyWith(color: ext.brandText)
               : textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
                   color: valueColor,

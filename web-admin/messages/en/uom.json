@@ -122,8 +122,7 @@
     "MEASURE_NOT_ALLOWED": "This unit does not take a measure.",
     "UOM_CODE_EXISTS": "You already have a unit with this code.",
     "UOM_CONV_EXISTS": "These two units already have a conversion.",
-    "UOM_CONV_SYSTEM": "A system conversion cannot be deleted. Switch it off instead.",
-    "UOM_AREA_UNSUPPORTED": "Only square metres and square feet can price a product. Choose one of them."
+    "UOM_CONV_SYSTEM": "A system conversion cannot be deleted. Switch it off instead."
   },
   "line": {
     "billed": "billed {qty}",
@@ -152,10 +151,9 @@
     "enterIn": "Enter in",
     "converted": "{entered} = {converted}",
     "keypadDecimal": "Decimal point",
-    "side": {
-      "M": "m",
-      "FT": "ft"
-    }
+    "enterAs": "Enter as",
+    "bySize": "Length × width",
+    "byArea": "Area ({unit})"
   },
   "product": {
     "minBillable": "Minimum billable ({unit})",

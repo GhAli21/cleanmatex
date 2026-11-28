@@ -31,7 +31,7 @@ import { uomSymbol } from '@/lib/uom/format'
 import { ProductSpeedPricingSection } from './product-speed-pricing-section'
 
 import { CmxStatusBadge } from '@ui/feedback';
-import { canBeProductUnit, UOM_DIMENSIONS } from '@/lib/constants/uom'
+import { UOM_DIMENSIONS } from '@/lib/constants/uom'
 import { FileAttachments, useFileAttachments } from '@features/file-util'
 import { FILE_CATEGORIES, FILE_SOURCES } from '@/lib/constants/file-util'
 import { useHasPermission } from '@/lib/hooks/use-has-permission'
@@ -381,7 +381,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
               {({ id, describedBy, invalid, value, onChange }) => (
                 <CmxUomSelect
                   id={id}
-                  units={units.filter((u) => canBeProductUnit(u) || u.code === value)}
+                  units={units}
                   value={String(value ?? '')}
                   onChange={onChange}
                   aria-describedby={describedBy}

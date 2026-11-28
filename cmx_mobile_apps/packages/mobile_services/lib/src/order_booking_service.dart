@@ -43,6 +43,7 @@ class BookingBootstrapModel {
     this.vatRate = 0.0,
     this.currencyCode = 'OMR',
     this.serviceSpeeds = const [],
+    this.customerProfile,
   });
 
   final bool bookingEnabled;
@@ -57,6 +58,7 @@ class BookingBootstrapModel {
   final double vatRate;
   final String currencyCode;
   final List<BookingServiceSpeedModel> serviceSpeeds;
+  final CustomerProfileModel? customerProfile;
 }
 
 class OrderBookingService {
@@ -74,8 +76,9 @@ class OrderBookingService {
   }
 
   Future<BookingBootstrapModel> loadBootstrap(
-    CustomerSessionModel? session,
-  ) async {
+    CustomerSessionModel? session, {
+    String? branchId,
+  }) async {
     if (!_useRemoteBooking(session)) {
       return BookingBootstrapModel(
         bookingEnabled: true,
@@ -88,8 +91,13 @@ class OrderBookingService {
         pickupPreferences: _demoPickupPreferences,
         vatRate: 0.05,
         currencyCode: 'OMR',
+        serviceSpeeds: _demoServiceSpeeds,
+        customerProfile: _demoCustomerProfile,
       );
     }
+
+    final effectiveBranchId =
+        (branchId != null && branchId.isNotEmpty) ? branchId : session!.branchId;
 
     try {
       final payload = await _httpClient.getJson(
@@ -97,8 +105,7 @@ class OrderBookingService {
         headers: {'Authorization': 'Bearer ${session!.verificationToken}'},
         queryParameters: {
           'tenantId': session.tenantOrgId!,
-          if ((session.branchId ?? '').isNotEmpty)
-            'branchId': session.branchId!,
+          if ((effectiveBranchId ?? '').isNotEmpty) 'branchId': effectiveBranchId!,
         },
       );
 
@@ -141,6 +148,11 @@ class OrderBookingService {
           .where((kind) => kind.kindCode.isNotEmpty)
           .toList(growable: false);
 
+      final rawProfile = data['customerProfile'];
+      final customerProfile = rawProfile is Map<String, Object?>
+          ? CustomerProfileModel.fromJson(rawProfile)
+          : null;
+
       return BookingBootstrapModel(
         bookingEnabled: data['bookingEnabled'] != false,
         disabledReasonKey: data['disabledReasonKey'] as String?,
@@ -158,6 +170,7 @@ class OrderBookingService {
             .map(BookingServiceSpeedModel.fromJson)
             .where((speed) => speed.code.isNotEmpty)
             .toList(growable: false),
+        customerProfile: customerProfile,
       );
     } on MobileHttpException catch (error) {
       throw OrderBookingServiceException(
@@ -189,18 +202,26 @@ class OrderBookingService {
     }
 
     try {
+      final effectiveBranchId =
+          (draft.branchId != null && draft.branchId!.isNotEmpty)
+              ? draft.branchId
+              : session!.branchId;
       final payload = await _httpClient.postJson(
         '/api/v1/public/customer/booking',
         headers: {'Authorization': 'Bearer ${session!.verificationToken}'},
         body: {
           'tenantId': session.tenantOrgId!,
-          if ((session.branchId ?? '').isNotEmpty) 'branchId': session.branchId,
+          if ((effectiveBranchId ?? '').isNotEmpty)
+            'branchId': effectiveBranchId,
           // kept for backend transition compatibility
           'serviceId': draft.service?.id,
           'fulfillmentType': fulfillmentType,
+          'pickupMode': draft.pickupMode.wireValue,
+          'deliveryMode': draft.deliveryMode.wireValue,
           // new item-based fields
           'items': draft.cartItems.entries.map((e) {
             final qty = e.value;
+            final itemNote = (draft.itemNotes[e.key] ?? '').trim();
             final rawPieces = draft.piecePreferences[e.key] ??
                 List.generate(
                   qty,
@@ -210,6 +231,7 @@ class OrderBookingService {
             return {
               'itemId': e.key,
               'qty': qty,
+              if (itemNote.isNotEmpty) 'notes': itemNote,
               'pieces': rawPieces
                   .map((p) => {
                         'pieceSeq': p.pieceSeq,
@@ -224,12 +246,29 @@ class OrderBookingService {
           }).toList(),
           'servicePreferenceIds': draft.selectedServicePreferenceIds,
           'pickupPreferenceIds': draft.selectedPickupPreferenceIds,
-          'isPickupFromAddress': draft.isPickupFromAddress,
+          'applyProfilePrefsToAll': draft.applyProfilePrefsToAll,
+          if (draft.preferencesNote.trim().isNotEmpty)
+            'preferencesNote': draft.preferencesNote.trim(),
+          'isPickupFromAddress':
+              draft.pickupMode == CustomerPickupMode.collectAddress ||
+                  draft.isPickupFromAddress,
           'isAsap': draft.isAsap,
           'scheduledAt': draft.scheduledAt?.toIso8601String(),
           'addressId': draft.address?.id,
+          if (draft.address?.id != null) 'pickupAddressId': draft.address?.id,
+          if ((draft.deliveryAddress ?? draft.address)?.id != null)
+            'deliveryAddressId': (draft.deliveryAddress ?? draft.address)?.id,
           'slotId': draft.slot?.id,
           'notes': draft.notes.trim(),
+          if (draft.promoCode.trim().isNotEmpty)
+            'promoCode': draft.promoCode.trim(),
+          if (draft.giftCardCode.trim().isNotEmpty)
+            'giftCardNumber': draft.giftCardCode.trim(),
+          if (draft.paymentNotes.trim().isNotEmpty)
+            'paymentNotes': draft.paymentNotes.trim(),
+          if (draft.generalOrderNote.trim().isNotEmpty)
+            'generalOrderNote': draft.generalOrderNote.trim(),
+          'saveGeneralNoteForFuture': draft.saveGeneralNoteForFuture,
           if (draft.serviceSpeed != null) 'serviceSpeed': draft.serviceSpeed,
         },
       );
@@ -385,6 +424,48 @@ class OrderBookingService {
   }
 
   // ── Demo data ────────────────────────────────────────────────────────────
+
+  static const _demoServiceSpeeds = <BookingServiceSpeedModel>[
+    BookingServiceSpeedModel(
+      code: 'STANDARD',
+      name: 'Standard',
+      name2: 'عادي',
+      description: 'Ready in 24-48 hours',
+      description2: 'جاهز خلال ٢٤-٤٨ ساعة',
+    ),
+    BookingServiceSpeedModel(
+      code: 'EXPRESS',
+      name: 'Express',
+      name2: 'سريع',
+      description: 'Priority turnaround (same/next day)',
+      description2: 'أولوية في التنفيذ (نفس اليوم أو الغد)',
+    ),
+  ];
+
+  static const _demoCustomerProfile = CustomerProfileModel(
+    orgCustomerId: 'demo-org-customer',
+    sysCustomerId: 'demo-sys-customer',
+    hasSysCustomerId: true,
+    customerCode: 'CUST-004821',
+    name: 'Ahmed Al-Harthi',
+    name2: 'أحمد الحارثي',
+    displayName: 'Ahmed Al-Harthi',
+    mobile: '+96891234567',
+    mobileVerified: true,
+    email: 'ahmed.alharthi@example.om',
+    emailVerified: true,
+    preferences: {
+      'finishing': 'hanger',
+      'starch': 'light',
+      'detergent': 'standard',
+      'fragrance': true,
+    },
+    defaultOrderNote: 'Please call 10 mins before arriving at Villa gate #14.',
+    autoApplyOrderDefaultNote: true,
+    lastBranchId: 'demo-main-branch',
+    lastBranchName: 'Al Khuwair Main',
+    lastBranchName2: 'الفرع الرئيسي - الخوير',
+  );
 
   static const _demoServices = <ServiceOptionModel>[
     ServiceOptionModel(

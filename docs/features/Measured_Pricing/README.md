@@ -44,12 +44,11 @@ laundry per kg), on a unit catalog shared by sales and inventory. Covers the ten
 | 0850 | Active templates cannot use a switched-off unit |
 | 0852 | Catalog seeding copies `base_uom_code`; column defaults |
 | 0853 | Legacy `product_unit` and `requires_*` columns removed |
-| 0859 | Only SQM and SQFT area units on products, templates and measured lines (not yet applied) |
+| 0860 | Any area unit: area typed or worked out from a size in metres; SQMM, SQCM, SQIN, SQYD, ARE, HA, ACRE in the catalog |
 
 ## Limits
 
-- Area products are priced per square metre (length and width in metres) or square foot (in feet). No other area
-  unit can price a product.
+- Square kilometre and square mile are not in the catalog: at 6 decimals a small item would round to double.
 - Measured products are not offered in the customer app booking (owner decision 2026-11-27).
 - Prices are stated per the product's base unit only.
 - A measure is a line fact (total of all pieces), like the line price.

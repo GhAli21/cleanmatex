@@ -727,6 +727,8 @@ export type ClientTotals = z.infer<typeof clientTotalsSchema>;
 export const submitOrderRequestSchema = createWithPaymentRequestSchema
   .extend({
     idempotencyKey: z.string().min(1, 'idempotencyKey is required on submit-order'),
+    /** Originating customer Fast Quick Drop request UUID when converting in POS New Order. */
+    sourceRequestId: z.string().uuid().optional().nullable(),
     /** Explicit routing of checkout excess — ADR-047 / sys_fin_overpay_res_cd. */
     overpaymentResolution: overpaymentResolutionSchema.optional(),
     /** @deprecated Use overpaymentResolution */

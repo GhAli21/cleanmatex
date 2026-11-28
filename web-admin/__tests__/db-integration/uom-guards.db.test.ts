@@ -201,25 +201,6 @@ describe('Unit guards (local PostgreSQL)', () => {
     await expect(pair('BOX', 'PC', 12, 0.083333333333)).rejects.toThrow(CHECK_VIOLATION);
   });
 
-  dbit('only square metres and square feet can price a product or carry a length and width (0859)', async () => {
-    const [guard] = await prisma.$queryRaw<Array<{ applied: boolean }>>`
-      SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_prod_uom_3_area') AS applied`;
-    if (!guard.applied) { console.warn('SKIPPED (migration 0859 not applied here)'); return; }
-    const customArea = async (tx: Tx) => {
-      await tx.$executeRaw`INSERT INTO public.org_uom_cf (tenant_org_id, uom_code, name, symbol, uom_dimension, qty_decimals)
-        VALUES (${tenantId}::uuid, 'BLOCK_T', 'Block', 'blk', 'AREA', 2)`;
-      await tx.$executeRaw`INSERT INTO public.org_uom_conv_cf (tenant_org_id, from_uom_code, to_uom_code, multiply_rate, divide_rate)
-        VALUES (${tenantId}::uuid, 'BLOCK_T', 'SQM', 4, 0.25)`;
-    };
-    await expect(inRollback(async (tx) => { await customArea(tx); await addProduct(tx, 'BLOCK_T'); })).rejects.toThrow(CHECK_VIOLATION);
-    await expect(inRollback(async (tx) => {
-      await customArea(tx);
-      const id = await addProduct(tx, 'PC');
-      await tx.$executeRaw`UPDATE public.org_product_data_mst SET base_uom_code = 'BLOCK_T' WHERE tenant_org_id = ${tenantId}::uuid AND id = ${id}::uuid`;
-    })).rejects.toThrow(CHECK_VIOLATION);
-    await expect(inRollback(async (tx) => { await addProduct(tx, 'SQFT'); await addProduct(tx, 'SQM'); return true; })).resolves.toBe(true);
-  });
-
   dbit('the database accepts only the billed quantity the rules give', async () => {
     /** One kg line with minimum 3 and step 0.5 on a throwaway order. */
     const line = (measured: number | null, billed: number | null, options: { unitCode?: string; length?: number; width?: number } = {}) =>
@@ -253,8 +234,26 @@ describe('Unit guards (local PostgreSQL)', () => {
     await expect(line(2, null)).rejects.toThrow(CHECK_VIOLATION); // measured but nothing billed
     await expect(line(1.2345, 3)).rejects.toThrow(CHECK_VIOLATION); // more decimals than kg allows
     await expect(line(6, 6, { unitCode: 'SQM', length: 2, width: 3 })).resolves.toBe(true);
-    await expect(line(7, 7, { unitCode: 'SQM', length: 2, width: 3 })).rejects.toThrow(CHECK_VIOLATION); // not length × width
     await expect(line(2, 2, { unitCode: 'PC' })).rejects.toThrow(CHECK_VIOLATION); // a count line is not measured
     await expect(line(80, 80, { unitCode: 'SQFT', length: 8, width: 10 })).resolves.toBe(true); // feet on square feet
+
+    // 0860: any area unit; the area is typed or worked out from a size kept in metres.
+    const [catalog] = await prisma.$queryRaw<Array<{ applied: boolean }>>`
+      SELECT EXISTS (SELECT 1 FROM public.sys_uom_cd WHERE uom_code = 'HA') AS applied`;
+    if (!catalog.applied) { console.warn('SKIPPED 0860 cases (migration 0860 not applied here)'); return; }
+    await expect(line(6, 6, { unitCode: 'SQM' })).resolves.toBe(true); // area typed, no size
+    await expect(line(64.58, 64.58, { unitCode: 'SQFT', length: 2, width: 3 })).resolves.toBe(true); // 2 m × 3 m in ft²
+    await expect(line(6, 6, { unitCode: 'SQM', length: 2 })).rejects.toThrow(CHECK_VIOLATION); // one side only
+    await expect(line(6.123, 6.123, { unitCode: 'SQM' })).rejects.toThrow(CHECK_VIOLATION); // more decimals than m² allows
+  });
+
+  dbit('the system catalog offers the common area units, each converting to square metres (0860)', async () => {
+    const rows = await prisma.$queryRaw<Array<{ uom_code: string; ok: boolean }>>`
+      SELECT u.uom_code, (c.multiply_rate * c.divide_rate - 1) BETWEEN -0.000001 AND 0.000001 AS ok
+        FROM public.sys_uom_cd u JOIN public.sys_uom_conv_cd c ON c.from_uom_code = u.uom_code AND c.to_uom_code = 'SQM'
+       WHERE u.uom_code IN ('SQMM', 'SQCM', 'SQIN', 'SQYD', 'ARE', 'HA', 'ACRE') AND u.uom_dimension = 'AREA' AND NOT u.is_to_seed`;
+    if (rows.length === 0) { console.warn('SKIPPED (migration 0860 not applied here)'); return; }
+    expect(rows.map((r) => r.uom_code).sort()).toEqual(['ACRE', 'ARE', 'HA', 'SQCM', 'SQIN', 'SQMM', 'SQYD']);
+    expect(rows.every((r) => r.ok)).toBe(true);
   });
 });

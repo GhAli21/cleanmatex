@@ -29,6 +29,8 @@ export interface CmxQuantityMeasureInputProps {
   unitSymbol: string;
   /** Area only: the unit length and width are typed in (already localized), e.g. m or ft; metres when omitted. */
   lengthSymbol?: string;
+  /** Area only: false shows the single area field instead of length × width. Default true. */
+  sizeEntry?: boolean;
   /** Decimals the typed unit allows. */
   qtyDecimals: number;
   value: MeasureValue;
@@ -45,11 +47,11 @@ type Field = keyof MeasureValue;
  * @param props - {@link CmxQuantityMeasureInputProps}
  * @returns One measure field, or length × width for an area unit, with an optional keypad
  */
-export function CmxQuantityMeasureInput({ dimension, unitSymbol, lengthSymbol, qtyDecimals, value, onChange, billedPreview, error, disabled }: CmxQuantityMeasureInputProps) {
+export function CmxQuantityMeasureInput({ dimension, unitSymbol, lengthSymbol, sizeEntry = true, qtyDecimals, value, onChange, billedPreview, error, disabled }: CmxQuantityMeasureInputProps) {
   const t = useTranslations('uom.measure');
   const isRTL = useRTL();
   const errorId = useId();
-  const isArea = dimension === UOM_DIMENSIONS.AREA;
+  const isArea = dimension === UOM_DIMENSIONS.AREA && sizeEntry;
   const [keypadOpen, setKeypadOpen] = useState(false);
   const [focused, setFocused] = useState<Field | null>(null);
   const keypadButtonRef = useRef<HTMLButtonElement>(null);

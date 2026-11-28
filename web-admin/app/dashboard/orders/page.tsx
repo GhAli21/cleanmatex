@@ -19,6 +19,7 @@ import { OrderStatsCards } from '@features/orders/ui/order-stats-cards';
 import { OrderFiltersBar } from '@features/orders/ui/order-filters-bar';
 import { OrdersSimpleTable } from '@features/orders/ui/orders-simple-table';
 import { OrdersRefreshButton } from '@features/orders/ui/orders-refresh-button';
+import { OrderRequestsQueuePanel } from '@features/orders/ui/order-requests-queue-panel';
 import { CmxCrudPageShell } from '@ui/patterns/cmx-crud-page-shell';
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { CmxButton, CmxSkeletonTable } from '@ui/primitives';
@@ -193,6 +194,8 @@ export default async function OrdersPage({ searchParams }: PageProps) {
       kpis={statsData ? <OrderStatsCards stats={statsData} currentFilters={params} /> : undefined}
       filters={<OrderFiltersBar currentFilters={params} />}
     >
+      {/* Incoming Customer App Fast Quick Drop requests queue */}
+      <OrderRequestsQueuePanel />
       {/* G8: say why times show "—"; D20: display-only viewer-zone choice for Ready By. */}
       <ViewZoneProvider screenKey="orders-list">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

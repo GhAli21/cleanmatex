@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_core/mobile_core.dart';
@@ -5,7 +7,8 @@ import 'package:mobile_domain/mobile_domain.dart';
 import 'package:mobile_services/mobile_services.dart';
 
 import '../../../core/app_shell_controller.dart';
-import '../../../core/providers/app_dependencies.dart';
+import '../../../core/providers/customer_api_client_providers.dart';
+import '../../tenant/providers/tenant_provider.dart';
 import '../data/repositories/customer_order_booking_repository.dart';
 
 const _notesMaxLength = 500;
@@ -23,10 +26,12 @@ class BookingState {
     this.isLoading = true,
     this.isSubmitting = false,
     this.isSavingAddress = false,
+    this.isLoadingQuote = false,
     this.isBookingEnabled = true,
     this.disabledReasonKey,
     this.stepIndex = 0,
     this.errorMessageKey,
+    this.quoteErrorMessageKey,
     this.validationIssueKeys = const [],
     this.submittedOrderNumber,
     this.submittedPromisedWindow,
@@ -44,20 +49,30 @@ class BookingState {
     this.vatRate = 0.0,
     this.serviceSpeeds = const [],
     this.currencyCode = 'OMR',
+    this.customerProfile,
+    this.serverQuote,
   });
 
   final bool isLoading;
   final bool isSubmitting;
   final bool isSavingAddress;
+  final bool isLoadingQuote;
   final bool isBookingEnabled;
   final String? disabledReasonKey;
+
+  /// 6-step Detailed Order index (0..5):
+  /// 0 = Fulfillment & Branch (mandatory)
+  /// 1 = Select Items + per-piece prefs + per-item notes
+  /// 2 = Predefined Profile Preferences + master toggle + preferences note
+  /// 3 = Schedule & Speed + Estimated Ready-By
+  /// 4 = Promo, Gift Card, Payment Notes & General Order Note
+  /// 5 = POS-Parity Server-Priced Review
   final int stepIndex;
   final String? errorMessageKey;
+  final String? quoteErrorMessageKey;
   final List<String> validationIssueKeys;
   final String? submittedOrderNumber;
   final String? submittedPromisedWindow;
-
-  /// The server's total for the confirmed booking (decimal text), and its currency.
   final String? submittedTotalAmount;
   final String? submittedCurrencyCode;
   final OrderBookingDraftModel draft;
@@ -72,8 +87,11 @@ class BookingState {
   final double vatRate;
   final List<BookingServiceSpeedModel> serviceSpeeds;
   final String currencyCode;
+  final CustomerProfileModel? customerProfile;
+  final PosQuoteBreakdownModel? serverQuote;
 
-  // ── Computed getters ────────────────────────────────────────────────────
+  static const int totalSteps = 6;
+  static const int reviewStepIndex = 5;
 
   Map<String, List<BookingPiecePreferenceModel>> get piecePreferences =>
       draft.piecePreferences;
@@ -86,12 +104,11 @@ class BookingState {
   bool get isDirty =>
       draft.cartItems.isNotEmpty ||
       draft.service != null ||
-      draft.address != null ||
-      draft.slot != null ||
       draft.notes.trim().isNotEmpty ||
-      draft.selectedServicePreferenceIds.isNotEmpty ||
-      draft.selectedPickupPreferenceIds.isNotEmpty ||
-      draft.isPickupFromAddress;
+      draft.generalOrderNote.trim().isNotEmpty ||
+      draft.promoCode.trim().isNotEmpty ||
+      draft.giftCardCode.trim().isNotEmpty ||
+      stepIndex > 0;
 
   int get totalItemCount =>
       draft.cartItems.values.fold(0, (sum, qty) => sum + qty);
@@ -99,6 +116,9 @@ class BookingState {
   bool get hasCartItems => draft.cartItems.isNotEmpty;
 
   double get estimatedSubtotal {
+    if (serverQuote != null && serverQuote!.subtotal > 0) {
+      return serverQuote!.subtotal;
+    }
     var total = 0.0;
     for (final category in categories) {
       for (final item in category.items) {
@@ -116,9 +136,14 @@ class BookingState {
     return total;
   }
 
-  double get estimatedVat => estimatedSubtotal * vatRate;
+  double get estimatedVat => serverQuote != null && serverQuote!.orderTotal > 0
+      ? serverQuote!.taxTotal
+      : estimatedSubtotal * vatRate;
 
-  double get estimatedTotal => estimatedSubtotal + estimatedVat;
+  double get estimatedTotal =>
+      serverQuote != null && serverQuote!.orderTotal > 0
+          ? serverQuote!.orderTotal
+          : estimatedSubtotal + estimatedVat;
 
   int get selectedPreferenceCount =>
       draft.selectedServicePreferenceIds.length +
@@ -215,21 +240,30 @@ class BookingState {
 
   List<String> get submitValidationIssueKeys {
     final issues = <String>[];
+    if ((draft.branchId ?? '').isEmpty) {
+      issues.add('booking.missingBranchDetail');
+    }
     if (draft.cartItems.isEmpty) {
       issues.add('booking.missingItemsDetail');
     }
-    if (draft.isPickupFromAddress) {
-      if (draft.address == null) {
-        issues.add('booking.missingAddressDetail');
-      }
-      if (!draft.isAsap && draft.scheduledAt == null) {
-        issues.add('booking.missingScheduleDetail');
-      }
+    final needsPickupAddress =
+        draft.pickupMode == CustomerPickupMode.collectAddress;
+    final needsDeliveryAddress =
+        draft.deliveryMode == CustomerDeliveryMode.deliverAddress;
+    if (needsPickupAddress && draft.address == null) {
+      issues.add('booking.missingAddressDetail');
+    }
+    if (needsDeliveryAddress &&
+        (draft.deliveryAddress ?? draft.address) == null &&
+        !issues.contains('booking.missingAddressDetail')) {
+      issues.add('booking.missingAddressDetail');
+    }
+    if (needsPickupAddress && !draft.isAsap && draft.scheduledAt == null) {
+      issues.add('booking.missingScheduleDetail');
     }
     return issues;
   }
 
-  /// Returns the flat list of all items matching the current [itemSearchQuery].
   List<BookingCatalogItemModel> get filteredItems {
     if (itemSearchQuery.isEmpty) return const [];
     final query = itemSearchQuery.toLowerCase();
@@ -249,19 +283,27 @@ class BookingState {
     return result;
   }
 
-  /// Backward-compat fulfillment string for the submit body.
-  String get fulfillmentType =>
-      draft.isPickupFromAddress ? 'pickup' : 'bring_in';
+  String get fulfillmentType {
+    final collect = draft.pickupMode == CustomerPickupMode.collectAddress;
+    final deliver = draft.deliveryMode == CustomerDeliveryMode.deliverAddress;
+    if (collect && deliver) return 'collection_and_delivery';
+    if (collect && !deliver) return 'home_collection';
+    if (!collect && deliver) return 'delivery';
+    return 'bring_in';
+  }
 
   BookingState copyWith({
     bool? isLoading,
     bool? isSubmitting,
     bool? isSavingAddress,
+    bool? isLoadingQuote,
     bool? isBookingEnabled,
     String? disabledReasonKey,
     int? stepIndex,
     String? errorMessageKey,
     bool clearErrorMessage = false,
+    String? quoteErrorMessageKey,
+    bool clearQuoteError = false,
     List<String>? validationIssueKeys,
     bool clearValidationIssues = false,
     String? submittedOrderNumber,
@@ -280,16 +322,23 @@ class BookingState {
     double? vatRate,
     List<BookingServiceSpeedModel>? serviceSpeeds,
     String? currencyCode,
+    CustomerProfileModel? customerProfile,
+    PosQuoteBreakdownModel? serverQuote,
+    bool clearServerQuote = false,
   }) {
     return BookingState(
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isSavingAddress: isSavingAddress ?? this.isSavingAddress,
+      isLoadingQuote: isLoadingQuote ?? this.isLoadingQuote,
       isBookingEnabled: isBookingEnabled ?? this.isBookingEnabled,
       disabledReasonKey: disabledReasonKey ?? this.disabledReasonKey,
       stepIndex: stepIndex ?? this.stepIndex,
       errorMessageKey:
           clearErrorMessage ? null : (errorMessageKey ?? this.errorMessageKey),
+      quoteErrorMessageKey: clearQuoteError
+          ? null
+          : (quoteErrorMessageKey ?? this.quoteErrorMessageKey),
       validationIssueKeys: clearValidationIssues
           ? const []
           : (validationIssueKeys ?? this.validationIssueKeys),
@@ -313,13 +362,21 @@ class BookingState {
       vatRate: vatRate ?? this.vatRate,
       serviceSpeeds: serviceSpeeds ?? this.serviceSpeeds,
       currencyCode: currencyCode ?? this.currencyCode,
+      customerProfile: customerProfile ?? this.customerProfile,
+      serverQuote:
+          clearServerQuote ? null : (serverQuote ?? this.serverQuote),
     );
   }
 }
 
 class CustomerOrderBookingNotifier extends Notifier<BookingState> {
+  Timer? _quoteDebounce;
+
   @override
   BookingState build() {
+    ref.onDispose(() {
+      _quoteDebounce?.cancel();
+    });
     return const BookingState();
   }
 
@@ -330,9 +387,18 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
 
   // ── Load ────────────────────────────────────────────────────────────────
 
-  Future<void> load() async {
+  Future<void> load({String? branchIdOverride}) async {
+    final tenant = ref.read(tenantProvider).valueOrNull;
+    final initialBranchId = branchIdOverride ??
+        state.draft.branchId ??
+        tenant?.lastBranchId ??
+        (tenant != null && tenant.branches.isNotEmpty
+            ? tenant.branches.first.id
+            : _session?.branchId);
+
     AppLogger.info(
-      'booking_provider.load_started hasSession=${_session != null} tenant=${_session?.tenantOrgId ?? 'none'}',
+      'booking_provider.load_started hasSession=${_session != null} '
+      'tenant=${_session?.tenantOrgId ?? 'none'} branch=$initialBranchId',
     );
     state = state.copyWith(
       isLoading: true,
@@ -340,7 +406,21 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       clearValidationIssues: true,
     );
     try {
-      final bootstrap = await _repo.loadBootstrap(_session);
+      final bootstrap = await _repo.loadBootstrap(
+        _session,
+        branchId: initialBranchId,
+      );
+      final resolvedBranchId = initialBranchId ??
+          bootstrap.customerProfile?.lastBranchId ??
+          (tenant != null && tenant.branches.isNotEmpty
+              ? tenant.branches.first.id
+              : null);
+      final defaultAddr = _defaultAddress(bootstrap.addresses);
+      final profile = bootstrap.customerProfile;
+      final autoNote = (profile?.autoApplyOrderDefaultNote == true)
+          ? (profile?.defaultOrderNote ?? '')
+          : '';
+
       state = state.copyWith(
         isLoading: false,
         isBookingEnabled: bootstrap.bookingEnabled,
@@ -355,10 +435,19 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
         vatRate: bootstrap.vatRate,
         serviceSpeeds: bootstrap.serviceSpeeds,
         currencyCode: bootstrap.currencyCode,
+        customerProfile: profile,
         draft: _draftWithOfferedSpeed(
           state.draft.copyWith(
-            address:
-                state.draft.address ?? _defaultAddress(bootstrap.addresses),
+            branchId: resolvedBranchId,
+            address: state.draft.address ?? defaultAddr,
+            deliveryAddress: state.draft.deliveryAddress ?? defaultAddr,
+            isPickupFromAddress:
+                state.draft.pickupMode == CustomerPickupMode.collectAddress,
+            generalOrderNote: state.draft.generalOrderNote.isEmpty
+                ? autoNote
+                : state.draft.generalOrderNote,
+            saveGeneralNoteForFuture:
+                profile?.autoApplyOrderDefaultNote ?? false,
           ),
           bootstrap.serviceSpeeds,
         ),
@@ -366,10 +455,7 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       AppLogger.info(
         'booking_provider.load_succeeded '
         'categories=${bootstrap.categories.length} '
-        'preferenceKinds=${bootstrap.preferenceKinds.length} '
-        'addresses=${bootstrap.addresses.length} '
-        'servicePrefs=${bootstrap.servicePreferences.length} '
-        'pickupPrefs=${bootstrap.pickupPreferences.length}',
+        'addresses=${bootstrap.addresses.length} branch=$resolvedBranchId',
       );
     } catch (error, stackTrace) {
       AppLogger.error(
@@ -385,17 +471,55 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     }
   }
 
-  // ── Step 1 — Item cart ──────────────────────────────────────────────────
+  // ── Step 0 — Fulfillment & Branch ───────────────────────────────────────
+
+  Future<void> chooseBranch(String? branchId) async {
+    if (branchId == null || branchId.isEmpty) return;
+    final changed = state.draft.branchId != branchId;
+    state = state.copyWith(
+      draft: state.draft.copyWith(branchId: branchId),
+      clearServerQuote: changed,
+    );
+    if (changed && state.categories.isNotEmpty) {
+      // Mid-draft branch change reloads branch-scoped pricing/catalog & quote.
+      await load(branchIdOverride: branchId);
+      scheduleQuoteRefresh();
+    }
+  }
+
+  void setPickupMode(CustomerPickupMode mode) {
+    state = state.copyWith(
+      draft: state.draft.copyWith(
+        pickupMode: mode,
+        isPickupFromAddress: mode == CustomerPickupMode.collectAddress,
+      ),
+    );
+    scheduleQuoteRefresh();
+  }
+
+  void setDeliveryMode(CustomerDeliveryMode mode) {
+    state = state.copyWith(
+      draft: state.draft.copyWith(deliveryMode: mode),
+    );
+    scheduleQuoteRefresh();
+  }
+
+  void chooseDeliveryAddress(AddressOptionModel value) {
+    state = state.copyWith(
+      draft: state.draft.copyWith(deliveryAddress: value),
+    );
+  }
+
+  // ── Step 1 — Item cart + per-item notes ─────────────────────────────────
 
   void addItem(String itemId) {
     final current = Map<String, int>.from(state.draft.cartItems);
     current[itemId] = (current[itemId] ?? 0) + 1;
-    AppLogger.info(
-      'booking_provider.item_added itemId=$itemId quantity=${current[itemId]}',
-    );
     state = state.copyWith(
       draft: state.draft.copyWith(cartItems: Map.unmodifiable(current)),
     );
+    initPiecePreferences(itemId, current[itemId]!);
+    scheduleQuoteRefresh();
   }
 
   void removeItem(String itemId) {
@@ -406,12 +530,10 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     } else {
       current[itemId] = qty;
     }
-    AppLogger.info(
-      'booking_provider.item_removed itemId=$itemId quantity=${current[itemId] ?? 0}',
-    );
     state = state.copyWith(
       draft: state.draft.copyWith(cartItems: Map.unmodifiable(current)),
     );
+    scheduleQuoteRefresh();
   }
 
   void setItemQty(String itemId, int qty) {
@@ -421,21 +543,47 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     } else {
       current[itemId] = qty;
     }
-    AppLogger.info(
-        'booking_provider.item_quantity_set itemId=$itemId qty=$qty');
     state = state.copyWith(
       draft: state.draft.copyWith(cartItems: Map.unmodifiable(current)),
+    );
+    if (qty > 0) initPiecePreferences(itemId, qty);
+    scheduleQuoteRefresh();
+  }
+
+  void setItemNote(String itemId, String note) {
+    final next = Map<String, String>.from(state.draft.itemNotes);
+    final trimmed =
+        note.length > _notesMaxLength ? note.substring(0, _notesMaxLength) : note;
+    if (trimmed.isEmpty) {
+      next.remove(itemId);
+    } else {
+      next[itemId] = trimmed;
+    }
+    state = state.copyWith(
+      draft: state.draft.copyWith(itemNotes: Map.unmodifiable(next)),
     );
   }
 
   void setItemSearchQuery(String query) {
-    AppLogger.info(
-      'booking_provider.search_changed length=${query.trim().length}',
-    );
     state = state.copyWith(itemSearchQuery: query);
   }
 
-  // ── Step 2 — Preferences ────────────────────────────────────────────────
+  // ── Step 2 — Preferences & Per-piece overrides ──────────────────────────
+
+  void setApplyProfilePrefsToAll(bool value) {
+    state = state.copyWith(
+      draft: state.draft.copyWith(applyProfilePrefsToAll: value),
+    );
+  }
+
+  void setPreferencesNote(String value) {
+    final next = value.length > _notesMaxLength
+        ? value.substring(0, _notesMaxLength)
+        : value;
+    state = state.copyWith(
+      draft: state.draft.copyWith(preferencesNote: next),
+    );
+  }
 
   void toggleServicePreference(String id) {
     final current = List<String>.from(state.draft.selectedServicePreferenceIds);
@@ -444,14 +592,12 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     } else {
       current.add(id);
     }
-    AppLogger.info(
-      'booking_provider.service_preference_toggled id=$id selected=${current.contains(id)}',
-    );
     state = state.copyWith(
       draft: state.draft.copyWith(
         selectedServicePreferenceIds: List.unmodifiable(current),
       ),
     );
+    scheduleQuoteRefresh();
   }
 
   void togglePickupPreference(String id) {
@@ -461,14 +607,12 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     } else {
       current.add(id);
     }
-    AppLogger.info(
-      'booking_provider.pickup_preference_toggled id=$id selected=${current.contains(id)}',
-    );
     state = state.copyWith(
       draft: state.draft.copyWith(
         selectedPickupPreferenceIds: List.unmodifiable(current),
       ),
     );
+    scheduleQuoteRefresh();
   }
 
   void togglePreferenceForKind(String kindCode, String id) {
@@ -476,26 +620,23 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       togglePickupPreference(id);
       return;
     }
-
     toggleServicePreference(id);
   }
 
-  // ── Step 2 — Per-piece preferences ─────────────────────────────────────
-
   void initPiecePreferences(String itemId, int qty) {
-    if (state.draft.piecePreferences.containsKey(itemId)) return;
+    final existing = state.draft.piecePreferences[itemId];
+    if (existing != null && existing.length == qty) return;
     final pieces = List<BookingPiecePreferenceModel>.generate(
       qty,
-      (i) => BookingPiecePreferenceModel(pieceSeq: i + 1),
+      (i) => (existing != null && i < existing.length)
+          ? existing[i]
+          : BookingPiecePreferenceModel(pieceSeq: i + 1),
       growable: false,
     );
     final updated = Map<String, List<BookingPiecePreferenceModel>>.from(
       state.draft.piecePreferences,
     );
     updated[itemId] = List.unmodifiable(pieces);
-    AppLogger.info(
-      'booking_provider.piece_prefs_initialized itemId=$itemId qty=$qty',
-    );
     state = state.copyWith(
       draft: state.draft.copyWith(
         piecePreferences: Map.unmodifiable(updated),
@@ -511,20 +652,14 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       } else {
         current.add(prefId);
       }
-      AppLogger.info(
-        'booking_provider.piece_service_pref_toggled itemId=$itemId '
-        'pieceSeq=$pieceSeq prefId=$prefId selected=${current.contains(prefId)}',
-      );
       return piece.copyWith(
         servicePreferenceIds: List.unmodifiable(current),
       );
     });
+    scheduleQuoteRefresh();
   }
 
   void setPiecePacking(String itemId, int pieceSeq, String? code) {
-    AppLogger.info(
-      'booking_provider.piece_packing_set itemId=$itemId pieceSeq=$pieceSeq code=$code',
-    );
     _updatePiece(
       itemId,
       pieceSeq,
@@ -536,9 +671,6 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
   }
 
   void setPieceColor(String itemId, int pieceSeq, String? colorCode) {
-    AppLogger.info(
-      'booking_provider.piece_color_set itemId=$itemId pieceSeq=$pieceSeq colorCode=$colorCode',
-    );
     _updatePiece(
       itemId,
       pieceSeq,
@@ -579,43 +711,40 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     );
   }
 
-  // ── Step 3 — Schedule ───────────────────────────────────────────────────
+  // ── Step 3 — Schedule & Speed ───────────────────────────────────────────
 
   void setIsPickupFromAddress(bool value) {
-    AppLogger.info('booking_provider.handoff_mode_changed pickup=$value');
-    state = state.copyWith(
-      draft: state.draft.copyWith(isPickupFromAddress: value),
+    setPickupMode(
+      value
+          ? CustomerPickupMode.collectAddress
+          : CustomerPickupMode.storeDropoff,
     );
   }
 
   void setIsAsap(bool value) {
-    AppLogger.info('booking_provider.asap_changed isAsap=$value');
     state = state.copyWith(
       draft: state.draft.copyWith(isAsap: value),
     );
   }
 
   void setScheduledAt(DateTime value) {
-    AppLogger.info(
-      'booking_provider.scheduled_at_changed value=${value.toIso8601String()}',
-    );
     state = state.copyWith(
       draft: state.draft.copyWith(scheduledAt: value),
     );
   }
 
   void chooseAddress(AddressOptionModel value) {
-    AppLogger.info('booking_provider.address_selected id=${value.id}');
     state = state.copyWith(
-      draft: state.draft.copyWith(address: value),
+      draft: state.draft.copyWith(
+        address: value,
+        deliveryAddress: state.draft.deliveryAddress ?? value,
+      ),
     );
   }
 
   Future<void> saveNewAddress(NewAddressInputModel input) async {
     if (state.isSavingAddress) return;
 
-    AppLogger.info(
-        'booking_provider.save_address_started label=${input.label}');
     state = state.copyWith(
       isSavingAddress: true,
       clearErrorMessage: true,
@@ -628,11 +757,9 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
         addresses: updatedAddresses,
         draft: state.draft.copyWith(
           address: newAddress,
+          deliveryAddress: state.draft.deliveryAddress ?? newAddress,
           clearNewAddress: true,
         ),
-      );
-      AppLogger.info(
-        'booking_provider.save_address_succeeded id=${newAddress.id}',
       );
     } catch (error, stackTrace) {
       AppLogger.error(
@@ -649,12 +776,11 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     }
   }
 
-  // ── Legacy / compat ─────────────────────────────────────────────────────
-
   void chooseServiceSpeed(String code) {
     state = state.copyWith(
       draft: state.draft.copyWith(serviceSpeed: code),
     );
+    scheduleQuoteRefresh();
   }
 
   void chooseService(ServiceOptionModel value) {
@@ -669,57 +795,136 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     );
   }
 
-  // ── Step 4 — Notes ──────────────────────────────────────────────────────
+  // ── Step 4 — Promo, Gift Card, Payment Notes & General Order Note ───────
 
-  void updateNotes(String value) {
-    var next = value;
-    if (next.length > _notesMaxLength) {
-      next = next.substring(0, _notesMaxLength);
-    }
-    AppLogger.info(
-        'booking_provider.notes_changed length=${next.trim().length}');
+  void setPromoCode(String value) {
+    state = state.copyWith(draft: state.draft.copyWith(promoCode: value));
+  }
+
+  void setGiftCardCode(String value) {
+    state = state.copyWith(draft: state.draft.copyWith(giftCardCode: value));
+  }
+
+  void setPaymentNotes(String value) {
+    final next = value.length > 400 ? value.substring(0, 400) : value;
+    state = state.copyWith(draft: state.draft.copyWith(paymentNotes: next));
+  }
+
+  void setGeneralOrderNote(String value) {
+    final next = value.length > _notesMaxLength
+        ? value.substring(0, _notesMaxLength)
+        : value;
     state = state.copyWith(
-      draft: state.draft.copyWith(notes: next),
+      draft: state.draft.copyWith(generalOrderNote: next, notes: next),
     );
   }
 
-  // ── Navigation ──────────────────────────────────────────────────────────
+  void setSaveGeneralNoteForFuture(bool value) {
+    state = state.copyWith(
+      draft: state.draft.copyWith(saveGeneralNoteForFuture: value),
+    );
+  }
 
-  void goNext() {
-    if (state.stepIndex < 3) {
-      AppLogger.info(
-        'booking_provider.step_next from=${state.stepIndex} to=${state.stepIndex + 1}',
+  void updateNotes(String value) => setGeneralOrderNote(value);
+
+  // ── Live POS-Parity Server Quote (debounced 350ms) ──────────────────────
+
+  void scheduleQuoteRefresh() {
+    _quoteDebounce?.cancel();
+    if (state.draft.cartItems.isEmpty || (state.draft.branchId ?? '').isEmpty) {
+      return;
+    }
+    _quoteDebounce = Timer(const Duration(milliseconds: 350), () {
+      refreshServerQuote();
+    });
+  }
+
+  Future<void> refreshServerQuote() async {
+    if (state.draft.cartItems.isEmpty || (state.draft.branchId ?? '').isEmpty) {
+      return;
+    }
+    final session = _session;
+    final tenant = ref.read(tenantProvider).valueOrNull;
+    final tenantId = tenant?.tenantOrgId ?? session?.tenantOrgId ?? '';
+    final token = session?.verificationToken ?? '';
+
+    state = state.copyWith(isLoadingQuote: true, clearQuoteError: true);
+    try {
+      final quote = await ref
+          .read(customerBookingQuoteServiceProvider)
+          .fetchServerQuote(
+            tenantId: tenantId,
+            bearerToken: token,
+            draft: state.draft,
+          );
+      state = state.copyWith(isLoadingQuote: false, serverQuote: quote);
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'booking_provider.quote_failed',
+        error: error,
+        stackTrace: stackTrace,
       );
       state = state.copyWith(
-        stepIndex: state.stepIndex + 1,
+        isLoadingQuote: false,
+        quoteErrorMessageKey: error is AppException
+            ? error.messageKey
+            : 'common.remoteRequestError',
+      );
+    }
+  }
+
+  // ── Navigation (6 steps: 0..5) ──────────────────────────────────────────
+
+  void goNext() {
+    if (state.stepIndex < BookingState.reviewStepIndex && canProceed()) {
+      final nextIndex = state.stepIndex + 1;
+      AppLogger.info(
+        'booking_provider.step_next from=${state.stepIndex} to=$nextIndex',
+      );
+      state = state.copyWith(
+        stepIndex: nextIndex,
         clearErrorMessage: true,
         clearValidationIssues: true,
       );
+      if (nextIndex == 3 || nextIndex == BookingState.reviewStepIndex) {
+        refreshServerQuote();
+      }
     }
   }
 
   void goBack() {
     if (state.stepIndex > 0) {
-      AppLogger.info(
-        'booking_provider.step_back from=${state.stepIndex} to=${state.stepIndex - 1}',
-      );
-      state = state.copyWith(
-        stepIndex: state.stepIndex - 1,
-      );
+      state = state.copyWith(stepIndex: state.stepIndex - 1);
     }
   }
 
   bool canProceed() {
     switch (state.stepIndex) {
       case 0:
-        return state.draft.cartItems.isNotEmpty;
-      case 1:
-        // Preferences are optional — always allow proceeding
+        // Step 1/6: Branch is MANDATORY for Detailed Order!
+        if ((state.draft.branchId ?? '').isEmpty) return false;
+        if (state.draft.pickupMode == CustomerPickupMode.collectAddress &&
+            state.addresses.isNotEmpty &&
+            state.draft.address == null) {
+          return false;
+        }
         return true;
+      case 1:
+        // Step 2/6: At least one item selected.
+        return state.draft.cartItems.isNotEmpty;
       case 2:
-        if (!state.draft.isPickupFromAddress) return true;
+        // Step 3/6: Preferences optional.
+        return true;
+      case 3:
+        // Step 4/6: Schedule.
+        if (state.draft.pickupMode != CustomerPickupMode.collectAddress) {
+          return true;
+        }
         if (state.draft.isAsap) return state.draft.address != null;
         return state.draft.address != null && state.draft.scheduledAt != null;
+      case 4:
+        // Step 5/6: Offers & Notes optional.
+        return true;
       default:
         return true;
     }
@@ -790,16 +995,12 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
 
   Future<void> submit() async {
     if (!state.isBookingEnabled) {
-      AppLogger.warning('booking_provider.submit_blocked booking_disabled');
       state = state.copyWith(errorMessageKey: 'booking.disabledBody');
       return;
     }
 
     final localValidationIssues = state.submitValidationIssueKeys;
     if (localValidationIssues.isNotEmpty) {
-      AppLogger.warning(
-        'booking_provider.submit_blocked missingDetails=${localValidationIssues.join(',')}',
-      );
       state = state.copyWith(
         errorMessageKey: 'booking.validationIncomplete',
         validationIssueKeys: localValidationIssues,
@@ -807,18 +1008,8 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       return;
     }
 
-    if (state.isSubmitting || !canProceed()) {
-      AppLogger.warning(
-        'booking_provider.submit_blocked isSubmitting=${state.isSubmitting} canProceed=${canProceed()}',
-      );
-      return;
-    }
+    if (state.isSubmitting) return;
 
-    AppLogger.info(
-      'booking_provider.submit_started step=${state.stepIndex} '
-      'cartItems=${state.draft.cartItems.length} '
-      'isPickupFromAddress=${state.draft.isPickupFromAddress}',
-    );
     state = state.copyWith(
       isSubmitting: true,
       clearErrorMessage: true,
@@ -846,9 +1037,6 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
         error: error,
         stackTrace: stackTrace,
       );
-      // A speed the server refuses for these items: send the customer back to
-      // the speed step with the choice cleared, instead of leaving the error
-      // on a review step that has no speed picker.
       final speedRefused = error is OrderBookingServiceException &&
           error.messageKey == 'booking.speedNotOfferedError';
       state = state.copyWith(
@@ -865,16 +1053,12 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     }
   }
 
-  /// The step that shows the speed picker (step 3, zero-based).
-  static const int _scheduleStepIndex = 2;
+  static const int _scheduleStepIndex = 3;
 
   void clearError() {
     state = state.copyWith(clearErrorMessage: true);
   }
 
-  /// A speed the organization no longer offers must not stay on the draft:
-  /// the picker would not show it and the submit would be refused. Standard
-  /// (no choice) is always valid.
   OrderBookingDraftModel _draftWithOfferedSpeed(
     OrderBookingDraftModel draft,
     List<BookingServiceSpeedModel> offered,
@@ -883,11 +1067,8 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     if (chosen == null || offered.any((speed) => speed.code == chosen)) {
       return draft;
     }
-    AppLogger.warning('booking_provider.speed_reset code=$chosen');
     return draft.copyWith(clearServiceSpeed: true);
   }
-
-  // ── Helpers ──────────────────────────────────────────────────────────────
 
   AddressOptionModel? _defaultAddress(List<AddressOptionModel> addresses) {
     for (final address in addresses) {

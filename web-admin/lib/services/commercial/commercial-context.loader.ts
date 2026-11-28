@@ -937,7 +937,7 @@ export function buildCommercialOrderInput(
     // A measured line is priced on its billed measure (tiers included); a count line on its pieces.
     const measure = isMeasuredDimension(unit.dimension)
       ? resolveBilledMeasure({
-        dimension: unit.dimension, uomCode: unit.code, qtyDecimals: unit.qtyDecimals,
+        dimension: unit.dimension, qtyDecimals: unit.qtyDecimals,
         measuredQty: line.measure?.measuredQty, length: line.measure?.length, width: line.measure?.width,
         minBillableQty: product.minBillableQty, billingIncrement: product.billingIncrement,
       })

@@ -7121,6 +7121,7 @@ export type Database = {
         Row: {
           address: string | null
           area: string | null
+          auto_apply_order_default_note: boolean
           building: string | null
           company_name: string | null
           company_name2: string | null
@@ -7134,6 +7135,7 @@ export type Database = {
           customer_code: string
           customer_id: string | null
           customer_source_type: string
+          default_order_note: string | null
           display_name: string | null
           email: string | null
           first_name: string | null
@@ -7142,6 +7144,7 @@ export type Database = {
           is_active: boolean
           is_credit_hold: boolean | null
           is_hidden_by_customer: boolean
+          last_branch_id: string | null
           last_name: string | null
           loyalty_points: number | null
           name: string | null
@@ -7168,6 +7171,7 @@ export type Database = {
         Insert: {
           address?: string | null
           area?: string | null
+          auto_apply_order_default_note?: boolean
           building?: string | null
           company_name?: string | null
           company_name2?: string | null
@@ -7181,6 +7185,7 @@ export type Database = {
           customer_code: string
           customer_id?: string | null
           customer_source_type?: string
+          default_order_note?: string | null
           display_name?: string | null
           email?: string | null
           first_name?: string | null
@@ -7189,6 +7194,7 @@ export type Database = {
           is_active?: boolean
           is_credit_hold?: boolean | null
           is_hidden_by_customer?: boolean
+          last_branch_id?: string | null
           last_name?: string | null
           loyalty_points?: number | null
           name?: string | null
@@ -7215,6 +7221,7 @@ export type Database = {
         Update: {
           address?: string | null
           area?: string | null
+          auto_apply_order_default_note?: boolean
           building?: string | null
           company_name?: string | null
           company_name2?: string | null
@@ -7228,6 +7235,7 @@ export type Database = {
           customer_code?: string
           customer_id?: string | null
           customer_source_type?: string
+          default_order_note?: string | null
           display_name?: string | null
           email?: string | null
           first_name?: string | null
@@ -7236,6 +7244,7 @@ export type Database = {
           is_active?: boolean
           is_credit_hold?: boolean | null
           is_hidden_by_customer?: boolean
+          last_branch_id?: string | null
           last_name?: string | null
           loyalty_points?: number | null
           name?: string | null
@@ -7266,6 +7275,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_language_cd"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ocm_last_branch_tenant"
+            columns: ["last_branch_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_branches_mst"
+            referencedColumns: ["id", "tenant_org_id"]
           },
           {
             foreignKeyName: "fk_ocm_tax_country"
@@ -20003,9 +20019,16 @@ export type Database = {
           created_info: string | null
           customer_id: string
           customer_notes: string | null
+          delivery_address_id: string | null
+          delivery_address_snapshot: Json
+          delivery_address_source: string | null
+          delivery_mode_code: string
+          estimated_total_bags: number
           estimated_total_pieces: number
           id: string
           is_active: boolean
+          pickup_address_id: string | null
+          pickup_address_source: string | null
           rec_notes: string | null
           rec_order: number | null
           rec_status: number
@@ -20036,9 +20059,16 @@ export type Database = {
           created_info?: string | null
           customer_id: string
           customer_notes?: string | null
+          delivery_address_id?: string | null
+          delivery_address_snapshot?: Json
+          delivery_address_source?: string | null
+          delivery_mode_code?: string
+          estimated_total_bags?: number
           estimated_total_pieces?: number
           id?: string
           is_active?: boolean
+          pickup_address_id?: string | null
+          pickup_address_source?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
@@ -20069,9 +20099,16 @@ export type Database = {
           created_info?: string | null
           customer_id?: string
           customer_notes?: string | null
+          delivery_address_id?: string | null
+          delivery_address_snapshot?: Json
+          delivery_address_source?: string | null
+          delivery_mode_code?: string
+          estimated_total_bags?: number
           estimated_total_pieces?: number
           id?: string
           is_active?: boolean
+          pickup_address_id?: string | null
+          pickup_address_source?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number
@@ -35251,6 +35288,101 @@ export type Database = {
           },
         ]
       }
+      sys_customer_addresses_dtl: {
+        Row: {
+          address_type: string | null
+          apartment: string | null
+          area: string | null
+          building: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          customer_id: string
+          delivery_notes: string | null
+          floor: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          label: string | null
+          latitude: number | null
+          longitude: number | null
+          postal_code: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          street: string | null
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          address_type?: string | null
+          apartment?: string | null
+          area?: string | null
+          building?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          customer_id: string
+          delivery_notes?: string | null
+          floor?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          label?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          postal_code?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          street?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          address_type?: string | null
+          apartment?: string | null
+          area?: string | null
+          building?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          customer_id?: string
+          delivery_notes?: string | null
+          floor?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          label?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          postal_code?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          street?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_scad_customer"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "sys_customers_mst"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sys_customer_audit_dtl: {
         Row: {
           action_type: string
@@ -35375,6 +35507,7 @@ export type Database = {
           app_session_version: number
           app_temp_password_expires_at: string | null
           area: string | null
+          auto_apply_order_default_note: boolean
           avatar_url: string | null
           building: string | null
           created_at: string | null
@@ -35383,6 +35516,7 @@ export type Database = {
           customer_code: string
           customer_number: string | null
           customer_source_type: string
+          default_order_note: string | null
           display_name: string | null
           email: string | null
           email_normalized: string | null
@@ -35415,6 +35549,7 @@ export type Database = {
           app_session_version?: number
           app_temp_password_expires_at?: string | null
           area?: string | null
+          auto_apply_order_default_note?: boolean
           avatar_url?: string | null
           building?: string | null
           created_at?: string | null
@@ -35423,6 +35558,7 @@ export type Database = {
           customer_code: string
           customer_number?: string | null
           customer_source_type?: string
+          default_order_note?: string | null
           display_name?: string | null
           email?: string | null
           email_normalized?: string | null
@@ -35455,6 +35591,7 @@ export type Database = {
           app_session_version?: number
           app_temp_password_expires_at?: string | null
           area?: string | null
+          auto_apply_order_default_note?: boolean
           avatar_url?: string | null
           building?: string | null
           created_at?: string | null
@@ -35463,6 +35600,7 @@ export type Database = {
           customer_code?: string
           customer_number?: string | null
           customer_source_type?: string
+          default_order_note?: string | null
           display_name?: string | null
           email?: string | null
           email_normalized?: string | null

@@ -55,3 +55,28 @@ final customerOrderBookingRepositoryProvider =
     ),
   ),
 );
+
+final customerProfileServiceProvider = Provider<CustomerProfileService>(
+  (ref) => CustomerProfileService(
+    httpClient: ref.read(customerApiHttpClientProvider),
+  ),
+);
+
+final quickDropServiceProvider = Provider<QuickDropService>(
+  (ref) => QuickDropService(
+    httpClient: ref.read(customerApiHttpClientProvider),
+  ),
+);
+
+final digitalReceiptServiceProvider = Provider<DigitalReceiptService>(
+  (ref) => DigitalReceiptService(
+    httpClient: ref.read(customerApiHttpClientProvider),
+  ),
+);
+
+final customerBookingQuoteServiceProvider =
+    Provider<CustomerBookingQuoteService>(
+  (ref) => CustomerBookingQuoteService(
+    httpClient: ref.read(customerApiHttpClientProvider),
+  ),
+);

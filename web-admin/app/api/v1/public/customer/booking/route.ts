@@ -11,6 +11,13 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { listActiveServiceSpeeds } from '@/lib/services/lookups/service-speed-lookup.service';
 import { canAccess } from '@/lib/services/feature-flags.service';
 import { resolveCustomerMobileSession } from '@/lib/services/customer-mobile-session.service';
+import {
+  getCustomerAppProfile,
+  listCustomerAppAddresses,
+  resolveCustomerAppAddress,
+  syncCustomerLastBranch,
+  updateCustomerAppProfile,
+} from '@/lib/services/customer-app-profile.service';
 import { quoteCheckout, type CheckoutQuote } from '@/lib/services/commercial/commercial-checkout.service';
 import { createUnpaidOrderFromCheckout } from '@/lib/services/order-create-from-checkout.service';
 import { checkoutQuoteErrorResponse } from '@/lib/api/commercial-http';
@@ -38,6 +45,7 @@ const bookingItemPieceSchema = z.object({
 const bookingItemSchema = z.object({
   itemId: z.string().uuid(),
   qty: z.coerce.number().int().min(1).max(99),
+  notes: z.string().max(500).optional().default(''),
   pieces: z.array(bookingItemPieceSchema).optional(),
 });
 
@@ -46,14 +54,14 @@ const submitBookingSchema = z.object({
   branchId: z.string().uuid().optional().nullable(),
   serviceId: z.string().uuid().optional().nullable(),
   addressId: z.string().uuid().optional().nullable(),
+  pickupAddressId: z.string().uuid().optional().nullable(),
+  deliveryAddressId: z.string().uuid().optional().nullable(),
+  pickupMode: z.enum(['collect_address', 'store_dropoff']).optional(),
+  deliveryMode: z.enum(['deliver_address', 'store_pickup']).optional(),
   slotId: z.string().min(1).optional().nullable(),
-  fulfillmentType: z.enum([
-    'pickup',
-    'delivery',
-    'bring_in',
-    'home_collection',
-    'collection_and_delivery',
-  ]),
+  fulfillmentType: z
+    .enum(['pickup', 'delivery', 'bring_in', 'home_collection', 'collection_and_delivery'])
+    .optional(),
   items: z.array(bookingItemSchema).min(1).max(100),
   servicePreferenceIds: z.array(z.string().min(1).max(120)).optional().default([]),
   pickupPreferenceIds: z.array(z.string().min(1).max(120)).optional().default([]),
@@ -61,6 +69,13 @@ const submitBookingSchema = z.object({
   isAsap: z.boolean().optional().default(true),
   scheduledAt: zInstant.optional().nullable(),
   notes: z.string().max(500).optional().default(''),
+  applyProfilePrefsToAll: z.boolean().optional().default(true),
+  preferencesNote: z.string().max(500).optional().default(''),
+  promoCode: z.string().trim().max(80).optional().nullable(),
+  giftCardNumber: z.string().trim().max(80).optional().nullable(),
+  paymentNotes: z.string().max(400).optional().default(''),
+  generalOrderNote: z.string().max(500).optional().default(''),
+  saveGeneralNoteForFuture: z.boolean().optional().default(false),
   /** A `sys_service_speed_cd` code; absent means STANDARD. Priced by the tenant's speed rules. */
   serviceSpeed: z.string().trim().min(1).max(40).optional(),
 });
@@ -617,15 +632,31 @@ export async function GET(request: NextRequest) {
             ? Number(preference.sustainability_score)
             : null,
       })),
-      addresses: (addresses ?? []).map((address) => ({
+      addresses: (
+        await listCustomerAppAddresses({
+          tenantOrgId: session.tenantOrgId,
+          orgCustomerId: session.customerId,
+          sysCustomerId: session.sysCustomerId,
+        })
+      ).map((address) => ({
         id: address.id,
-        label: address.label ?? 'Address',
-        description: buildAddressDescription(address),
-        isDefault: address.is_default === true,
+        source: address.source,
+        label: address.label,
+        description: address.description,
+        isDefault: address.isDefault,
+        building: address.building,
+        floor: address.floor,
+        apartment: address.apartment,
         street: address.street,
         area: address.area,
         city: address.city,
+        deliveryNotes: address.deliveryNotes,
       })),
+      customerProfile: await getCustomerAppProfile({
+        tenantOrgId: session.tenantOrgId,
+        orgCustomerId: session.customerId,
+        sysCustomerId: session.sysCustomerId,
+      }).catch(() => null),
       slots: await buildSlotWindows(tenantId, branchId),
     };
 
@@ -704,7 +735,7 @@ export async function POST(request: NextRequest) {
       branchId: body.branchId ?? null,
       isPickupFromAddress: body.isPickupFromAddress,
       isAsap: body.isAsap,
-      fulfillmentType: body.fulfillmentType,
+      fulfillmentType: body.fulfillmentType ?? `${body.pickupMode ?? 'pickup'}_${body.deliveryMode ?? 'return'}`,
     };
 
     logger.info('Public customer booking submit request parsed', submitContext);
@@ -757,7 +788,25 @@ export async function POST(request: NextRequest) {
       );
     }
     const requestedItemIds = Array.from(requestedItems.keys());
-    const requiresAddress = body.isPickupFromAddress;
+    const resolvedFulfillmentType =
+      body.fulfillmentType ??
+      (body.pickupMode === 'collect_address' && body.deliveryMode === 'deliver_address'
+        ? 'collection_and_delivery'
+        : body.pickupMode === 'collect_address'
+          ? 'home_collection'
+          : body.deliveryMode === 'deliver_address'
+            ? 'delivery'
+            : 'pickup');
+    const effectivePickupFromAddress =
+      body.pickupMode !== undefined
+        ? body.pickupMode === 'collect_address'
+        : body.isPickupFromAddress;
+    const effectivePickupAddressId = body.pickupAddressId ?? body.addressId ?? null;
+    const effectiveDeliveryAddressId =
+      body.deliveryMode === 'deliver_address'
+        ? (body.deliveryAddressId ?? effectivePickupAddressId)
+        : null;
+    const requiresAddress = effectivePickupFromAddress || body.deliveryMode === 'deliver_address';
     logger.info('Public customer booking submit items normalized', {
       ...submitContext,
       customerId: session.customerId,
@@ -768,7 +817,7 @@ export async function POST(request: NextRequest) {
       ),
     });
 
-    if (requiresAddress && !body.addressId) {
+    if (effectivePickupFromAddress && !effectivePickupAddressId) {
       return jsonError(
         'booking_address_required',
         'Address is required for pickup from address',
@@ -776,7 +825,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (requiresAddress && !body.isAsap && !body.scheduledAt) {
+    if (body.deliveryMode === 'deliver_address' && !effectiveDeliveryAddressId) {
+      return jsonError(
+        'booking_address_required',
+        'Delivery address is required for home delivery',
+        400,
+      );
+    }
+
+    if (effectivePickupFromAddress && !body.isAsap && !body.scheduledAt) {
       return jsonError(
         'booking_schedule_required',
         'Scheduled pickup time is required',
@@ -797,7 +854,8 @@ export async function POST(request: NextRequest) {
 
     const [
       { data: products, error: productsError },
-      { data: address, error: addressError },
+      resolvedPickupAddress,
+      resolvedDeliveryAddress,
       { data: branch, error: branchError },
       servicePreferences,
       pickupPreferences,
@@ -811,20 +869,28 @@ export async function POST(request: NextRequest) {
           .eq('tenant_org_id', body.tenantId)
           .eq('is_active', true)
           .in('id', requestedItemIds),
-        requiresAddress
-          ? supabase
-              .from('org_customer_addresses')
-              .select('id, label, street, area, city, building, floor')
-              .eq('tenant_org_id', body.tenantId)
-              .eq('id', body.addressId!)
-              .eq('customer_id', session.customerId)
-              .eq('is_active', true)
-              .single()
-          : Promise.resolve({ data: null, error: null }),
+        effectivePickupAddressId
+          ? resolveCustomerAppAddress({
+              tenantOrgId: session.tenantOrgId,
+              orgCustomerId: session.customerId,
+              sysCustomerId: session.sysCustomerId,
+              addressId: effectivePickupAddressId,
+            })
+          : Promise.resolve(null),
+        effectiveDeliveryAddressId
+          ? resolveCustomerAppAddress({
+              tenantOrgId: session.tenantOrgId,
+              orgCustomerId: session.customerId,
+              sysCustomerId: session.sysCustomerId,
+              addressId: effectiveDeliveryAddressId,
+            })
+          : Promise.resolve(null),
         branchPromise,
         PreferenceCatalogService.getServicePreferences(supabase, body.tenantId),
         PreferenceCatalogService.getPackingPreferences(supabase, body.tenantId),
       ]);
+    const address = resolvedPickupAddress ?? resolvedDeliveryAddress;
+    const addressError = null;
 
     if (productsError || !products || products.length !== requestedItemIds.length) {
       logger.warn('Public customer booking submit rejected unavailable items', {
@@ -904,10 +970,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const orderTypeId = resolveOrderTypeFromBookingFulfillment(body.fulfillmentType);
+    const orderTypeId = resolveOrderTypeFromBookingFulfillment(resolvedFulfillmentType);
     const paymentTypeCode =
-      body.fulfillmentType === 'delivery' ? 'PAY_ON_DELIVERY' : 'PAY_ON_COLLECTION';
-    const addressDescription = address ? buildAddressDescription(address) : null;
+      resolvedFulfillmentType === 'delivery' || resolvedFulfillmentType === 'collection_and_delivery'
+        ? 'PAY_ON_DELIVERY'
+        : 'PAY_ON_COLLECTION';
+    const addressDescription = address ? address.description : null;
     const productById = new Map(products.map((product) => [product.id, product]));
     const preferredPackingCode = body.pickupPreferenceIds[0] ?? null;
 
@@ -946,6 +1014,8 @@ export async function POST(request: NextRequest) {
         branchId: branch.id,
         customerId: session.customerId,
         serviceSpeed: body.serviceSpeed,
+        promoCode: body.promoCode?.trim() || undefined,
+        giftCardNumber: body.giftCardNumber?.trim() || undefined,
         strictFinancialReads: true,
         items: lineRequests.map((line) => ({
           productId: line.product.id,
@@ -977,7 +1047,7 @@ export async function POST(request: NextRequest) {
       isAsap: body.isAsap,
       scheduledAt: body.scheduledAt,
       addressId: body.addressId,
-      fulfillmentType: body.fulfillmentType,
+      fulfillmentType: resolvedFulfillmentType,
       serviceSpeed: body.serviceSpeed ?? null,
       servicePreferenceIds: body.servicePreferenceIds,
       pickupPreferenceIds: body.pickupPreferenceIds,
@@ -1058,8 +1128,10 @@ export async function POST(request: NextRequest) {
             notes: piece?.notes || undefined,
           })),
         })),
-        customerNotes: body.notes.trim(),
-        internalNotes: `Mobile booking | ${body.isPickupFromAddress ? 'pickup_from_address' : 'bring_in'} | ${body.isAsap ? 'ASAP' : body.scheduledAt ?? 'scheduled'}`,
+        customerNotes: [body.generalOrderNote.trim(), body.notes.trim(), body.preferencesNote.trim()]
+          .filter((part) => part.length > 0)
+          .join(' | '),
+        internalNotes: `Mobile booking | ${resolvedFulfillmentType} | ${body.isAsap ? 'ASAP' : body.scheduledAt ?? 'scheduled'}${body.paymentNotes.trim() ? ` | PayNote: ${body.paymentNotes.trim()}` : ''}`,
         paymentTypeCode,
         currencyExRate: 1,
         customerMobile: session.phoneNumber,
@@ -1067,16 +1139,33 @@ export async function POST(request: NextRequest) {
         customerDetails: {
           source: 'customer_mobile_app',
           bookingRequestSignature: bookingSignature,
-          isPickupFromAddress: body.isPickupFromAddress,
+          isPickupFromAddress: effectivePickupFromAddress,
+          pickupMode: body.pickupMode ?? (effectivePickupFromAddress ? 'collect_address' : 'store_dropoff'),
+          deliveryMode: body.deliveryMode ?? (resolvedFulfillmentType === 'delivery' || resolvedFulfillmentType === 'collection_and_delivery' ? 'deliver_address' : 'store_pickup'),
           isAsap: body.isAsap,
           scheduledAt: body.scheduledAt ?? null,
           bookingAddressId: address?.id ?? null,
+          bookingAddressSource: address?.source ?? null,
           bookingAddressLabel: address?.label ?? null,
           bookingAddressText: addressDescription,
+          deliveryAddressId: resolvedDeliveryAddress?.id ?? null,
+          deliveryAddressSource: resolvedDeliveryAddress?.source ?? null,
+          deliveryAddressText: resolvedDeliveryAddress?.description ?? null,
           selectedServicePreferenceIds: body.servicePreferenceIds,
           selectedPickupPreferenceIds: body.pickupPreferenceIds,
+          applyProfilePrefsToAll: body.applyProfilePrefsToAll,
+          preferencesNote: body.preferencesNote.trim() || null,
+          paymentNotes: body.paymentNotes.trim() || null,
+          generalOrderNote: body.generalOrderNote.trim() || null,
+          promoCode: body.promoCode?.trim() || null,
+          giftCardNumber: body.giftCardNumber?.trim() || null,
+          itemNotes: Object.fromEntries(
+            body.items
+              .filter((item) => item.notes && item.notes.trim().length > 0)
+              .map((item) => [item.itemId, item.notes.trim()]),
+          ),
           serviceSpeed: body.serviceSpeed ?? null,
-          fulfillmentType: body.fulfillmentType,
+          fulfillmentType: resolvedFulfillmentType,
         },
         userId: session.customerId,
         userName: session.displayName ?? 'Customer Mobile App',
@@ -1122,6 +1211,26 @@ export async function POST(request: NextRequest) {
       .eq('tenant_org_id', body.tenantId)
       .eq('id', creationResult.order.id)
       .maybeSingle();
+
+    // Sync customer's last used branch & optional saved general order note (non-blocking).
+    await syncCustomerLastBranch(body.tenantId, session.customerId, branch.id);
+    if (body.saveGeneralNoteForFuture) {
+      await updateCustomerAppProfile({
+        tenantOrgId: session.tenantOrgId,
+        orgCustomerId: session.customerId,
+        sysCustomerId: session.sysCustomerId,
+        patch: {
+          defaultOrderNote: body.generalOrderNote.trim() || null,
+          autoApplyOrderDefaultNote: true,
+        },
+      }).catch((profileErr) => {
+        logger.warn('Failed to persist saved general order note after booking', {
+          feature: 'public_customer_booking',
+          tenantId: body.tenantId,
+          error: profileErr instanceof Error ? profileErr.message : String(profileErr),
+        });
+      });
+    }
 
     const durationMs = Date.now() - startedAt;
     logger.info('Public customer booking submit success', {

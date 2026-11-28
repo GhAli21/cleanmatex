@@ -4,4 +4,6 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Allow local HTTP API testing (e.g. http://127.0.0.1:3000 via adb reverse) in debug builds only. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

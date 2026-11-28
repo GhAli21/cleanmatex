@@ -81,6 +81,11 @@ import {
 } from '@/lib/services/cash-change-rounding.service';
 import type { RequestAuditContext } from '@/lib/utils/request-audit';
 import { assertOrderDiscountAllowed, assertPriceOverridesAllowed } from '@/lib/services/price-override-policy.service';
+import {
+  linkAndConvertOrderRequestTx,
+  OrderRequestConversionError,
+  syncLastBranchAfterConversion,
+} from '@/lib/services/order-request-conversion.service';
 
 const TOLERANCE = 0.001;
 
@@ -698,6 +703,17 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
 
       const { id: orderId, orderNo, currentStatus } = orderResult.order;
 
+      // Atomic 1-request-to-1-order conversion when POS New Order was launched from a Fast Quick Drop request.
+      if (input.sourceRequestId) {
+        await linkAndConvertOrderRequestTx(tx, {
+          tenantOrgId: tenantId,
+          requestId: input.sourceRequestId,
+          orderId,
+          staffUserId: userId,
+          branchId: input.branchId,
+        });
+      }
+
       let invoiceId: string | null = null;
       if (shouldCreateArInvoice) {
         // Phase 3 (BVM Wiring): canonical AR writer replaces the deprecated
@@ -1102,6 +1118,11 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       },
     })
   );
+
+  // Sync customer's last-used branch whenever an order commits with a branch.
+  if (input.branchId && input.customerId) {
+    await syncLastBranchAfterConversion(tenantId, input.customerId, input.branchId).catch(() => undefined);
+  }
 
   const linkedEffects = voucherPostResult
     ? await withTenantContext(tenantId, () =>

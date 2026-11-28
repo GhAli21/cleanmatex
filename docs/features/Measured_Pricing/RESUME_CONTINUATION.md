@@ -158,13 +158,21 @@ drawer, `setup-health`, `rls-tenant-isolation`, `finance-smoke`, `order-committe
 
 ## What remains (2026-11-28)
 
-- **Area units: fixed in code, migration waits for the Owner.** Owner chose A: only SQM (length and width in
-  metres) and SQFT (in feet) price a product; the calculator refuses other area units, product pickers hide them,
-  the measure window asks for the right side unit, HQ shows the refusal on the unit field (in HQ commit
-  a6ab108d). `0859_uom_area_side_units.sql` adds the same rule in the database (line CHECK, product and template
-  guards, column comments). Verified read-only on the remote database: no row breaks it. Apply, then rerun
-  `uom-guards.db.test.ts` (the 0859 case prints SKIPPED until then).
-- Done 2026-11-28: planned database tests (`uom-guards.db.test.ts`) and the Edit review measure of a new line.
-- Not run: 0859 itself, two API-client database cases (local key refused), browser smoke, any screen in a browser.
-- Owner: apply 0859, HQ Edit policy rule `CHANGE_ITEM_MEASURE` / ITEM, QA 1-93, commit the tenant repository,
-  release the apps.
+- **Area units: done, 0860 applied (local and remote, Owner).** Any area unit, system or custom, can price a
+  product. In the measure window staff choose **Enter as**: *Length × width* (typed in any length unit; the line
+  keeps the size in metres and the area in the product's unit, worked out with the Organization's conversions) or
+  *Area* (typed directly; no size stored). The server charges the area, as it does for a weight typed in pounds.
+  `0860_uom_area_any_unit.sql` replaced the 0814 identity check (length and width now come together, only with an
+  area, and the area keeps the unit's decimals) and added SQMM, SQCM, SQIN, SQYD, ARE, HA and ACRE to the system
+  catalog (not auto-seeded). km2 and mi2 were left out: at 6 decimals a small item rounds to double. The SQM / SQFT
+  list, the product-picker filter, `UOM_AREA_UNSUPPORTED` (tenant and HQ) and the 0859 draft are gone (0859 was never
+  applied; its file was removed from the folder).
+- Checked 2026-11-28: 51 measure/dialog tests, 790 related tests, `uom-guards.db.test.ts` 9/9 with 0860 live,
+  ESLint, `check:ui` and `check:i18n` clean on the changed files. `tsc` reports 47 errors, all in another session's
+  customer-app files (`public/customer/receipts`, `booking/quote`, `customer-app-profile`, `customer-app-requests`),
+  none in this feature. Production build not run: another session's build was running.
+- Not run: two API-client database cases (local key refused), browser smoke, any screen in a browser.
+- `CHANGE_ITEM_MEASURE` / ITEM rules exist only as DENY in the PILOT policies `QA_OE2_PILOT_V1` and
+  `WF_V2_FULL_PATH_EDIT_POLICY`; the PUBLISHED default `ORDER_CHANGE_STANDARD_QA_20261107_V1` has none, so
+  re-measuring a saved line is still refused.
+- Owner: HQ Edit policy rule `CHANGE_ITEM_MEASURE` / ITEM, QA 1-94, commit both repositories, release the apps.

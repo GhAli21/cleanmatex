@@ -465,3 +465,4 @@ Found by a second plan-versus-code audit. Status per package lives in [STATUS.md
 2026-11-28 (check against 3.14): G7 is partial; several planned database tests are not written (STATUS, "What remains").
 2026-11-28: planned database tests written and the new-line review measure shown. Open: area units other than m² are mis-measured (STATUS, "What remains"); fix awaits the Owner.
 2026-11-28: area units fixed (SQM in metres, SQFT in feet, others refused); migration 0859 written, awaiting the Owner.
+2026-11-28 (later): Owner asked for any area unit. 0859 (SQM / SQFT only) dropped unapplied; 0860 applied: area typed directly or from length × width in any length unit (size kept in metres), common area units added to the system catalog.

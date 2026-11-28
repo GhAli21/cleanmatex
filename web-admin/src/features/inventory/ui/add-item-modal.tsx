@@ -13,7 +13,6 @@ import { CmxButton, CmxCheckbox, CmxInput, CmxSelect, Label } from '@ui/primitiv
 import { TAX_CATEGORIES } from '@/lib/constants/commercial';
 import { useTaxCategoryOptions } from '@features/catalog/hooks/use-tax-category-options';
 import { CmxUomSelect } from '@ui/forms/cmx-uom-select';
-import { canBeProductUnit } from '@/lib/constants/uom';
 import { useUomUnits } from '@features/uom/hooks/use-uom-units';
 import { UOM_DEFAULT_COUNT_CODE } from '@/lib/constants/uom';
 import { createInventoryItemAction } from '@/app/actions/inventory/inventory-actions';
@@ -191,7 +190,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                 />
                 <CmxUomSelect
                   label={t('labels.unit')}
-                  units={units.filter(canBeProductUnit)}
+                  units={units}
                   value={productUnit}
                   onChange={setProductUnit}
                 />

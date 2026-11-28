@@ -195,7 +195,7 @@ describe('Order Item Helpers', () => {
     };
     const area: OrderItem = {
       ...kg, uom: { ...kg.uom!, code: 'SQM', dimension: 'AREA', minBillableQty: null, billingIncrement: null },
-      measure: { measuredQty: '', length: '2', width: '1.5' },
+      measure: { measuredQty: '3', length: '2', width: '1.5' },
     };
 
     it('a count line multiplies by its quantity', () => {
@@ -205,8 +205,9 @@ describe('Order Item Helpers', () => {
       expect(pricedQty(kg)).toBe(3.5);
       expect(pricedQty({ ...kg, measure: { measuredQty: '1', length: '', width: '' } })).toBe(3);
     });
-    it('an area line is length × width', () => {
+    it('an area line is billed on its area; the size alone is not a measure', () => {
       expect(pricedQty(area)).toBe(3);
+      expect(pricedQty({ ...area, measure: { measuredQty: '', length: '2', width: '1.5' } })).toBe(0);
     });
     it('no measure or an invalid one is 0, never the bag count', () => {
       expect(pricedQty({ ...kg, measure: undefined })).toBe(0);
@@ -219,7 +220,7 @@ describe('Order Item Helpers', () => {
     it('measureOf sends only what was typed, and nothing for a count line', () => {
       expect(measureOf(mockItem)).toBeNull();
       expect(measureOf(kg)).toEqual({ measuredQty: '3.2' });
-      expect(measureOf(area)).toEqual({ length: '2', width: '1.5' });
+      expect(measureOf(area)).toEqual({ measuredQty: '3', length: '2', width: '1.5' });
     });
   });
 });

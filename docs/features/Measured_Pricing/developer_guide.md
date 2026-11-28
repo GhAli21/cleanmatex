@@ -69,10 +69,10 @@ A product is measured when its `base_uom_code` dimension is not COUNT.
 | `billed_qty` | What is charged |
 | `uom_*` | Unit snapshot for prints |
 
-`resolveBilledMeasure` (`lib/commercial/measure.ts`): measured (area = length × width in the area unit's side
-unit, `UOM_AREA_SIDE_UNITS`: SQM → M, SQFT → FT; any other area unit is refused, and migration 0859 enforces the
-same; a new measurable area unit needs both changed; rounded to the unit's
-decimals), raised to `min_billable_qty`, then rounded **up** to `billing_increment`. Money = unit price ×
+`resolveBilledMeasure` (`lib/commercial/measure.ts`): measured (an area line too: its area in the line's unit;
+length and width are an optional pair in metres that record the size and are not multiplied there. The measure
+window works the area out with `sizeMeasure` and `squareMetreRate` in `features/orders/model/measure-entry.ts`:
+sides in metres to 6 decimals, area = L × W × (one m² in the unit), rounded half-up to the unit's decimals; 0860), raised to `min_billable_qty`, then rounded **up** to `billing_increment`. Money = unit price ×
 `billed_qty`; price-list tiers, speed prices and tax use the billed quantity. The client previews with the same
 function; the server computes the stored value. Refusals: `MEASURE_REQUIRED`, `MEASURE_NOT_ALLOWED`,
 `UOM_QTY_SCALE`.

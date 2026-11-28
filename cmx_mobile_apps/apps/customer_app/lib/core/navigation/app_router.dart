@@ -7,10 +7,12 @@ import '../../features/auth/ui/screens/customer_otp_verification_screen.dart';
 import '../../features/bootstrap/ui/screens/customer_splash_screen.dart';
 import '../../features/entry/ui/screens/customer_entry_screen.dart';
 import '../../features/guest/ui/screens/customer_guest_entry_screen.dart';
-import '../../features/home/ui/screens/customer_home_screen.dart';
 import '../../features/booking/ui/screens/customer_order_booking_screen.dart';
 import '../../features/orders/ui/screens/customer_order_detail_screen.dart';
 import '../../features/orders/ui/screens/customer_orders_screen.dart';
+import '../../features/quick_drop/ui/screens/customer_quick_drop_screen.dart';
+import '../../features/receipts/ui/screens/customer_receipts_screen.dart';
+import '../../features/shell/ui/screens/customer_shell_screen.dart';
 import '../../features/system/ui/screens/customer_error_screen.dart';
 import '../../features/system/ui/screens/customer_logs_screen.dart';
 import '../../features/system/ui/screens/customer_offline_screen.dart';
@@ -72,6 +74,8 @@ bool canAccessRoute(WidgetRef ref, String name) {
   }
   if (name == AppRoute.orders ||
       name == AppRoute.booking ||
+      name == AppRoute.quickDrop ||
+      name == AppRoute.receipts ||
       name == AppRoute.orderDetail) {
     return flow.hasSession;
   }
@@ -134,6 +138,16 @@ Route<dynamic> onGenerateCustomerRoute(
         builder: (_) => const CustomerOrderBookingScreen(),
         settings: settings,
       );
+    case AppRoute.quickDrop:
+      return MaterialPageRoute(
+        builder: (_) => const CustomerQuickDropScreen(),
+        settings: settings,
+      );
+    case AppRoute.receipts:
+      return MaterialPageRoute(
+        builder: (_) => const CustomerReceiptsScreen(),
+        settings: settings,
+      );
     case AppRoute.orders:
       return MaterialPageRoute(
         builder: (_) => const CustomerOrdersScreen(),
@@ -146,8 +160,9 @@ Route<dynamic> onGenerateCustomerRoute(
         settings: settings,
       );
     case AppRoute.home:
+      final initialTab = settings.arguments is int ? settings.arguments as int : 0;
       return MaterialPageRoute(
-        builder: (_) => const CustomerHomeScreen(),
+        builder: (_) => CustomerShellScreen(initialIndex: initialTab),
         settings: settings,
       );
     case AppRoute.profile:
