@@ -16,5 +16,7 @@ void main() {
     expect(find.text('Find your laundries'), findsOneWidget);
     expect(find.text('Find'), findsOneWidget);
     expect(find.text('Phone number'), findsOneWidget);
+    expect(find.text('SMS'), findsOneWidget);
+    expect(find.text('Email'), findsOneWidget);
   });
 }

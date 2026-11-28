@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_services/mobile_services.dart';
 
 import '../../../core/app_shell_controller.dart';
-import '../../../core/providers/network_providers.dart';
+import '../../../core/providers/app_dependencies.dart';
 import '../data/repositories/customer_auth_repository.dart';
 import '../../../features/tenant/providers/tenant_provider.dart';
 
@@ -45,29 +45,50 @@ class CustomerPasswordLoginNotifier extends Notifier<PasswordLoginState> {
   }
 
   Future<void> submit({required String phoneNumber}) async {
-    if (state.password.length < 8) {
+    if (state.password.length < 6) {
       state = state.copyWith(errorMessageKey: 'auth.passwordMinLengthError');
       return;
     }
 
     final tenant = ref.read(tenantProvider).valueOrNull;
-    if (tenant == null) {
-      state = state.copyWith(errorMessageKey: 'loginEntry.genericError');
-      return;
-    }
-
     state = state.copyWith(isSubmitting: true, clearError: true);
 
     try {
       final session = await _repo.loginWithPassword(
         phoneNumber: phoneNumber,
         password: state.password,
-        tenantId: tenant.tenantOrgId,
-        branch: tenant.branches.length == 1 ? tenant.branches.first : null,
+        tenantId: tenant?.tenantOrgId ?? '',
+        branch: tenant != null && tenant.branches.length == 1
+            ? tenant.branches.first
+            : null,
       );
+
+      // Hydrate the active laundry if the user signed in before picking one.
+      final resolvedTenantId = session.tenantOrgId;
+      if (tenant == null &&
+          resolvedTenantId != null &&
+          resolvedTenantId.isNotEmpty) {
+        try {
+          final tenants = await ref
+              .read(tenantServiceProvider)
+              .listTenantsForPhone(session.phoneNumber);
+          final matched = tenants
+              .where((t) => t.tenantOrgId == resolvedTenantId)
+              .firstOrNull;
+          if (matched != null) {
+            await ref.read(tenantProvider.notifier).selectTenant(matched);
+          } else if (tenants.isNotEmpty) {
+            await ref.read(tenantProvider.notifier).selectTenant(tenants.first);
+          }
+        } catch (_) {
+          // Non-fatal: home screen can still refresh tenants.
+        }
+      }
+
       ref
           .read(customerSessionFlowProvider.notifier)
           .applyRefreshedSession(session);
+      state = state.copyWith(isSubmitting: false, clearError: true);
     } on AuthServiceException catch (e) {
       state = state.copyWith(
         isSubmitting: false,

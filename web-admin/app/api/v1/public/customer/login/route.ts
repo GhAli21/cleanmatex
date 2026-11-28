@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { loginWithPassword } from '@/lib/services/customer-password.service';
+import { generateVerificationToken } from '@/lib/services/otp.service';
 import { checkLoginRateLimit } from '@/lib/middleware/rate-limit';
 
 /**
@@ -22,14 +23,18 @@ export async function POST(request: NextRequest) {
     const password =
       typeof body?.password === 'string' ? body.password : '';
 
-    if (!tenantId || !phone || !password) {
+    if (!phone || !password) {
       return NextResponse.json(
-        { success: false, error: 'tenantId, phone, and password are required' },
+        { success: false, error: 'phone and password are required' },
         { status: 400 },
       );
     }
 
-    const customer = await loginWithPassword({ phone, password, tenantId });
+    const customer = await loginWithPassword({
+      phone,
+      password,
+      tenantId: tenantId || undefined,
+    });
 
     if (!customer) {
       return NextResponse.json(
@@ -47,6 +52,8 @@ export async function POST(request: NextRequest) {
           isGuest: false,
           tenantOrgId: customer.tenantOrgId,
           displayName: customer.displayName,
+          verificationToken: generateVerificationToken(customer.phoneNumber),
+          hasPassword: true,
         },
       },
       { status: 200 },

@@ -28,7 +28,10 @@ import { CustomerMarketingConsentCard } from '@features/customers/ui/customer-ma
 import { CustomerStoredValueTab } from '@features/customers/ui/customer-stored-value-tab'
 import { CustomerLoyaltyTab } from '@features/customers/ui/customer-loyalty-tab'
 import { CustomerAuditHistoryTab } from '@features/customers/ui/customer-audit-history-tab'
-import { CustomerAppPasswordAction } from '@features/customers/ui/customer-app-password-action'
+import {
+  CustomerAppPasswordAction,
+  CustomerAppPasswordCard,
+} from '@features/customers/ui/customer-app-password-action'
 import {
   CustomerB2BContactsTab,
   CustomerB2BContractsTab,
@@ -411,7 +414,11 @@ export default function CustomerDetailPage() {
           {/* Tab Content */}
           <div className="p-6">
             {activeTab === 'profile' && (
-              <ProfileTab customer={customer} onUpdate={setCustomer} />
+              <ProfileTab
+                customer={customer}
+                tenantId={currentTenant?.tenant_id}
+                onUpdate={setCustomer}
+              />
             )}
             {activeTab === 'addresses' && (
               <CustomerAddressesSection
@@ -497,9 +504,11 @@ export default function CustomerDetailPage() {
  */
 function ProfileTab({
   customer,
+  tenantId,
   onUpdate: _onUpdate,
 }: {
   customer: CustomerWithTenantData
+  tenantId?: string
   onUpdate: (customer: CustomerWithTenantData) => void
 }) {
   const t = useTranslations('customers')
@@ -619,32 +628,40 @@ function ProfileTab({
           <h3 className="text-lg font-semibold text-foreground mb-4">
             {t('accountInfo')}
           </h3>
-          <dl className="space-y-3">
-            <div>
-              <dt className="text-sm font-medium text-muted-foreground">{t('customerType')}</dt>
-              <dd className="mt-1 text-sm text-foreground">
-                {t(`types.${customer.type}`) || customer.type}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-muted-foreground">{t('status')}</dt>
-              <dd className="mt-1 text-sm text-foreground">
-                {customer.profileStatus === 3 ? t('active') : `${t('status')} ${formatNumber(customer.profileStatus)}`}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-muted-foreground">{t('phoneVerified')}</dt>
-              <dd className="mt-1 text-sm text-foreground">
-                {customer.phoneVerified ? `${tCommon('yes')} ✓` : tCommon('no')}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-muted-foreground">{t('memberSince')}</dt>
-              <dd className="mt-1 text-sm text-foreground tabular-nums">
-                {new Date(customer.createdAt).toLocaleDateString(locale === 'ar' ? 'ar' : 'en-US')}
-              </dd>
-            </div>
-          </dl>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">{t('customerType')}</dt>
+                <dd className="mt-1 text-sm text-foreground">
+                  {t(`types.${customer.type}`) || customer.type}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">{t('status')}</dt>
+                <dd className="mt-1 text-sm text-foreground">
+                  {customer.profileStatus === 3 ? t('active') : `${t('status')} ${formatNumber(customer.profileStatus)}`}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">{t('phoneVerified')}</dt>
+                <dd className="mt-1 text-sm text-foreground">
+                  {customer.phoneVerified ? `${tCommon('yes')} ✓` : tCommon('no')}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">{t('memberSince')}</dt>
+                <dd className="mt-1 text-sm text-foreground tabular-nums">
+                  {new Date(customer.createdAt).toLocaleDateString(locale === 'ar' ? 'ar' : 'en-US')}
+                </dd>
+              </div>
+            </dl>
+            {tenantId && (
+              <CustomerAppPasswordCard
+                tenantId={tenantId}
+                customerId={customer.id}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

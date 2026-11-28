@@ -317,6 +317,33 @@ export const CUSTOMERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
         notes: ['B19 follow-up (2026-09-17) — corrected from the previously-unseeded loyalty:view code; wires this route into the Loyalty tab for the first time.'],
       },
+      {
+        label: 'Read Customer App password status (Profile tab)',
+        method: 'GET',
+        path: '/api/v1/customers/[id]/customer-app-password',
+        requirement: {
+          permissions: ['customers:manage_credentials', 'customers:update', 'customers:read'],
+          requireAllPermissions: false,
+        },
+      },
+      {
+        label: 'Issue Customer App temporary password',
+        method: 'POST',
+        path: '/api/v1/customers/[id]/customer-app-password',
+        requirement: {
+          permissions: ['customers:manage_credentials', 'customers:update'],
+          requireAllPermissions: false,
+        },
+      },
+      {
+        label: 'Set or reset Customer App password',
+        method: 'PUT',
+        path: '/api/v1/customers/[id]/customer-app-password',
+        requirement: {
+          permissions: ['customers:manage_credentials', 'customers:update'],
+          requireAllPermissions: false,
+        },
+      },
     ],
     notes: CUSTOMERS_NOTES,
   },

@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomInt, timingSafeEqual } from 'crypto';
 
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
+import { hashLegacyCustomerPassword } from './customer-password.service';
 import { normalizePhone } from './customers.service';
 
 // Short-lived bearer minimizes exposure if a mobile token is copied from an unlocked device.
@@ -407,20 +408,28 @@ export async function signInCustomerApp(params: {
   };
 }
 
+/** Safe credential metadata returned to authorized tenant staff (never includes hashes or plaintext). */
+export interface CustomerAppCredentialStatus {
+  hasPassword: boolean;
+  mustChangePassword: boolean;
+  passwordChangedAt: string | null;
+  tempPasswordExpiresAt: string | null;
+  isLocked: boolean;
+  hasContactIdentity: boolean;
+}
+
 /**
- * Issues a one-time six-digit temporary password for a tenant-owned customer.
- * The tenant relationship lookup is explicitly scoped before any global
- * identity is loaded or linked, so a staff member cannot issue a credential
- * for another Organization's customer row.
+ * Resolves the tenant-owned customer relationship and guarantees a linked global
+ * `sys_customers_mst` record when at least one valid phone or email exists.
  *
  * @param params - Authenticated tenant staff context and Organization customer ID.
- * @returns The plaintext temporary password exactly once and its UTC expiry.
+ * @returns Global customer ID linked to the tenant customer row.
  */
-export async function issueCustomerAppTemporaryPassword(params: {
+async function resolveOrLinkGlobalCustomerForStaff(params: {
   tenantId: string;
   orgCustomerId: string;
   actorId: string;
-}): Promise<{ temporaryPassword: string; expiresAt: string }> {
+}): Promise<string> {
   const supabase = createAdminSupabaseClient();
   const { data: orgCustomer, error: orgCustomerError } = await supabase
     .from('org_customers_mst')
@@ -499,6 +508,182 @@ export async function issueCustomerAppTemporaryPassword(params: {
     if (linkError) throw linkError;
   }
 
+  return customerId;
+}
+
+/**
+ * Reads safe Customer App password status for a tenant-owned customer row.
+ * Never returns password hashes or plaintext secrets.
+ *
+ * @param params - Authenticated tenant ID and Organization customer ID.
+ * @returns Non-sensitive password state for staff visibility.
+ */
+export async function getCustomerAppCredentialStatus(params: {
+  tenantId: string;
+  orgCustomerId: string;
+}): Promise<CustomerAppCredentialStatus> {
+  const supabase = createAdminSupabaseClient();
+  const { data: orgCustomer, error: orgCustomerError } = await supabase
+    .from('org_customers_mst')
+    .select('id, customer_id, phone, email, password_hash, password_updated_at')
+    .eq('tenant_org_id', params.tenantId)
+    .eq('id', params.orgCustomerId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (orgCustomerError) throw orgCustomerError;
+  if (!orgCustomer) throw new Error('Customer relationship was not found');
+
+  const mobile = orgCustomer.phone ? normalizePhone(orgCustomer.phone).normalized : null;
+  const validMobile = Boolean(mobile && /^\+\d{10,15}$/.test(mobile));
+  const normalizedEmail = orgCustomer.email?.trim().toLowerCase() || '';
+  const validEmail = Boolean(normalizedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail));
+  const hasContactIdentity = validMobile || validEmail;
+
+  let sysHasPassword = false;
+  let mustChangePassword = false;
+  let sysPasswordChangedAt: string | null = null;
+  let tempPasswordExpiresAt: string | null = null;
+  let isLocked = false;
+
+  if (orgCustomer.customer_id) {
+    const { data: sysCustomer, error: sysError } = await supabase
+      .from('sys_customers_mst')
+      .select(
+        'app_password_hash, app_password_changed_at, app_password_must_change, app_temp_password_expires_at, app_locked_until',
+      )
+      .eq('id', orgCustomer.customer_id)
+      .maybeSingle();
+    if (sysError) throw sysError;
+    if (sysCustomer) {
+      sysHasPassword = typeof sysCustomer.app_password_hash === 'string' && sysCustomer.app_password_hash.length > 0;
+      mustChangePassword = Boolean(sysCustomer.app_password_must_change);
+      sysPasswordChangedAt = (sysCustomer.app_password_changed_at as string | null) ?? null;
+      tempPasswordExpiresAt = (sysCustomer.app_temp_password_expires_at as string | null) ?? null;
+      isLocked =
+        sysCustomer.app_locked_until !== null &&
+        new Date(sysCustomer.app_locked_until as string).getTime() > Date.now();
+    }
+  }
+
+  const orgHasPassword =
+    typeof orgCustomer.password_hash === 'string' && orgCustomer.password_hash.length > 0;
+
+  return {
+    hasPassword: sysHasPassword || orgHasPassword,
+    mustChangePassword,
+    passwordChangedAt: sysPasswordChangedAt ?? ((orgCustomer.password_updated_at as string | null) ?? null),
+    tempPasswordExpiresAt,
+    isLocked,
+    hasContactIdentity,
+  };
+}
+
+/**
+ * Sets or resets a Customer App password directly by authorized tenant staff.
+ * Updates both the global Argon2id authority (`sys_customers_mst`) and the tenant-scoped
+ * scrypt hash (`org_customers_mst`), clears lockouts, and revokes existing mobile sessions.
+ *
+ * @param params - Staff actor, tenant customer ID, replacement password, and forced-change flag.
+ * @returns Updated safe credential metadata.
+ */
+export async function setCustomerAppPasswordByStaff(params: {
+  tenantId: string;
+  orgCustomerId: string;
+  actorId: string;
+  newPassword: string;
+  requirePasswordChange?: boolean;
+}): Promise<CustomerAppCredentialStatus> {
+  if (params.newPassword.length < PASSWORD_MIN_LENGTH || params.newPassword.length > 128) {
+    throw new CustomerAppAuthError('INVALID_PASSWORD');
+  }
+
+  const supabase = createAdminSupabaseClient();
+  const customerId = await resolveOrLinkGlobalCustomerForStaff({
+    tenantId: params.tenantId,
+    orgCustomerId: params.orgCustomerId,
+    actorId: params.actorId,
+  });
+
+  const { data: customer, error: customerError } = await supabase
+    .from('sys_customers_mst')
+    .select('app_session_version')
+    .eq('id', customerId)
+    .single();
+  if (customerError) throw customerError;
+
+  const nowIso = new Date().toISOString();
+  const [argon2Hash, legacyScryptHash] = await Promise.all([
+    hashCustomerAppPassword(params.newPassword),
+    hashLegacyCustomerPassword(params.newPassword),
+  ]);
+
+  const { error: credentialError } = await supabase
+    .from('sys_customers_mst')
+    .update({
+      app_password_hash: argon2Hash,
+      app_password_changed_at: nowIso,
+      app_password_must_change: Boolean(params.requirePasswordChange),
+      app_temp_password_expires_at: null,
+      app_failed_sign_in_count: 0,
+      app_locked_until: null,
+      app_session_version: customer.app_session_version + 1,
+      updated_at: nowIso,
+      updated_by: params.actorId,
+      updated_info: 'staff_password_set',
+    })
+    .eq('id', customerId)
+    .eq('app_session_version', customer.app_session_version);
+  if (credentialError) throw credentialError;
+
+  const { error: orgUpdateError } = await supabase
+    .from('org_customers_mst')
+    .update({
+      password_hash: legacyScryptHash,
+      password_updated_at: nowIso,
+      updated_at: nowIso,
+      updated_by: params.actorId,
+      updated_info: 'staff_password_set',
+    })
+    .eq('tenant_org_id', params.tenantId)
+    .eq('id', params.orgCustomerId);
+  if (orgUpdateError) throw orgUpdateError;
+
+  const { error: revokeError } = await supabase
+    .from('sys_cust_app_sessions_mst')
+    .update({
+      revoked_at: nowIso,
+      revoke_reason_code: 'PASSWORD_RESET',
+      updated_at: nowIso,
+      updated_by: params.actorId,
+    })
+    .eq('customer_id', customerId)
+    .is('revoked_at', null);
+  if (revokeError) throw revokeError;
+
+  return getCustomerAppCredentialStatus({
+    tenantId: params.tenantId,
+    orgCustomerId: params.orgCustomerId,
+  });
+}
+
+/**
+ * Issues a one-time six-digit temporary password for a tenant-owned customer.
+ * The tenant relationship lookup is explicitly scoped before any global
+ * identity is loaded or linked, so a staff member cannot issue a credential
+ * for another Organization's customer row.
+ *
+ * @param params - Authenticated tenant staff context and Organization customer ID.
+ * @returns The plaintext temporary password exactly once and its UTC expiry.
+ */
+export async function issueCustomerAppTemporaryPassword(params: {
+  tenantId: string;
+  orgCustomerId: string;
+  actorId: string;
+}): Promise<{ temporaryPassword: string; expiresAt: string }> {
+  const supabase = createAdminSupabaseClient();
+  const customerId = await resolveOrLinkGlobalCustomerForStaff(params);
+
   const { data: customer, error: customerError } = await supabase
     .from('sys_customers_mst')
     .select('app_session_version')
@@ -508,17 +693,23 @@ export async function issueCustomerAppTemporaryPassword(params: {
 
   const temporaryPassword = randomInt(0, 1_000_000).toString().padStart(6, '0');
   const expiresAt = new Date(Date.now() + TEMPORARY_PASSWORD_TTL_MS).toISOString();
+  const nowIso = new Date().toISOString();
+  const [argon2Hash, legacyScryptHash] = await Promise.all([
+    hashCustomerAppPassword(temporaryPassword),
+    hashLegacyCustomerPassword(temporaryPassword),
+  ]);
+
   const { error: credentialError } = await supabase
     .from('sys_customers_mst')
     .update({
-      app_password_hash: await hashCustomerAppPassword(temporaryPassword),
-      app_password_changed_at: new Date().toISOString(),
+      app_password_hash: argon2Hash,
+      app_password_changed_at: nowIso,
       app_password_must_change: true,
       app_temp_password_expires_at: expiresAt,
       app_failed_sign_in_count: 0,
       app_locked_until: null,
       app_session_version: customer.app_session_version + 1,
-      updated_at: new Date().toISOString(),
+      updated_at: nowIso,
       updated_by: params.actorId,
       updated_info: 'temporary_password_issued',
     })
@@ -526,12 +717,26 @@ export async function issueCustomerAppTemporaryPassword(params: {
     .eq('app_session_version', customer.app_session_version);
   if (credentialError) throw credentialError;
 
+  // Keep per-tenant scrypt fallback aligned with the newly issued temporary password.
+  const { error: orgUpdateError } = await supabase
+    .from('org_customers_mst')
+    .update({
+      password_hash: legacyScryptHash,
+      password_updated_at: nowIso,
+      updated_at: nowIso,
+      updated_by: params.actorId,
+      updated_info: 'temporary_password_issued',
+    })
+    .eq('tenant_org_id', params.tenantId)
+    .eq('id', params.orgCustomerId);
+  if (orgUpdateError) throw orgUpdateError;
+
   const { error: revokeError } = await supabase
     .from('sys_cust_app_sessions_mst')
     .update({
-      revoked_at: new Date().toISOString(),
+      revoked_at: nowIso,
       revoke_reason_code: 'PASSWORD_RESET',
-      updated_at: new Date().toISOString(),
+      updated_at: nowIso,
       updated_by: params.actorId,
     })
     .eq('customer_id', customerId)

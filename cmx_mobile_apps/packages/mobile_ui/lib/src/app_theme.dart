@@ -87,6 +87,13 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         height: 68,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            color: selected ? statusExt.brandText : AppColors.textMuted,
+            size: 24,
+          );
+        }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
@@ -209,6 +216,13 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         height: 68,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            color: selected ? statusExt.brandText : AppColors.textMutedDark,
+            size: 24,
+          );
+        }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(

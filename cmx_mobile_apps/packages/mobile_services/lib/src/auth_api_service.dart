@@ -21,6 +21,9 @@ class AuthApiService {
 
   Future<CustomerAuthChallengeModel> requestOtp({
     required String phoneNumber,
+    String? tenantId,
+    String channel = 'SMS',
+    String? email,
   }) async {
     if (!RegExp(r'^\+?[0-9]{8,15}$').hasMatch(phoneNumber.trim())) {
       throw const AuthServiceException(
@@ -38,10 +41,20 @@ class AuthApiService {
 
     try {
       await _httpClient.postJson(
-        '/api/v1/customers/send-otp',
-        body: {'phone': phoneNumber, 'purpose': 'login'},
+        '/api/v1/public/customer/auth/request-otp',
+        body: {
+          'phone': phoneNumber,
+          if (tenantId != null && tenantId.isNotEmpty) 'tenantId': tenantId,
+          'channel': channel,
+          if (email != null && email.trim().isNotEmpty)
+            'email': email.trim().toLowerCase(),
+        },
       );
     } on MobileHttpException catch (error) {
+      AppLogger.error(
+        'auth_api.request_otp_failed status=${error.statusCode} code=${error.code} channel=$channel',
+        error: error,
+      );
       throw AuthServiceException(
         code: error.code,
         messageKey: 'loginEntry.genericError',
@@ -156,20 +169,64 @@ class AuthApiService {
       );
     }
 
-    if (password.length < 8) {
+    if (password.length < 6) {
       throw const AuthServiceException(
         code: 'auth_password_too_short',
         messageKey: 'auth.passwordMinLengthError',
       );
     }
 
+    // 1. Try 0854 global Customer App Argon2id login first (issues opaque access token).
+    final split = _splitCountryAndMobile(phoneNumber.trim());
+    if (split != null) {
+      try {
+        final globalResponse = await _httpClient.postJson(
+          '/api/v1/public/customer/auth/login',
+          body: {
+            'identity': {
+              'kind': 'PHONE',
+              'countryCode': split.$1,
+              'mobileNumber': split.$2,
+            },
+            'password': password,
+          },
+        );
+        final data = globalResponse['data'];
+        if (data is Map<String, Object?>) {
+          final tokens = data['tokens'];
+          final accessToken = tokens is Map<String, Object?>
+              ? tokens['accessToken'] as String?
+              : null;
+          if (accessToken != null && accessToken.isNotEmpty) {
+            return _sessionWithBranch(
+              CustomerSessionModel(
+                customerId: data['customerId'] as String? ?? '',
+                phoneNumber: data['mobileE164'] as String? ?? phoneNumber,
+                isGuest: false,
+                tenantOrgId: tenantId,
+                displayName: data['displayName'] as String?,
+                verificationToken: accessToken,
+                hasPassword: true,
+              ),
+              branch,
+            );
+          }
+        }
+      } on MobileHttpException catch (error) {
+        AppLogger.info(
+          'auth_api.global_login_fallback status=${error.statusCode} code=${error.code}',
+        );
+      }
+    }
+
+    // 2. Fallback to per-tenant scrypt password login (and demo mobile-as-password login).
     try {
       final response = await _httpClient.postJson(
         '/api/v1/public/customer/login',
         body: {
-          'tenantId': tenantId,
+          if (tenantId.trim().isNotEmpty) 'tenantId': tenantId.trim(),
           'phone': phoneNumber,
-          'password': password
+          'password': password,
         },
       );
 
@@ -183,12 +240,32 @@ class AuthApiService {
 
       return _sessionWithBranch(CustomerSessionModel.fromJson(data), branch);
     } on MobileHttpException catch (error) {
+      AppLogger.error(
+        'auth_api.password_login_failed status=${error.statusCode} code=${error.code}',
+        error: error,
+      );
       throw AuthServiceException(
         code: error.code,
         messageKey: 'auth.invalidPasswordError',
         originalError: error,
       );
     }
+  }
+
+  /// Splits E.164 phone (`+96891234567`, `+966501234567`) into `(countryCode, mobileNumber)`.
+  (String, String)? _splitCountryAndMobile(String raw) {
+    final cleaned = raw.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    const gccCodes = ['+968', '+966', '+971', '+974', '+973', '+965', '+962', '+20'];
+    for (final code in gccCodes) {
+      if (cleaned.startsWith(code) && cleaned.length > code.length + 5) {
+        return (code, cleaned.substring(code.length));
+      }
+      final bare = code.substring(1);
+      if (cleaned.startsWith(bare) && cleaned.length > bare.length + 5) {
+        return (code, cleaned.substring(bare.length));
+      }
+    }
+    return null;
   }
 
   Future<void> setPassword({

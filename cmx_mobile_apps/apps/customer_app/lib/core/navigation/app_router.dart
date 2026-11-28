@@ -51,17 +51,22 @@ bool canAccessRoute(WidgetRef ref, String name) {
   if (t == null) {
     return false;
   }
+  final isSignedIn = flow.hasSession && !(flow.session?.isGuest ?? false);
+
   if (name == AppRoute.home) {
     return flow.hasSession;
   }
-  if (name == AppRoute.loginEntry || name == AppRoute.guestEntry) {
+  if (name == AppRoute.guestEntry) {
     return !flow.hasSession;
+  }
+  if (name == AppRoute.loginEntry ||
+      name == AppRoute.entry ||
+      name == AppRoute.passwordLogin) {
+    // Allow guests to upgrade to an authenticated account via Sign In.
+    return !isSignedIn;
   }
   if (name == AppRoute.otpVerify) {
-    return flow.pendingChallenge != null && !flow.hasSession;
-  }
-  if (name == AppRoute.entry) {
-    return !flow.hasSession;
+    return flow.pendingChallenge != null && !isSignedIn;
   }
   if (name == AppRoute.offline) {
     return true;

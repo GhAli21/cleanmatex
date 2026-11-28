@@ -58,6 +58,53 @@ async function hashPassword(plain: string): Promise<string> {
   return `scrypt:${salt}:${derived.toString('hex')}`;
 }
 
+/**
+ * Generates a per-tenant scrypt password hash compatible with legacy customer password login.
+ * Used when tenant staff set a customer password so both global and per-tenant auth paths stay aligned.
+ *
+ * @param plain - Plaintext password supplied for hashing only.
+ * @returns Versioned scrypt hash string.
+ */
+export async function hashLegacyCustomerPassword(plain: string): Promise<string> {
+  return hashPassword(plain);
+}
+
+/**
+ * Compares a submitted password against canonical forms of a customer's mobile number.
+ * Only ever invoked when the target tenant has `org_tenants_mst.is_hq_test_demo = true`.
+ *
+ * @param password - Submitted plaintext password.
+ * @param inputPhone - Phone number submitted in the login request.
+ * @param storedPhone - Phone number stored on the customer row.
+ * @returns True when the password matches one of the customer's normalized mobile formats.
+ */
+function isDemoMobilePasswordMatch(
+  password: string,
+  inputPhone: string,
+  storedPhone?: string | null,
+): boolean {
+  const cleanedPassword = (password ?? '').trim().replace(/[\s\-\(\)]/g, '');
+  if (cleanedPassword.length < 7) {
+    return false;
+  }
+
+  const candidates = Array.from(
+    new Set([
+      ...buildPhoneLookupCandidates(inputPhone),
+      ...(storedPhone ? buildPhoneLookupCandidates(storedPhone) : []),
+    ]),
+  );
+
+  const submittedBuf = Buffer.from(cleanedPassword, 'utf8');
+  return candidates.some((candidate) => {
+    const candidateBuf = Buffer.from(candidate, 'utf8');
+    if (submittedBuf.length !== candidateBuf.length) {
+      return false;
+    }
+    return timingSafeEqual(submittedBuf, candidateBuf);
+  });
+}
+
 async function verifyPassword(plain: string, stored: string): Promise<boolean> {
   const parts = stored.split(':');
   if (parts.length !== 3 || parts[0] !== 'scrypt') {
@@ -182,15 +229,19 @@ export interface CustomerPasswordLoginResult {
 /**
  * Validates phone + password and returns session-ready customer data.
  * Returns null on wrong credentials (caller must return 401 — never leak why).
+ *
+ * For test/demo organizations (`org_tenants_mst.is_hq_test_demo = true`) only,
+ * entering the customer's mobile number as the password is accepted to support QA testing.
+ *
  * @param params
  * @param params.phone
  * @param params.password
- * @param params.tenantId
+ * @param params.tenantId - Optional only for test/demo auto-resolution; required for production tenants.
  */
 export async function loginWithPassword(params: {
   phone: string;
   password: string;
-  tenantId: string;
+  tenantId?: string;
 }): Promise<CustomerPasswordLoginResult | null> {
   const norm = normalizePhone(params.phone);
   if (!norm.isValid) {
@@ -199,37 +250,150 @@ export async function loginWithPassword(params: {
 
   const phoneCandidates = buildPhoneLookupCandidates(params.phone);
   const supabase = createAdminSupabaseClient();
-  const { data: customer, error } = await supabase
-    .from('org_customers_mst')
-    .select('id, display_name, name, phone, password_hash')
-    .eq('tenant_org_id', params.tenantId)
-    .in('phone', phoneCandidates)
-    .eq('is_active', true)
-    .maybeSingle();
+  const requestedTenantId = params.tenantId?.trim() || '';
 
-  if (error) {
-    logger.error('loginWithPassword query failed', error as Error, {
+  // When no tenant is pre-selected yet (e.g. fresh mobile install), allow lookup
+  // strictly across active HQ test/demo tenants only.
+  if (!requestedTenantId) {
+    const { data: demoTenants, error: demoTenantsError } = await supabase
+      .from('org_tenants_mst')
+      .select('id')
+      .eq('is_hq_test_demo', true)
+      .eq('is_active', true);
+
+    if (demoTenantsError) {
+      logger.error('loginWithPassword demo tenant lookup failed', demoTenantsError as Error, {
+        feature: 'customer_password',
+        action: 'demo_tenant_lookup',
+      });
+      throw demoTenantsError;
+    }
+
+    const demoTenantIds = (demoTenants ?? [])
+      .map((row) => row.id as string)
+      .filter((id) => Boolean(id));
+
+    if (demoTenantIds.length === 0) {
+      return null;
+    }
+
+    const { data: demoCustomer, error: demoCustomerError } = await supabase
+      .from('org_customers_mst')
+      .select('id, tenant_org_id, display_name, name, phone, password_hash')
+      .in('tenant_org_id', demoTenantIds)
+      .in('phone', phoneCandidates)
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (demoCustomerError) {
+      logger.error('loginWithPassword demo customer lookup failed', demoCustomerError as Error, {
+        feature: 'customer_password',
+        action: 'demo_customer_lookup',
+      });
+      throw demoCustomerError;
+    }
+
+    if (!demoCustomer) {
+      return null;
+    }
+
+    const hashMatch =
+      typeof demoCustomer.password_hash === 'string' && demoCustomer.password_hash.length > 0
+        ? await verifyPassword(params.password, demoCustomer.password_hash)
+        : false;
+    const demoMobileMatch =
+      !hashMatch && isDemoMobilePasswordMatch(params.password, params.phone, demoCustomer.phone);
+
+    if (!hashMatch && !demoMobileMatch) {
+      return null;
+    }
+
+    if (demoMobileMatch) {
+      logger.info('Demo tenant mobile-as-password login succeeded', {
+        feature: 'customer_password',
+        action: 'demo_mobile_login',
+        tenantId: demoCustomer.tenant_org_id,
+        customerId: demoCustomer.id,
+      });
+    }
+
+    return {
+      customerId: demoCustomer.id,
+      displayName: demoCustomer.display_name ?? demoCustomer.name ?? null,
+      phoneNumber: demoCustomer.phone ?? norm.normalized,
+      tenantOrgId: demoCustomer.tenant_org_id,
+    };
+  }
+
+  const [tenantResult, customerResult] = await Promise.all([
+    supabase
+      .from('org_tenants_mst')
+      .select('id, is_hq_test_demo')
+      .eq('id', requestedTenantId)
+      .eq('is_active', true)
+      .maybeSingle(),
+    supabase
+      .from('org_customers_mst')
+      .select('id, display_name, name, phone, password_hash')
+      .eq('tenant_org_id', requestedTenantId)
+      .in('phone', phoneCandidates)
+      .eq('is_active', true)
+      .maybeSingle(),
+  ]);
+
+  if (tenantResult.error) {
+    logger.error('loginWithPassword tenant lookup failed', tenantResult.error as Error, {
+      feature: 'customer_password',
+      action: 'login_tenant',
+      tenantId: requestedTenantId,
+    });
+    throw tenantResult.error;
+  }
+
+  if (customerResult.error) {
+    logger.error('loginWithPassword query failed', customerResult.error as Error, {
       feature: 'customer_password',
       action: 'login',
-      tenantId: params.tenantId,
+      tenantId: requestedTenantId,
       phoneCandidates,
     });
-    throw error;
+    throw customerResult.error;
   }
 
-  if (!customer || !customer.password_hash) {
+  const customer = customerResult.data;
+  if (!customer) {
     return null;
   }
 
-  const match = await verifyPassword(params.password, customer.password_hash);
-  if (!match) {
+  const isDemoTenant = tenantResult.data?.is_hq_test_demo === true;
+  const hashMatch =
+    typeof customer.password_hash === 'string' && customer.password_hash.length > 0
+      ? await verifyPassword(params.password, customer.password_hash)
+      : false;
+  const demoMobileMatch =
+    !hashMatch &&
+    isDemoTenant &&
+    isDemoMobilePasswordMatch(params.password, params.phone, customer.phone);
+
+  if (!hashMatch && !demoMobileMatch) {
     return null;
+  }
+
+  if (demoMobileMatch) {
+    logger.info('Demo tenant mobile-as-password login succeeded', {
+      feature: 'customer_password',
+      action: 'demo_mobile_login',
+      tenantId: requestedTenantId,
+      customerId: customer.id,
+    });
   }
 
   return {
     customerId: customer.id,
     displayName: customer.display_name ?? customer.name ?? null,
     phoneNumber: customer.phone ?? norm.normalized,
-    tenantOrgId: params.tenantId,
+    tenantOrgId: requestedTenantId,
   };
 }

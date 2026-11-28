@@ -59,6 +59,12 @@ class AppLocalizations {
           'Enter a valid phone number to continue.',
       'loginEntry.genericError':
           'We could not start your sign-in flow. Please try again.',
+      'loginEntry.otpChannelLabel': 'Send verification code via',
+      'loginEntry.channelSms': 'SMS',
+      'loginEntry.channelEmail': 'Email',
+      'loginEntry.emailLabel': 'Email address',
+      'loginEntry.emailHint': 'name@example.com',
+      'loginEntry.emailValidationError': 'Enter a valid email address.',
       'loginEntry.primaryAction': 'Send verification code',
       'otpEntry.title': 'Verify your code',
       'otpEntry.body':
@@ -755,6 +761,12 @@ class AppLocalizations {
       'loginEntry.phoneHint': 'رقم الهاتف المسجل لديك',
       'loginEntry.phoneValidationError': 'أدخل رقم هاتف صالحًا للمتابعة.',
       'loginEntry.genericError': 'تعذر بدء مسار تسجيل الدخول. حاول مرة أخرى.',
+      'loginEntry.otpChannelLabel': 'إرسال رمز التحقق عبر',
+      'loginEntry.channelSms': 'رسالة نصية SMS',
+      'loginEntry.channelEmail': 'البريد الإلكتروني',
+      'loginEntry.emailLabel': 'البريد الإلكتروني',
+      'loginEntry.emailHint': 'name@example.com',
+      'loginEntry.emailValidationError': 'أدخل بريداً إلكترونياً صالحاً.',
       'loginEntry.primaryAction': 'إرسال رمز التحقق',
       'otpEntry.title': 'تأكيد الرمز',
       'otpEntry.body':

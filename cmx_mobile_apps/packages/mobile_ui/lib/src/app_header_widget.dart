@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
 import 'app_spacing.dart';
+import 'cmx_theme_extension.dart';
 
 class AppHeaderWidget extends StatelessWidget {
   const AppHeaderWidget({
@@ -18,6 +18,7 @@ class AppHeaderWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final ext = CmxStatusThemeExtension.of(context);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,7 +32,7 @@ class AppHeaderWidget extends StatelessWidget {
               Text(
                 subtitle,
                 style: textTheme.bodyLarge?.copyWith(
-                  color: AppColors.textMuted,
+                  color: ext.textMuted,
                 ),
               ),
             ],

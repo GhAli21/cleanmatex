@@ -164,7 +164,7 @@ class CustomerHomeScreen extends ConsumerWidget {
                       const SizedBox(width: AppSpacing.sm),
                       FilledButton(
                         onPressed: () {
-                          Navigator.of(context).pushNamed(AppRoute.entry);
+                          Navigator.of(context).pushNamed(AppRoute.loginEntry);
                         },
                         child: Text(l10n.text('common.signInAction')),
                       ),

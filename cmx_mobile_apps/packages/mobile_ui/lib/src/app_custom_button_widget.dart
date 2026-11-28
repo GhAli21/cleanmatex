@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
 import 'app_loading_indicator_widget.dart';
 import 'app_spacing.dart';
 
@@ -53,36 +52,25 @@ class AppCustomButtonWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     if (isPrimary) {
       return ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          padding: EdgeInsets.zero,
-          // Override to transparent so the gradient shows through.
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-        ),
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: onPressed == null || isLoading
-                ? null
-                : const LinearGradient(
-                    colors: [Color(0xFF1A56DB), Color(0xFF2563EB)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            color: onPressed == null || isLoading
-                ? AppColors.border
-                : null,
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
+          disabledBackgroundColor:
+              theme.colorScheme.outline.withValues(alpha: 0.35),
+          disabledForegroundColor:
+              theme.colorScheme.onSurface.withValues(alpha: 0.5),
+          minimumSize: const Size.fromHeight(52),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 54),
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            child: _buildChild(context),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         ),
+        child: _buildChild(context),
       );
     }
 

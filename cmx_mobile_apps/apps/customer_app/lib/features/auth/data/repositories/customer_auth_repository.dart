@@ -10,8 +10,16 @@ class CustomerAuthRepository {
 
   Future<CustomerAuthChallengeModel> requestOtp({
     required String phoneNumber,
+    String? tenantId,
+    String channel = 'SMS',
+    String? email,
   }) {
-    return _authApiService.requestOtp(phoneNumber: phoneNumber);
+    return _authApiService.requestOtp(
+      phoneNumber: phoneNumber,
+      tenantId: tenantId,
+      channel: channel,
+      email: email,
+    );
   }
 
   Future<CustomerSessionModel> verifyOtp({

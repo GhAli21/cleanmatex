@@ -142,9 +142,17 @@ class CustomerSessionFlowNotifier extends Notifier<CustomerSessionFlowState> {
     await _sessionManager.saveSession(state.session!);
   }
 
-  Future<void> signInWithPhone({required String phoneNumber}) async {
-    final challenge =
-        await _authRepository.requestOtp(phoneNumber: phoneNumber);
+  Future<void> signInWithPhone({
+    required String phoneNumber,
+    String channel = 'SMS',
+    String? email,
+  }) async {
+    final challenge = await _authRepository.requestOtp(
+      phoneNumber: phoneNumber,
+      tenantId: _currentTenant?.tenantOrgId,
+      channel: channel,
+      email: email,
+    );
     state = state.copyWith(
       pendingChallenge: challenge,
     );
@@ -199,12 +207,13 @@ class CustomerSessionFlowNotifier extends Notifier<CustomerSessionFlowState> {
     await _sessionManager.clearSession();
   }
 
-  /// Persists a refreshed access token and updates in-memory [session] after HTTP 401 recovery.
+  /// Persists a refreshed or newly signed-in session and updates in-memory [session].
   void applyRefreshedSession(CustomerSessionModel session) {
     state = state.copyWith(
       session: session,
       clearPendingChallenge: true,
     );
+    unawaited(_sessionManager.saveSession(session));
   }
 
   Future<void> refreshConnectivityStatus() async {

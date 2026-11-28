@@ -227,8 +227,12 @@ class _BranchCapturingAuthRepository extends CustomerAuthRepository {
   _BranchCapturingAuthRepository() : super();
 
   @override
-  Future<CustomerAuthChallengeModel> requestOtp(
-      {required String phoneNumber}) async {
+  Future<CustomerAuthChallengeModel> requestOtp({
+    required String phoneNumber,
+    String? tenantId,
+    String channel = 'SMS',
+    String? email,
+  }) async {
     return CustomerAuthChallengeModel(
       phoneNumber: phoneNumber,
       challengeId: 'test-challenge',
